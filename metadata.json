@@ -1,0 +1,6 @@
+{
+  "name": "Pulangkesinii — Tempat Pulang Volunteer & Community",
+  "description": "Ruang pengabdian, relasi & kreativitas. Digital scrapbook & recruitment portal komunitas volunteer Pulangkesinii.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
