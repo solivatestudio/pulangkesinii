@@ -24,7 +24,7 @@ Antarmuka menggunakan pendekatan mobile-first dengan struktur katalog kegiatan y
 - Bagian About, Our Story, program, nilai, visi, misi, dan jangkauan wilayah.
 - FAQ accordion, halaman legal sementara, dan navigasi keyboard.
 - Kontak langsung melalui WhatsApp dan email.
-- Aset brand Pulangkesinii, elemen dekoratif, maskot, dan emoji Apple.
+- Aset brand Pulangkesinii, elemen dekoratif, dan maskot.
 - Tampilan mobile-first yang tetap terpusat dan nyaman dibaca di desktop.
 
 ## Tech stack
@@ -33,7 +33,7 @@ Antarmuka menggunakan pendekatan mobile-first dengan struktur katalog kegiatan y
 - [Vite 6](https://vite.dev/)
 - [Tailwind CSS 4](https://tailwindcss.com/)
 - [Lucide React](https://lucide.dev/) untuk ikon antarmuka
-- `emoji-datasource-apple` untuk sumber emoji bergaya Apple
+- [Phosphor Icons](https://phosphoricons.com/) untuk ikon brand bergaya duotone
 - CSS responsif khusus untuk layout dan interaction states
 
 ## Menjalankan secara lokal
@@ -70,7 +70,7 @@ Project ini tidak memerlukan environment variable untuk menjalankan frontend saa
 ```text
 pulangkesinii/
 ├── public/
-│   ├── assets/          # Logo, maskot, dekorasi, dan emoji Apple
+│   ├── assets/          # Logo, maskot, dan dekorasi
 │   └── images/web/      # Dokumentasi kegiatan yang dioptimalkan ke WebP
 ├── src/
 │   ├── App.tsx          # Struktur halaman dan interaction state utama
