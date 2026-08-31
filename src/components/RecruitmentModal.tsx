@@ -191,11 +191,16 @@ export const RecruitmentModal: React.FC<RecruitmentModalProps> = ({
                     className="w-full bg-white border-2 border-[#CBD5E0] focus:border-[#4ECDC4] rounded-xl px-3.5 py-2.5 text-sm font-medium focus:outline-none transition-colors"
                   >
                     <option value="Jakarta">Jakarta</option>
-                    <option value="Depok">Depok</option>
-                    <option value="Tangerang / Tangsel">Tangerang / Tangsel</option>
                     <option value="Bekasi">Bekasi</option>
+                    <option value="Depok">Depok</option>
+                    <option value="Tangerang">Tangerang</option>
                     <option value="Bogor">Bogor</option>
-                    <option value="Luar Jabodetabek (Hybrid/Online)">Luar Jabodetabek (Hybrid/Online)</option>
+                    <option value="Bandung">Bandung</option>
+                    <option value="Jogja">Jogja</option>
+                    <option value="Solo">Solo</option>
+                    <option value="Malang">Malang</option>
+                    <option value="Surabaya">Surabaya</option>
+                    <option value="Luar Kota / Hybrid">Luar Kota / Hybrid</option>
                   </select>
                 </div>
 
