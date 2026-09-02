@@ -7,7 +7,7 @@
     "dev": "concurrently \"tsx watch server/index.ts\" \"vite --port=3000 --host=0.0.0.0\"",
     "dev:frontend": "vite --port=3000 --host=0.0.0.0",
     "server": "tsx server/index.ts",
-    "build": "vite build",
+    "build": "vite build && esbuild server/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:express --external:@neondatabase/serverless --external:bcryptjs --external:jsonwebtoken --external:cookie-parser --external:cors --external:dotenv --external:drizzle-orm --external:uploadthing",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
