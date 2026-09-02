@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheck, Lock, User, ArrowRight, AlertCircle, Heart } from 'lucide-react';
+import { ShieldCheck, Lock, User, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface AdminLoginProps {
   onLoginSuccess: (user: any) => void;
@@ -9,6 +9,7 @@ interface AdminLoginProps {
 export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -25,10 +26,19 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      let data: any = {};
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        throw new Error(
+          res.status === 500
+            ? 'Server backend sedang mengalami kendala (500). Mohon coba lagi beberapa saat.'
+            : `Gagal memproses respon server (${res.status}).`
+        );
+      }
 
       if (!res.ok) {
-        throw new Error(data.error || 'Login gagal');
+        throw new Error(data.error || 'Username atau password tidak sesuai');
       }
 
       onLoginSuccess(data.user);
@@ -73,6 +83,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="Masukkan username admin"
+                autoComplete="username"
                 className="w-full h-11 pl-10 pr-3.5 text-xs rounded-xl border border-[#D5DFE0] focus:border-[#0EADAD] focus:ring-2 focus:ring-[#0EADAD]/20 outline-none transition-all"
                 required
               />
@@ -86,13 +97,22 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
             <div className="relative">
               <Lock className="w-4 h-4 text-[#8FA3A6] absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Masukkan password"
-                className="w-full h-11 pl-10 pr-3.5 text-xs rounded-xl border border-[#D5DFE0] focus:border-[#0EADAD] focus:ring-2 focus:ring-[#0EADAD]/20 outline-none transition-all"
+                autoComplete="current-password"
+                className="w-full h-11 pl-10 pr-10 text-xs rounded-xl border border-[#D5DFE0] focus:border-[#0EADAD] focus:ring-2 focus:ring-[#0EADAD]/20 outline-none transition-all"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8FA3A6] hover:text-[#26383C] p-1 cursor-pointer transition-colors"
+                aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
           </div>
 
