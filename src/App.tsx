@@ -8,6 +8,7 @@ import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
 import { CalendarDays, ChevronDown, ChevronRight, Globe2, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, X } from 'lucide-react';
+import { RegistrationForm } from './components/RegistrationForm';
 
 type Activity = { id:number; category:string; city:string; color:string; photo:string };
 const places = ['Semua', 'Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
@@ -54,10 +55,30 @@ export default function App(){
   const [openFaq,setOpenFaq]=useState<number|null>(null);
   const [legal,setLegal]=useState<'terms'|'privacy'|null>(null);
   const [galleryImage,setGalleryImage]=useState<string|null>(null);
+  const [showRegistrationForm,setShowRegistrationForm]=useState(false);
+
   const filtered=useMemo(()=>catalogue.filter(i=>(place==='Semua'||i.city===place)&&(category==='Semua'||i.category===category)&&(!query.trim()||`${i.category} ${i.city}`.toLowerCase().includes(query.toLowerCase()))),[query,place,category]);
 
-  useEffect(()=>{document.body.style.overflow=selected||legal||galleryImage?'hidden':'';return()=>{document.body.style.overflow=''}},[selected,legal,galleryImage]);
-  useEffect(()=>{const close=(e:KeyboardEvent)=>{if(e.key==='Escape'){setSelected(null);setLegal(null);setGalleryImage(null)}};window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close)},[]);
+  useEffect(()=>{document.body.style.overflow=selected||legal||galleryImage||showRegistrationForm?'hidden':'';return()=>{document.body.style.overflow=''}},[selected,legal,galleryImage,showRegistrationForm]);
+  
+  useEffect(()=>{
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27 || e.which === 27) {
+        if (showRegistrationForm) {
+          setShowRegistrationForm(false);
+        } else if (selected) {
+          setSelected(null);
+        } else if (galleryImage) {
+          setGalleryImage(null);
+        } else if (legal) {
+          setLegal(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [showRegistrationForm, selected, galleryImage, legal]);
+  
   const showSearchResults=()=>document.querySelector('#semua-kegiatan')?.scrollIntoView({behavior:'smooth',block:'start'});
 
   return <div className="page-stage"><a className="skip-link" href="#kegiatan">Lewati ke daftar kegiatan</a><main className="mobile-shell">
@@ -83,7 +104,8 @@ export default function App(){
     <footer><nav><a href="#tentang">Tentang Pulangkesinii</a><span>|</span><button onClick={()=>setLegal('terms')}>Syarat & Ketentuan</button><span>|</span><a href="#kontak">Pusat Bantuan</a></nav><div className="socials"><span><Instagram/></span><span><Linkedin/></span><a href="mailto:pulangkesinii@gmail.com"><Mail/></a><span><MapPin/></span></div><button className="privacy-link" onClick={()=>setLegal('privacy')}>Kebijakan Privasi</button><p>Copyright © {new Date().getFullYear()} Pulangkesinii. All Rights Reserved</p></footer>
   </main>
 
-  {selected&&<div className="modal-backdrop" onMouseDown={()=>setSelected(null)}><section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={e=>e.stopPropagation()}><button className="sheet-close" onClick={()=>setSelected(null)} aria-label="Tutup detail"><X/></button><div className={`sheet-cover cover-${selected.color} photo-cover`}><img src={selected.photo} alt={`Dokumentasi kegiatan ${selected.category} Pulangkesinii`}/><span>{selected.category} · {selected.city}</span></div><h2 id="detail-title">[Judul Kegiatan]</h2><div className="sheet-meta"><span><CalendarDays/>[Tanggal Pelaksanaan]</span><span><MapPin/>[Lokasi]</span><span><Tag/>[Biaya/Gratis]</span></div><div className="detail-split"><div className="detail-split-col"><h3>Deskripsi Acara</h3><p>Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.</p></div><div className="detail-split-col"><h3>Syarat & Ketentuan</h3><p>Terbuka untuk umum, kuota terbatas tanpa seleksi, dan mematuhi tata tertib kegiatan.</p><a href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view" target="_blank" rel="noopener noreferrer">Kebijakan Biaya Kontribusi ↗</a></div></div><a href="https://wa.me/6285779321681?text=Halo%20Pulangkesinii%2C%20saya%20ingin%20mendaftar%20kegiatan%20ini." target="_blank" rel="noreferrer">Daftar Sekarang</a></section></div>}
+  {selected&&!showRegistrationForm&&<div className="modal-backdrop" onMouseDown={()=>setSelected(null)}><section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={e=>e.stopPropagation()}><button className="sheet-close" onClick={()=>setSelected(null)} aria-label="Tutup detail"><X/></button><div className={`sheet-cover cover-${selected.color} photo-cover`}><img src={selected.photo} alt={`Dokumentasi kegiatan ${selected.category} Pulangkesinii`}/><span>{selected.category} · {selected.city}</span></div><h2 id="detail-title">[Judul Kegiatan]</h2><div className="sheet-meta"><span><CalendarDays/>[Tanggal Pelaksanaan]</span><span><MapPin/>[Lokasi]</span><span><Tag/>[Biaya/Gratis]</span></div><div className="detail-split"><div className="detail-split-col"><h3>Deskripsi Acara</h3><p>Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.</p></div><div className="detail-split-col"><h3>Syarat & Ketentuan</h3><p>Terbuka untuk umum, kuota terbatas tanpa seleksi, dan mematuhi tata tertib kegiatan.</p><a href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view" target="_blank" rel="noopener noreferrer">Kebijakan Biaya Kontribusi ↗</a></div></div><button type="button" onClick={()=>setShowRegistrationForm(true)} className="detail-sheet-cta">Daftar Sekarang</button></section></div>}
+  {showRegistrationForm&&<div className="modal-backdrop" onMouseDown={()=>setShowRegistrationForm(false)}><section ref={el=>{if(el)el.scrollTop=0}} tabIndex={-1} className="detail-sheet form-sheet" role="dialog" aria-modal="true" aria-labelledby="form-modal-title" onMouseDown={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==='Escape'){setShowRegistrationForm(false)}}}><button className="sheet-close" onClick={()=>setShowRegistrationForm(false)} aria-label="Tutup form"><X/></button><RegistrationForm onClose={()=>setShowRegistrationForm(false)}/></section></div>}
   {galleryImage&&<div className="modal-backdrop gallery-backdrop" onMouseDown={()=>setGalleryImage(null)}><section className="gallery-viewer" role="dialog" aria-modal="true" aria-label="Foto dokumentasi kegiatan" onMouseDown={e=>e.stopPropagation()}><button className="sheet-close" onClick={()=>setGalleryImage(null)} aria-label="Tutup foto"><X/></button><img src={galleryImage} alt="Dokumentasi kegiatan Pulangkesinii dalam ukuran besar"/><p>Momen kebaikan bersama Pulangkesinii.</p></section></div>}
   {legal&&<div className="modal-backdrop" onMouseDown={()=>setLegal(null)}><section className="legal-sheet" role="dialog" aria-modal="true" onMouseDown={e=>e.stopPropagation()}><button className="sheet-close" onClick={()=>setLegal(null)} aria-label="Tutup"><X/></button><HouseIcon className="brand-symbol" weight="duotone" aria-hidden="true"/><h2>{legal==='terms'?'Syarat & Ketentuan':'Kebijakan Privasi'}</h2><p>Dokumen resmi masih menunggu verifikasi tim Pulangkesinii. Halaman ini disiapkan sebagai state sementara dan tidak menetapkan kebijakan baru.</p><a href="mailto:pulangkesinii@gmail.com">Hubungi Pulangkesinii</a></section></div>}
   </div>;
