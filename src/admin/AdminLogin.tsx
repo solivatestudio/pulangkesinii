@@ -51,7 +51,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F7F7] flex items-center justify-center p-4 font-sans">
+    <div className="min-h-screen bg-[#F0F7F7] flex items-center justify-center p-4 admin-scope">
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-[0_15px_35px_rgba(14,173,173,0.12)] border border-[#E0F2F1]">
         {/* Header */}
         <div className="text-center mb-8">

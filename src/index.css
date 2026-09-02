@@ -62,3 +62,16 @@ footer{background:#f5f5f5;text-align:center;padding:28px 18px 24px;color:#666}fo
 .latest-section{scroll-margin-top:14px}
 @media(prefers-reduced-motion:reduce){.hero-mascot-blue,.hero-mascot-yellow{animation:none}.hero-menu{animation:none}}
 @media(max-width:360px){.brand-lockup{left:18px}.hero-menu-button{right:18px}.hero-copy{padding-left:18px;padding-right:18px;padding-top:128px}.brand-header h1{font-size:39px}.hero-support p{font-size:14px}.hero-mascot-yellow{width:108px;height:108px;margin-left:-49px}.hero-filters{margin-left:-18px;margin-right:-18px;padding-left:18px;padding-right:18px}.hero-filters button{padding:0 16px}.search-bar input{font-size:12px}}
+
+/* Dashboard Admin Typography */
+.admin-scope {
+  font-family: 'Poppins', sans-serif;
+}
+.admin-scope h1,
+.admin-scope h2,
+.admin-scope h3,
+.admin-scope h4,
+.admin-scope .font-heading {
+  font-family: 'More Sugar', 'Poppins', sans-serif !important;
+  letter-spacing: 0.02em;
+}

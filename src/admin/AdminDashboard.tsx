@@ -85,14 +85,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   ];
 
   return (
-    <div className="min-h-screen bg-[#F5F9F9] flex flex-col md:flex-row font-sans text-[#26383C]">
+    <div className="min-h-screen bg-[#F5F9F9] flex flex-col md:flex-row text-[#26383C] admin-scope">
       {/* Mobile Top Header */}
       <div className="md:hidden bg-white border-b border-[#E0F2F1] p-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-[#0EADAD] flex items-center justify-center text-white font-black text-sm">
             P
           </div>
-          <span className="font-bold text-sm text-[#173F42]">Pulangkesinii Admin</span>
+          <span className="font-bold text-sm text-[#173F42] font-heading">Pulangkesinii Admin</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
