@@ -1,18 +1,75 @@
-export interface VolunteerBatch {
+export type ActivityCategory = 
+  | 'Semua'
+  | 'Volunteer' 
+  | 'Voluntrip' 
+  | 'Fun Activity' 
+  | 'Pendidikan' 
+  | 'Social Care' 
+  | 'Lingkungan';
+
+export type ActivityStatus = 'open' | 'closing_soon' | 'full' | 'completed';
+
+export interface ActivityRundown {
+  time: string;
+  activity: string;
+}
+
+export interface ActivityContact {
+  name: string;
+  role: string;
+  whatsapp: string;
+}
+
+export interface ActivityItem {
   id: string;
-  batchNumber: number;
+  slug: string;
   title: string;
-  subtitle: string;
-  status: 'open' | 'ongoing' | 'completed';
+  shortDescription: string;
+  description: string;
+  category: 'Volunteer' | 'Voluntrip' | 'Fun Activity' | 'Pendidikan' | 'Social Care' | 'Lingkungan';
+  status: ActivityStatus;
+  coverImage: string;
+  gallery: string[];
+  locationName: string;
+  city: 'Jakarta' | 'Depok' | 'Tangerang' | 'Bandung' | 'Jogja' | 'Solo' | 'Malang' | 'Surabaya' | 'Hybrid';
+  address: string;
+  mapUrl?: string;
   startDate: string;
   endDate: string;
-  location: string;
-  quotaMax: number;
+  registrationDeadline: string;
+  closingDaysLeft?: number;
+  price: number; // 0 = Gratis
+  priceLabel: string; // 'Gratis' or 'Rp 65.000'
+  quota: number;
   quotaFilled: number;
-  activityTypes: string[];
-  coverImage: string;
-  description: string;
-  highlights: string[];
+  batchNumber: number;
+  benefits: string[];
+  requirements: string[];
+  itemsToBring: string[];
+  rundown: ActivityRundown[];
+  contactPerson: ActivityContact;
+  featured?: boolean;
+  urgentClosing?: boolean;
+}
+
+export interface VolunteerRegistration {
+  id: string;
+  registrationCode: string;
+  activityId: string;
+  activityTitle: string;
+  batchNumber: number;
+  fullName: string;
+  nickname: string;
+  email: string;
+  whatsapp: string;
+  domicile: string;
+  age: number;
+  division: string;
+  motivation: string;
+  funFact?: string;
+  avatarSticker: string;
+  createdAt: string;
+  status: 'terdaftar' | 'terkonfirmasi';
 }
 
 export interface VolunteerApplication {
@@ -30,15 +87,24 @@ export interface VolunteerApplication {
   selectedAvatar: string;
   batchNumber: number;
   createdAt: string;
-  status: 'terdaftar' | 'terkonfirmasi';
+  status: 'terdaftar' | 'terkonfirmasi' | 'active';
 }
 
-export interface MemoryPhoto {
+export interface TestimonialItem {
+  id: string;
+  name: string;
+  roleOrBatch: string;
+  quote: string;
+  photo: string;
+  activityTag: string;
+  likes: number;
+}
+
+export interface MemoryStoryPhoto {
   id: string;
   title: string;
   batchTag: string;
-  batchNumber: number;
-  category: 'Pendidikan' | 'Social Care' | 'Environment' | 'Fun Activity' | 'Community Gathering';
+  category: string;
   imageUrl: string;
   caption: string;
   quoteAuthor?: string;
@@ -46,35 +112,30 @@ export interface MemoryPhoto {
   location: string;
   date: string;
   likesCount: number;
-  stickerLabel?: string;
-}
-
-export interface CommunityStory {
-  id: string;
-  authorName: string;
-  authorRole: string; // e.g., 'Volunteer Batch 37'
-  avatarUrl: string;
-  storyText: string;
-  batchTag: string;
-  date: string;
-  likes: number;
-  userLiked?: boolean;
-  highlightPhrase?: string;
 }
 
 export interface FaqItem {
   id: string;
   question: string;
   answer: string;
-  category: 'pendaftaran' | 'kegiatan' | 'komunitas';
+  category: 'kegiatan' | 'pendaftaran' | 'komunitas' | 'partner';
 }
 
-export interface ActivityCategory {
-  id: string;
+export interface ValueItem {
   name: string;
+  microcopy: string;
+  description: string;
   iconName: string;
   colorBg: string;
+  colorBorder: string;
   colorText: string;
+}
+
+export interface CityRegion {
+  id: string;
+  cityName: string;
+  activeActivitiesCount: number;
   description: string;
-  countText: string;
+  coverImage: string;
+  popularLocations: string[];
 }

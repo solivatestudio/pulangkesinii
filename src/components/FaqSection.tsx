@@ -1,64 +1,92 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, Sparkles } from 'lucide-react';
-import { FAQ_ITEMS } from '../data/mockData';
+import { HelpCircle, ChevronDown, Sparkles, MessageCircle } from 'lucide-react';
+import { FAQ_DATA } from '../data/mockData';
 
 export const FaqSection: React.FC = () => {
   const [openId, setOpenId] = useState<string | null>('faq-1');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const toggleAccordion = (id: string) => {
     setOpenId(openId === id ? null : id);
   };
 
+  const filteredFaqs = FAQ_DATA.filter((item) => {
+    if (selectedCategory === 'all') return true;
+    return item.category === selectedCategory;
+  });
+
   return (
-    <section id="faq" className="py-16 bg-[#FAF9F5] border-t border-[#E2E8F0]">
+    <section id="faq" className="py-14 sm:py-20 bg-white border-b border-[#E2E8F0] relative">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Title */}
-        <div className="text-center mb-12">
-          <span className="bg-[#FFF9DB] text-[#B45309] text-xs font-heading font-bold px-3 py-1 rounded-full border border-[#FFE066]">
-            — FAQ & INFORMATION —
-          </span>
-          <h2 className="text-3xl sm:text-4xl font-heading font-bold text-[#2D3748] mt-2">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <div className="inline-flex items-center gap-1.5 bg-[#E6F7F7] text-[#0EADAD] text-xs font-heading font-bold px-3.5 py-1 rounded-full border border-[#0EADAD]/30 mb-2">
+            <HelpCircle className="w-3.5 h-3.5" />
+            <span>PUSAT INFORMASI & FAQ</span>
+          </div>
+          <h2 className="text-2xl sm:text-4xl font-heading font-extrabold text-[#172B32]">
             Pertanyaan yang Sering Ditanyakan ❓
           </h2>
-          <p className="text-sm text-[#4A5568] mt-1 font-medium">
-            Masih ragu atau ada yang pengen kamu tanyakan seputar pendaftaran & kegiatan?
+          <p className="text-xs sm:text-sm text-[#647A80] mt-2 font-medium">
+            Temukan jawaban cepat seputar pendaftaran, ketentuan kegiatan, sertifikat, dan relasi.
           </p>
         </div>
 
-        {/* Accordions */}
-        <div className="space-y-4">
-          {FAQ_ITEMS.map((item) => {
-            const isOpen = openId === item.id;
+        {/* Category Pills */}
+        <div className="flex items-center justify-center gap-2 mb-8 overflow-x-auto no-scrollbar pb-1">
+          {[
+            { id: 'all', label: 'Semua Pertanyaan' },
+            { id: 'pendaftaran', label: 'Pendaftaran' },
+            { id: 'kegiatan', label: 'Kegiatan & Sertifikat' },
+            { id: 'partner', label: 'Kolaborasi' },
+          ].map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                selectedCategory === cat.id
+                  ? 'bg-[#0EADAD] text-white shadow-2xs font-bold'
+                  : 'bg-[#F8FBFB] text-[#647A80] hover:bg-[#E6F7F7] hover:text-[#0EADAD] border border-[#E2E8F0]'
+              }`}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
 
+        {/* Accordions */}
+        <div className="space-y-3">
+          {filteredFaqs.map((item) => {
+            const isOpen = openId === item.id;
             return (
               <div
                 key={item.id}
-                className={`bg-white rounded-3xl border-2 transition-all overflow-hidden ${
+                className={`rounded-2xl border transition-all overflow-hidden ${
                   isOpen
-                    ? 'border-[#2D3748] shadow-[4px_4px_0px_0px_rgba(78,205,196,1)]'
-                    : 'border-[#E2E8F0] hover:border-[#4ECDC4]'
+                    ? 'border-[#0EADAD] bg-[#F8FBFB] shadow-2xs'
+                    : 'border-[#E2E8F0] bg-white hover:border-[#CBD5E0]'
                 }`}
               >
                 <button
                   onClick={() => toggleAccordion(item.id)}
-                  className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-heading font-bold text-base sm:text-lg text-[#2D3748] focus:outline-none cursor-pointer"
+                  className="w-full p-4 sm:p-5 text-left flex items-center justify-between gap-4 font-heading font-bold text-xs sm:text-sm text-[#172B32] focus:outline-none cursor-pointer"
                 >
                   <span className="flex items-center gap-3">
-                    <span className="w-8 h-8 rounded-full bg-[#E0F7FA] text-[#00838F] flex items-center justify-center shrink-0 font-bold text-sm">
+                    <span className="w-6 h-6 rounded-full bg-[#E6F7F7] text-[#0EADAD] flex items-center justify-center shrink-0 font-bold text-xs">
                       ?
                     </span>
                     <span>{item.question}</span>
                   </span>
                   <ChevronDown
-                    className={`w-5 h-5 text-[#4ECDC4] shrink-0 transition-transform duration-300 ${
+                    className={`w-4 h-4 text-[#0EADAD] shrink-0 transition-transform duration-300 ${
                       isOpen ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
 
                 {isOpen && (
-                  <div className="px-6 pb-6 pt-0 text-sm text-[#4A5568] leading-relaxed border-t border-[#E2E8F0]/60 font-medium animate-fadeIn">
+                  <div className="px-5 pb-5 pt-0 text-xs sm:text-sm text-[#647A80] leading-relaxed border-t border-[#E2E8F0]/60 font-medium animate-fadeIn">
                     <p className="pt-3">{item.answer}</p>
                   </div>
                 )}
@@ -68,8 +96,17 @@ export const FaqSection: React.FC = () => {
         </div>
 
         {/* Support Note */}
-        <div className="mt-8 text-center bg-[#F0FDF4] p-4 rounded-2xl border border-[#4ECDC4]/30 text-xs text-[#2D3748] font-semibold">
-          Ada pertanyaan lain? Kirim DM ke Instagram <a href="https://instagram.com/pulangkesinii" target="_blank" rel="noopener noreferrer" className="text-[#00838F] underline font-bold">@pulangkesinii</a>, Mimin selalu siap nemenin kamu!
+        <div className="mt-8 text-center bg-[#E6F7F7] p-4 rounded-2xl border border-[#0EADAD]/30 text-xs text-[#172B32] font-semibold flex flex-col sm:flex-row items-center justify-center gap-2">
+          <span>Punya pertanyaan lain yang belum terjawab?</span>
+          <a
+            href="https://wa.me/6285779321681?text=Halo%20Admin%20Pulangkesinii,%20saya%20ada%20pertanyaan%20seputar%20kegiatan."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#0EADAD] underline font-bold inline-flex items-center gap-1"
+          >
+            <MessageCircle className="w-3.5 h-3.5" />
+            <span>Chat Admin WhatsApp Kami</span>
+          </a>
         </div>
 
       </div>

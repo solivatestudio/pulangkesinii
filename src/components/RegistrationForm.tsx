@@ -13,6 +13,7 @@ import {
   Trash2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { uploadFiles } from '../utils/uploadthing';
 
 export interface RegistrationFormData {
   fullName: string;
@@ -235,11 +236,44 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     setTimeout(scrollToTop, 50);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateStep2()) return;
 
     setIsSubmitting(true);
+
+    let contributionProofUrl = '';
+    let tagFriendsProofUrl = '';
+    let repostStoryProofUrl = '';
+
+    try {
+      if (formData.contributionProof.file) {
+        const res = await uploadFiles('proofUploader', {
+          files: [formData.contributionProof.file],
+        });
+        if (res && res[0]) {
+          contributionProofUrl = res[0].ufsUrl || res[0].url;
+        }
+      }
+      if (formData.tagFriendsProof.file) {
+        const res = await uploadFiles('proofUploader', {
+          files: [formData.tagFriendsProof.file],
+        });
+        if (res && res[0]) {
+          tagFriendsProofUrl = res[0].ufsUrl || res[0].url;
+        }
+      }
+      if (formData.repostStoryProof.file) {
+        const res = await uploadFiles('proofUploader', {
+          files: [formData.repostStoryProof.file],
+        });
+        if (res && res[0]) {
+          repostStoryProofUrl = res[0].ufsUrl || res[0].url;
+        }
+      }
+    } catch (uploadErr) {
+      console.warn('Upload error, proceeding:', uploadErr);
+    }
 
     const payload = {
       fullName: formData.fullName.trim(),
@@ -250,36 +284,39 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       activityChoice: formData.activityChoice,
       paymentMethod: formData.paymentMethod,
       reason: formData.reason.trim(),
-      files: {
-        contributionProofName: formData.contributionProof.fileName,
-        contributionProofSize: formData.contributionProof.fileSize,
-        tagFriendsProofName: formData.tagFriendsProof.fileName,
-        tagFriendsProofSize: formData.tagFriendsProof.fileSize,
-        repostStoryProofName: formData.repostStoryProof.fileName,
-        repostStoryProofSize: formData.repostStoryProof.fileSize
-      },
+      contributionProofUrl,
+      tagFriendsProofUrl,
+      repostStoryProofUrl,
       submittedAt: new Date().toISOString()
     };
 
-    console.log('=== DATA SUBMIT FORM (SIAP MASUK DATABASE) ===', payload);
+    console.log('=== DATA SUBMIT FORM (NEON DB) ===', payload);
 
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setIsSubmitted(true);
-      if (onSubmitSuccess) {
-        onSubmitSuccess(formData);
-      }
-      try {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#0eadad', '#FFE066', '#FF6B6B', '#4ECDC4']
-        });
-      } catch (err) {
-        console.warn('Confetti error:', err);
-      }
-    }, 600);
+    try {
+      await fetch('/api/registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    } catch (apiErr) {
+      console.error('Failed to submit to /api/registrations', apiErr);
+    }
+
+    setIsSubmitting(false);
+    setIsSubmitted(true);
+    if (onSubmitSuccess) {
+      onSubmitSuccess(formData);
+    }
+    try {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#0eadad', '#FFE066', '#FF6B6B', '#4ECDC4']
+      });
+    } catch (err) {
+      console.warn('Confetti error:', err);
+    }
   };
 
   const handleReset = () => {

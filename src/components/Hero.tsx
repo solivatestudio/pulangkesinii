@@ -1,161 +1,260 @@
-import React from 'react';
-import { Sparkles, Heart, Users, ArrowRight, Star, Smile, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { 
+  Search, 
+  MapPin, 
+  Sparkles, 
+  ArrowRight, 
+  Users, 
+  Calendar, 
+  ShieldCheck, 
+  Heart, 
+  CheckCircle2,
+  Smile,
+  Compass
+} from 'lucide-react';
+import { ActivityCategory } from '../types';
 
 interface HeroProps {
-  onOpenRecruitment: () => void;
-  onExploreMemoryWall: () => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  selectedCategory: ActivityCategory;
+  setSelectedCategory: (cat: ActivityCategory) => void;
+  selectedCity: string;
+  setSelectedCity: (city: string) => void;
+  onExploreClick: () => void;
 }
 
-export const Hero: React.FC<HeroProps> = ({ onOpenRecruitment, onExploreMemoryWall }) => {
+export const Hero: React.FC<HeroProps> = ({
+  searchQuery,
+  setSearchQuery,
+  selectedCategory,
+  setSelectedCategory,
+  selectedCity,
+  setSelectedCity,
+  onExploreClick,
+}) => {
+  const categoryChips: { label: ActivityCategory; icon: string }[] = [
+    { label: 'Semua', icon: '✨' },
+    { label: 'Volunteer', icon: '🤝' },
+    { label: 'Voluntrip', icon: '🌲' },
+    { label: 'Fun Activity', icon: '🎨' },
+    { label: 'Social Care', icon: '❤️' },
+    { label: 'Lingkungan', icon: '🌱' },
+  ];
+
+  const cityOptions = [
+    'Semua Kota',
+    'Jakarta',
+    'Depok',
+    'Tangerang',
+    'Bandung',
+    'Jogja',
+    'Surabaya'
+  ];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onExploreClick();
+  };
+
   return (
-    <section id="hero" className="relative overflow-hidden pt-8 pb-16 md:pt-12 md:pb-24 bg-gradient-to-b from-[#FAF9F5] via-[#F0FDF4]/50 to-[#FAF9F5]">
+    <section id="hero" className="relative overflow-hidden pt-6 pb-12 sm:pt-12 sm:pb-20 bg-gradient-to-b from-[#E6F7F7]/60 via-[#F8FBFB] to-[#F8FBFB]">
       
-      {/* Decorative Washi Tape & Floating Doodles */}
-      <div className="absolute top-6 left-10 hidden lg:block opacity-70 animate-float pointer-events-none">
-        <div className="bg-[#FFE066] text-[#2D3748] font-heading font-bold text-xs px-3 py-1.5 rounded-full border border-[#2D3748]/10 shadow-sm flex items-center gap-1.5 transform -rotate-6">
-          <Star className="w-3.5 h-3.5 fill-[#FFE066]" />
-          <span>#TemanPulangKamu</span>
-        </div>
+      {/* Decorative Brand Elements */}
+      <div className="absolute top-6 left-8 hidden lg:block opacity-75 pointer-events-none animate-float-gentle">
+        <img 
+          src="/assets/star-blue.png" 
+          alt="Blue Star Accent" 
+          className="w-14 h-14 object-contain"
+        />
       </div>
 
-      <div className="absolute top-20 right-12 hidden lg:block opacity-80 animate-wiggle pointer-events-none">
-        <div className="bg-[#FFB7B2] text-[#2D3748] font-heading font-bold text-xs px-3 py-1.5 rounded-full border border-[#2D3748]/10 shadow-sm flex items-center gap-1.5 transform rotate-6">
-          <Smile className="w-3.5 h-3.5 text-[#2D3748]" />
-          <span>Core Memory Unlocked ✨</span>
-        </div>
+      <div className="absolute top-16 right-10 hidden lg:block opacity-85 pointer-events-none animate-float-gentle" style={{ animationDelay: '1.5s' }}>
+        <img 
+          src="/assets/star-yellow.png" 
+          alt="Yellow Star Accent" 
+          className="w-16 h-16 object-contain"
+        />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
-          {/* Left Column: Text & Hero Copy */}
-          <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
+          {/* Left Column: Heading & Search Box */}
+          <div className="lg:col-span-7 space-y-5 text-center lg:text-left">
             
-            {/* Top Badge */}
-            <div className="inline-flex items-center gap-2 bg-[#E0F7FA] border border-[#4ECDC4]/40 px-3.5 sm:px-4 py-1.5 rounded-full shadow-xs text-xs sm:text-sm font-semibold text-[#00838F] max-w-full">
-              <span className="flex h-2 w-2 shrink-0 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#4ECDC4] opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#4ECDC4]"></span>
+            {/* Eyebrow Pill */}
+            <div className="inline-flex items-center gap-2 bg-white px-4 py-1.5 rounded-full border border-[#0EADAD]/30 shadow-2xs text-xs sm:text-sm font-bold text-[#0EADAD]">
+              <span className="flex h-2 w-2 relative">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#0EADAD] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#0EADAD]"></span>
               </span>
-              <span className="truncate">Open Recruitment Volunteer Batch 39 Is Live! 🎉</span>
+              <span>Temukan ruang untuk berbuat baik</span>
             </div>
 
-            {/* Emotional Main Headline */}
-            <h1 className="text-2xl sm:text-5xl lg:text-6xl font-heading font-bold text-[#2D3748] leading-[1.2] sm:leading-[1.15] tracking-tight">
-              Pulang bukan sekadar <span className="relative inline-block text-[#00838F]">
-                tempat,
-                <svg className="absolute -bottom-1.5 sm:-bottom-2 left-0 w-full h-2.5 sm:h-3 text-[#FFE066]/80 -z-10" viewBox="0 0 100 20" preserveAspectRatio="none">
-                  <path d="M0 15 Q50 0 100 15" stroke="currentColor" strokeWidth="8" fill="none" strokeLinecap="round"/>
-                </svg>
-              </span> tapi tujuan & orang-orangnya. ❤️
-            </h1>
-
-            {/* Subtitle */}
-            <p className="text-sm sm:text-lg text-[#4A5568] max-w-2xl mx-auto lg:mx-0 font-medium leading-relaxed">
-              Ruang pengabdian, relasi & kreativitas anak muda. Wadah hangat untuk berbagi cerita, berdampak positif, dan menemukan rumah di dalam komunitas volunteer.
-            </p>
-
-            {/* CTAs */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 sm:gap-4">
-              <button
-                onClick={onOpenRecruitment}
-                className="w-full sm:w-auto min-h-[48px] bg-[#4ECDC4] hover:bg-[#3AAFA9] text-white font-heading font-bold text-base px-6 sm:px-7 py-3 rounded-2xl border-2 border-[#2D3748]/20 shadow-[3px_3px_0px_0px_rgba(45,55,72,0.8)] sm:shadow-[4px_4px_0px_0px_rgba(45,55,72,0.8)] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Sparkles className="w-5 h-5 shrink-0" />
-                <span>Daftar Volunteer Batch 39</span>
-                <ArrowRight className="w-4 h-4 ml-0.5 shrink-0" />
-              </button>
-
-              <button
-                onClick={onExploreMemoryWall}
-                className="w-full sm:w-auto min-h-[48px] bg-white hover:bg-[#F0FDF4] text-[#2D3748] font-heading font-semibold text-base px-6 py-3 rounded-2xl border-2 border-[#CBD5E0] hover:border-[#4ECDC4] shadow-xs transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Users className="w-5 h-5 text-[#4ECDC4] shrink-0" />
-                <span>Lihat Keseruan Kami</span>
-              </button>
+            {/* Main Heading */}
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-heading font-extrabold text-[#172B32] leading-[1.15] tracking-tight">
+                Setiap Kebaikan Selalu Punya{' '}
+                <span className="relative inline-block text-[#0EADAD]">
+                  Tempat Pulang
+                  <svg 
+                    className="absolute -bottom-2 left-0 w-full h-3 text-[#FFE066] -z-10" 
+                    viewBox="0 0 100 20" 
+                    preserveAspectRatio="none"
+                  >
+                    <path d="M0 15 Q50 0 100 15" stroke="currentColor" strokeWidth="8" fill="none" strokeLinecap="round"/>
+                  </svg>
+                </span>
+              </h1>
+              
+              <p className="text-base sm:text-lg text-[#647A80] font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed pt-1">
+                Temukan kegiatan volunteer, voluntrip, dan aktivitas sosial yang sesuai dengan waktu, minat, serta tempat pulangmu.
+              </p>
             </div>
 
-            {/* Quick Micro Social Proof */}
-            <div className="pt-2 sm:pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-3 sm:gap-6 text-xs text-[#718096] font-medium">
-              <div className="flex items-center gap-1.5 bg-white/80 px-2.5 py-1 rounded-full border border-slate-200/60 shadow-2xs">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#4ECDC4]" />
-                <span>100% Free & Friendly</span>
+            {/* Kitabisa-Inspired Interactive Search Box Card */}
+            <div className="bg-white p-3 sm:p-4 rounded-2xl sm:rounded-3xl border border-[#CBD5E0]/70 shadow-soft max-w-2xl mx-auto lg:mx-0">
+              <form onSubmit={handleSubmit} className="space-y-3">
+                
+                {/* Search Input and City Select */}
+                <div className="flex flex-col sm:flex-row items-center gap-2">
+                  <div className="relative flex-1 w-full">
+                    <Search className="w-4 h-4 text-[#0EADAD] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Cari kegiatan, lokasi, atau tema..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-full bg-[#F8FBFB] border border-[#E2E8F0] focus:border-[#0EADAD] focus:bg-white rounded-xl pl-10 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm font-medium text-[#172B32] focus:outline-none transition-all placeholder:text-[#647A80]/70"
+                    />
+                  </div>
+
+                  <div className="relative w-full sm:w-44">
+                    <MapPin className="w-4 h-4 text-[#00B4EB] absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <select
+                      value={selectedCity}
+                      onChange={(e) => setSelectedCity(e.target.value)}
+                      className="w-full bg-[#F8FBFB] border border-[#E2E8F0] focus:border-[#0EADAD] focus:bg-white rounded-xl pl-9 pr-3 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold text-[#172B32] focus:outline-none transition-all cursor-pointer appearance-none"
+                    >
+                      {cityOptions.map((city) => (
+                        <option key={city} value={city}>{city}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full sm:w-auto bg-[#0EADAD] hover:bg-[#108080] text-white font-heading font-bold text-xs sm:text-sm px-5 py-2.5 sm:py-3 rounded-xl shadow-teal-glow active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                  >
+                    <span>Cari Kegiatan</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Quick Category Chips */}
+                <div className="pt-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+                  <span className="text-[11px] font-bold text-[#647A80] shrink-0 mr-1 hidden sm:inline">
+                    Kategori:
+                  </span>
+                  {categoryChips.map((chip) => {
+                    const isSelected = selectedCategory === chip.label;
+                    return (
+                      <button
+                        key={chip.label}
+                        type="button"
+                        onClick={() => setSelectedCategory(chip.label)}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#0EADAD] text-white shadow-2xs'
+                            : 'bg-[#F8FBFB] text-[#647A80] hover:bg-[#E6F7F7] hover:text-[#0EADAD] border border-[#E2E8F0]'
+                        }`}
+                      >
+                        <span className="text-xs">{chip.icon}</span>
+                        <span>{chip.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+              </form>
+            </div>
+
+            {/* Trust Badges */}
+            <div className="pt-2 flex flex-wrap items-center justify-center lg:justify-start gap-4 sm:gap-6 text-xs text-[#647A80] font-medium">
+              <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-[#E2E8F0] shadow-2xs">
+                <ShieldCheck className="w-4 h-4 text-[#0EADAD]" />
+                <span>100% Ramah First-Timer</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/80 px-2.5 py-1 rounded-full border border-slate-200/60 shadow-2xs">
-                <Heart className="w-3.5 h-3.5 text-[#FFB7B2]" />
-                <span>21.2K+ Instagram</span>
+              <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-[#E2E8F0] shadow-2xs">
+                <CheckCircle2 className="w-4 h-4 text-[#00B4EB]" />
+                <span>E-Sertifikat Resmi</span>
               </div>
-              <div className="flex items-center gap-1.5 bg-white/80 px-2.5 py-1 rounded-full border border-slate-200/60 shadow-2xs">
-                <Star className="w-3.5 h-3.5 text-[#FFE066] fill-[#FFE066]" />
-                <span>38+ Batch Complete</span>
+              <div className="flex items-center gap-1.5 bg-white px-3 py-1 rounded-full border border-[#E2E8F0] shadow-2xs">
+                <Heart className="w-4 h-4 text-[#FFB7B2]" />
+                <span>21.2K+ Followers Komunitas</span>
               </div>
             </div>
 
           </div>
 
-          {/* Right Column: Digital Scrapbook Polaroid Collage */}
-          <div className="lg:col-span-5 relative flex justify-center pt-2 sm:pt-0">
+          {/* Right Column: Visual Collage Cards */}
+          <div className="lg:col-span-5 relative flex justify-center">
             
-            {/* Background Scrapbook Card Wrapper */}
-            <div className="relative w-full max-w-sm sm:max-w-md px-2 sm:px-0">
+            <div className="relative w-full max-w-md">
               
-              {/* Main Polaroid 1 */}
-              <div className="relative bg-white p-2.5 sm:p-3 pt-3.5 sm:pt-4 pb-5 sm:pb-6 rounded-2xl polaroid-shadow border border-[#E2E8F0] transform -rotate-2 sm:-rotate-3 hover:rotate-0 transition-transform duration-300 z-20">
-                <div className="tape-top-center"></div>
-                
-                <div className="relative rounded-xl overflow-hidden aspect-4/3 bg-[#FAF9F5]">
+              {/* Main Photo Card */}
+              <div className="bg-white p-3.5 sm:p-4 rounded-3xl border border-[#CBD5E0]/80 shadow-soft card-hover-lift relative z-20">
+                <div className="relative rounded-2xl overflow-hidden aspect-4/3 bg-[#F8FBFB]">
                   <img
-                    src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?auto=format&fit=crop&w=800&q=80"
-                    alt="Volunteers smiling together"
-                    referrerPolicy="no-referrer"
+                    src="/assets/decor-1.png"
+                    alt="Volunteer Batch 39 Community"
                     className="w-full h-full object-cover"
                   />
-                  <div className="absolute top-2 left-2 bg-[#FFE066] text-[#2D3748] font-heading font-bold text-[10px] sm:text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full shadow-xs">
-                    Batch 38 🌟
+                  <div className="absolute top-3 left-3 bg-[#FFE066] text-[#172B32] font-heading font-extrabold text-xs px-3 py-1 rounded-full shadow-xs">
+                    Batch 39 Active ⭐
+                  </div>
+                  <div className="absolute bottom-3 right-3 bg-black/60 backdrop-blur-xs text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                    Jakarta & Depok
                   </div>
                 </div>
 
-                <div className="mt-2.5 sm:mt-3 text-center">
-                  <p className="font-heading font-bold text-[#2D3748] text-sm sm:text-base">
-                    "Absen yang kangen ikut volunteer! 💛"
-                  </p>
-                  <p className="text-[11px] sm:text-xs text-[#718096] mt-0.5">
-                    Depok • 100 Volunteers Joined
+                <div className="mt-3.5 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#0EADAD] font-bold">Pendidikan & Social Care</span>
+                    <span className="text-red-500 font-bold bg-red-50 px-2 py-0.5 rounded-full text-[10px]">
+                      🔥 Sisa 16 Slot
+                    </span>
+                  </div>
+                  <h3 className="font-heading font-bold text-base sm:text-lg text-[#172B32]">
+                    Volunteer Batch 39 — Semesta Senyum
+                  </h3>
+                  <p className="text-xs text-[#647A80] line-clamp-2">
+                    Berbagi tawa, mewarnai kreasi, dan menghadirkan keceriaan bagi adik-adik panti asuhan.
                   </p>
                 </div>
               </div>
 
-              {/* Secondary Overlapping Polaroid 2 */}
-              <div className="absolute -bottom-4 -right-1 sm:top-12 sm:-right-8 w-1/2 sm:w-3/4 bg-white p-2 sm:p-3 pt-3 sm:pt-4 pb-3 sm:pb-5 rounded-2xl polaroid-shadow border border-[#E2E8F0] transform rotate-6 sm:rotate-6 hover:rotate-2 transition-transform duration-300 z-30">
-                <div className="relative rounded-xl overflow-hidden aspect-4/3 bg-[#FAF9F5]">
-                  <img
-                    src="https://images.unsplash.com/photo-1517486808906-6ca8b3f04846?auto=format&fit=crop&w=600&q=80"
-                    alt="Fun Activity Volunteering"
-                    referrerPolicy="no-referrer"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute top-1.5 right-1.5 bg-[#FFB7B2] text-[#2D3748] font-heading font-bold text-[9px] sm:text-xs px-2 py-0.5 rounded-full shadow-xs">
-                    Batch 39
-                  </div>
+              {/* Floating Mini Highlight Card */}
+              <div className="absolute -bottom-5 -left-4 sm:-left-6 bg-white p-3 rounded-2xl border border-[#E2E8F0] shadow-md z-30 flex items-center gap-3 animate-float-gentle">
+                <div className="w-10 h-10 bg-[#E6F7F7] rounded-xl flex items-center justify-center text-xl">
+                  🏡
                 </div>
-                <div className="mt-2 text-center">
-                  <p className="font-heading font-bold text-xs text-[#2D3748]">
-                    Satu senyum, ribuan kehangatan.
+                <div>
+                  <p className="font-heading font-bold text-xs text-[#172B32]">
+                    Teman Pulang Kamu
+                  </p>
+                  <p className="text-[10px] text-[#647A80]">
+                    38+ Batch Telah Terlaksana
                   </p>
                 </div>
               </div>
 
-              {/* Cute Mascot Sticker floating on card */}
-              <div className="absolute -bottom-6 -left-6 z-40 bg-[#FFE066] p-3 rounded-2xl border-2 border-[#2D3748] shadow-md transform -rotate-12 animate-float">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center font-heading font-bold text-lg text-[#2D3748]">
-                    ⭐
-                  </div>
-                  <div>
-                    <p className="font-heading font-bold text-xs text-[#2D3748]">Bintang Pulang</p>
-                    <p className="text-[10px] text-[#4A5568]">"Siap bikin memori baru?"</p>
-                  </div>
-                </div>
+              {/* Floating Quote Stamp */}
+              <div className="absolute -top-4 -right-2 sm:-right-4 bg-[#FFE066] p-2.5 rounded-2xl border border-[#172B32]/10 shadow-sm z-30 transform rotate-6 animate-pulse-subtle">
+                <p className="font-handwriting font-bold text-sm sm:text-base text-[#172B32] px-1">
+                  "Pulang bukan sekadar tempat, tapi tujuan ❤️"
+                </p>
               </div>
 
             </div>

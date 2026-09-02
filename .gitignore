@@ -6,3 +6,14 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Scratch and tool output
+.commandcode/
+.playwright-cli/
+output/
+
+# Raw camera images (use optimized webp in public/images/web/)
+public/images/*.HEIC
+public/images/*.HEIF
+public/images/*.JPEG
+public/images/*.JPG*
