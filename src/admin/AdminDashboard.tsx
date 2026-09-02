@@ -34,34 +34,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     openActivities: 0,
     pendingRegistrations: 0,
     totalRegistrations: 0,
+    totalPhotos: 0,
+    totalFaqs: 0,
   });
 
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Quick load summary stats
+    // Load summary stats
     const loadStats = async () => {
       try {
-        const [actRes, regRes] = await Promise.all([
-          fetch('/api/activities').then((r) => r.json()),
-          fetch('/api/registrations').then((r) => r.json()),
+        const [actRes, regRes, galRes, faqRes] = await Promise.all([
+          fetch('/api/activities').then((r) => r.json()).catch(() => []),
+          fetch('/api/registrations').then((r) => r.json()).catch(() => []),
+          fetch('/api/gallery').then((r) => r.json()).catch(() => []),
+          fetch('/api/faqs').then((r) => r.json()).catch(() => []),
         ]);
 
-        if (Array.isArray(actRes)) {
-          setStats((prev) => ({
-            ...prev,
-            totalActivities: actRes.length,
-            openActivities: actRes.filter((a: any) => a.status === 'open' || a.status === 'closing_soon').length,
-          }));
-        }
-
-        if (Array.isArray(regRes)) {
-          setStats((prev) => ({
-            ...prev,
-            totalRegistrations: regRes.length,
-            pendingRegistrations: regRes.filter((r: any) => r.status === 'menunggu_verifikasi').length,
-          }));
-        }
+        setStats({
+          totalActivities: Array.isArray(actRes) ? actRes.length : 0,
+          openActivities: Array.isArray(actRes) ? actRes.filter((a: any) => a.status === 'open' || a.status === 'closing_soon').length : 0,
+          totalRegistrations: Array.isArray(regRes) ? regRes.length : 0,
+          pendingRegistrations: Array.isArray(regRes) ? regRes.filter((r: any) => r.status === 'menunggu_verifikasi').length : 0,
+          totalPhotos: Array.isArray(galRes) ? galRes.length : 0,
+          totalFaqs: Array.isArray(faqRes) ? faqRes.length : 0,
+        });
       } catch (err) {
         console.error('Failed to load stats', err);
       }
@@ -210,19 +207,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-[#E0F2F1] shadow-xs">
-            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Cloud Database</span>
-            <span className="text-xs sm:text-sm font-bold text-[#0EADAD] mt-2 block flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-[#00A389]" /> Neon PostgreSQL
-            </span>
-            <span className="text-[9px] text-gray-400 block mt-0.5">Connected</span>
+            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Foto Galeri Momen</span>
+            <span className="text-xl sm:text-2xl font-black text-[#173F42] mt-1 block">{stats.totalPhotos}</span>
+            <span className="text-[10px] text-[#0EADAD] font-semibold mt-0.5 block">Dokumentasi kegiatan</span>
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-[#E0F2F1] shadow-xs">
-            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Media Storage</span>
-            <span className="text-xs sm:text-sm font-bold text-[#0EADAD] mt-2 block flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-[#0EADAD]" /> UploadThing CDN
-            </span>
-            <span className="text-[9px] text-gray-400 block mt-0.5">App ID: r9nq5age4f</span>
+            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">FAQ & Tanya Jawab</span>
+            <span className="text-xl sm:text-2xl font-black text-[#173F42] mt-1 block">{stats.totalFaqs}</span>
+            <span className="text-[10px] text-[#4A5D61] font-semibold mt-0.5 block">Pertanyaan aktif</span>
           </div>
         </div>
 
