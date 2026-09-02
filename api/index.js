@@ -446,13 +446,13 @@ app.delete("/api/activities/:id", requireAuth, async (req, res) => {
 var registrationSchema = z.object({
   activityId: z.string().max(64).nullable().optional(),
   activityTitle: z.string().max(300).optional(),
-  activityChoice: z.string().min(1).max(300),
-  fullName: z.string().trim().min(2).max(128),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  domicile: z.string().trim().min(2).max(128),
-  whatsapp: z.string().trim().regex(/^\+?[0-9][0-9\s-]{7,20}$/),
+  activityChoice: z.string().max(300).default(""),
+  fullName: z.string().trim().max(128).default(""),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).default(""),
+  domicile: z.string().trim().max(128).default(""),
+  whatsapp: z.string().trim().regex(/^\+?[0-9][0-9\s-]{7,20}$/).or(z.literal("")).default(""),
   followedChannel: z.string().max(128).default(""),
-  paymentMethod: z.string().min(1).max(64),
+  paymentMethod: z.string().max(64).default(""),
   reason: z.string().trim().max(5e3).default(""),
   contributionProofUrl: z.string().url().or(z.literal("")).default(""),
   tagFriendsProofUrl: z.string().url().or(z.literal("")).default(""),
@@ -464,7 +464,22 @@ app.post("/api/registrations", async (req, res) => {
     const data = registrationSchema.parse(req.body);
     const configRow = await db.select().from(siteSettings).where(eq(siteSettings.key, "registration_form_config")).limit(1);
     const formConfig = configRow[0]?.value || {};
-    const missingProof = formConfig.enableContributionProof !== false && formConfig.contributionProofRequired !== false && !data.contributionProofUrl || formConfig.enableTagFriends !== false && formConfig.tagFriendsRequired !== false && !data.tagFriendsProofUrl || formConfig.enableRepostStory !== false && formConfig.repostStoryRequired !== false && !data.repostStoryProofUrl;
+    const configuredFields = Array.isArray(formConfig.fields) ? formConfig.fields : [];
+    const configured = (id2, legacyEnabled, legacyRequired) => {
+      const field = configuredFields.find((item) => item?.id === id2);
+      return { enabled: field?.enabled ?? legacyEnabled ?? true, required: field?.required ?? legacyRequired ?? true };
+    };
+    const contribution = configured("contributionProof", formConfig.enableContributionProof, formConfig.contributionProofRequired);
+    const tagFriends = configured("tagFriendsProof", formConfig.enableTagFriends, formConfig.tagFriendsRequired);
+    const repostStory = configured("repostStoryProof", formConfig.enableRepostStory, formConfig.repostStoryRequired);
+    const coreValues = { fullName: data.fullName, birthDate: data.birthDate, domicile: data.domicile, whatsapp: data.whatsapp, followedChannel: data.followedChannel, activityChoice: data.activityChoice, paymentMethod: data.paymentMethod, reason: data.reason };
+    const defaultRequiredCore = ["fullName", "birthDate", "domicile", "whatsapp", "followedChannel", "activityChoice", "paymentMethod", "reason"];
+    const missingCore = defaultRequiredCore.some((id2) => {
+      const field = configuredFields.find((item) => item?.id === id2);
+      return (field?.enabled ?? true) && (field?.required ?? true) && !coreValues[id2]?.trim();
+    });
+    if (missingCore) return res.status(400).json({ error: "Field wajib belum lengkap" });
+    const missingProof = contribution.enabled && contribution.required && !data.contributionProofUrl || tagFriends.enabled && tagFriends.required && !data.tagFriendsProofUrl || repostStory.enabled && repostStory.required && !data.repostStoryProofUrl;
     if (missingProof) return res.status(400).json({ error: "Bukti wajib belum lengkap" });
     const requiredCustomFields = Array.isArray(formConfig.customFields) ? formConfig.customFields.filter((field) => field?.required) : [];
     if (requiredCustomFields.some((field) => !data.customAnswers[field.label]?.trim())) {

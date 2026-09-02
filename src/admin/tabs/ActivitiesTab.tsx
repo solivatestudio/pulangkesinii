@@ -16,6 +16,7 @@ import {
   Eye
 } from 'lucide-react';
 import { UploadButton } from '../../utils/uploadthing';
+import { PublicActivityCard } from '../../components/PublicActivityCard';
 
 interface ActivityItem {
   id: string;
@@ -259,58 +260,8 @@ export const ActivitiesTab: React.FC = () => {
               key={act.id}
               className="bg-white rounded-2xl border border-[#E0F2F1] overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col"
             >
-              {/* Cover preview */}
-              <div className="relative h-40 bg-[#DFF6F5] overflow-hidden">
-                <img
-                  src={act.coverImage}
-                  alt={act.title}
-                  className="w-full h-full object-cover"
-                />
-                <span className="absolute top-3 left-3 px-2.5 py-1 bg-white/90 backdrop-blur-xs text-[#087C7E] font-bold text-[10px] rounded-md shadow-xs">
-                  {act.category} · {act.city}
-                </span>
-                <span
-                  className={`absolute top-3 right-3 px-2.5 py-1 font-bold text-[10px] rounded-md shadow-xs ${
-                    act.status === 'open'
-                      ? 'bg-[#E6FFFA] text-[#00A389] border border-[#B2F5EA]'
-                      : act.status === 'closing_soon'
-                      ? 'bg-[#FFFBEB] text-[#D97706] border border-[#FDE68A]'
-                      : act.status === 'full'
-                      ? 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}
-                >
-                  {act.status === 'open' ? 'Open Slot' : act.status === 'closing_soon' ? 'Segera Berakhir' : act.status === 'full' ? 'Penuh' : 'Selesai'}
-                </span>
-              </div>
-
-              {/* Content */}
-              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
-                <div>
-                  <h3 className="text-sm font-bold text-[#173F42] line-clamp-2">{act.title}</h3>
-                  <p className="text-xs text-[#6B7E82] line-clamp-2 mt-1">{act.shortDescription}</p>
-                </div>
-
-                <div className="space-y-1.5 pt-2 border-t border-[#F0F7F7] text-xs text-[#4A5D61]">
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-[11px] text-[#6B7E82]">
-                      <Calendar className="w-3.5 h-3.5 text-[#0EADAD]" /> {act.startDate}
-                    </span>
-                    <span className="font-bold text-[#0EADAD] text-[11px]">
-                      {act.priceLabel || (act.price === 0 ? 'Gratis' : `Rp ${act.price.toLocaleString('id-ID')}`)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="flex items-center gap-1.5 text-[11px] text-[#6B7E82]">
-                      <Users className="w-3.5 h-3.5 text-[#0EADAD]" /> Kuota
-                    </span>
-                    <span className="text-[11px] font-semibold text-[#173F42]">
-                      {act.quotaFilled} / {act.quota} peserta
-                    </span>
-                  </div>
-                </div>
-
-                {/* Actions */}
+              <div className="p-3 bg-[#eef8f7]"><PublicActivityCard item={{ id: act.id, category: act.category, city: act.city, photo: act.coverImage, title: act.title, startDate: act.startDate, priceLabel: act.priceLabel }} /></div>
+              <div className="p-4">
                 <div className="pt-2 flex items-center justify-between border-t border-[#F0F7F7]">
                   <a
                     href={`/`}

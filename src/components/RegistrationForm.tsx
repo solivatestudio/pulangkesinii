@@ -79,6 +79,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [submitError, setSubmitError] = useState('');
   const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number }>>([]);
   const [selectedActivityId, setSelectedActivityId] = useState('');
+  const core = (id: import('../formConfig').CoreFieldId) => formConfig.fields.find((field) => field.id === id) || defaultFormConfig.fields.find((field) => field.id === id)!;
 
   useEffect(() => {
     fetch('/api/settings/registration_form_config')
@@ -186,22 +187,22 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.fullName.trim()) {
+    if (core('fullName').enabled && core('fullName').required && !formData.fullName.trim()) {
       newErrors.fullName = 'Nama lengkap wajib diisi';
     }
-    if (!formData.birthDate) {
+    if (core('birthDate').enabled && core('birthDate').required && !formData.birthDate) {
       newErrors.birthDate = 'Tanggal lahir wajib diisi';
     }
-    if (!formData.domicile.trim()) {
+    if (core('domicile').enabled && core('domicile').required && !formData.domicile.trim()) {
       newErrors.domicile = 'Lokasi domisili wajib diisi';
     }
-    if (!formData.whatsapp.trim()) {
+    if (core('whatsapp').enabled && core('whatsapp').required && !formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Nomor WhatsApp wajib diisi';
     }
     for (const field of formConfig.customFields.filter((item) => item.step === 1 && item.required)) {
       if (!formData.customAnswers[field.id]?.trim()) newErrors[field.id] = `${field.label} wajib diisi`;
     }
-    if (!formData.followedChannel) {
+    if (core('followedChannel').enabled && core('followedChannel').required && !formData.followedChannel) {
       newErrors.followedChannel = 'Wajib mengonfirmasi telah mengikuti saluran resmi';
     }
 
@@ -221,28 +222,28 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const validateStep2 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.activityChoice) {
+    if (core('activityChoice').enabled && core('activityChoice').required && !formData.activityChoice) {
       newErrors.activityChoice = 'Pilihan kegiatan wajib dipilih';
     }
-    if (formConfig?.enableContributionProof !== false && formConfig?.contributionProofRequired !== false) {
+    if (core('contributionProof').enabled && core('contributionProof').required) {
       if (!formData.contributionProof.file) {
         newErrors.contributionProof = 'Bukti pembayaran contribution fee wajib diupload';
       }
     }
-    if (!formData.paymentMethod) {
+    if (core('paymentMethod').enabled && core('paymentMethod').required && !formData.paymentMethod) {
       newErrors.paymentMethod = 'Metode pembayaran wajib dipilih';
     }
-    if (formConfig?.enableTagFriends !== false && formConfig?.tagFriendsRequired !== false) {
+    if (core('tagFriendsProof').enabled && core('tagFriendsProof').required) {
       if (!formData.tagFriendsProof.file) {
         newErrors.tagFriendsProof = `${formConfig?.tagFriendsLabel || 'Bukti tag 3 teman'} wajib diupload`;
       }
     }
-    if (formConfig?.enableRepostStory !== false && formConfig?.repostStoryRequired !== false) {
+    if (core('repostStoryProof').enabled && core('repostStoryProof').required) {
       if (!formData.repostStoryProof.file) {
         newErrors.repostStoryProof = `${formConfig?.repostStoryLabel || 'Bukti repost IG Story'} wajib diupload`;
       }
     }
-    if (formConfig?.reasonRequired !== false && !formData.reason.trim()) {
+    if (core('reason').enabled && core('reason').required && !formData.reason.trim()) {
       newErrors.reason = `${formConfig?.reasonLabel || 'Alasan bergabung'} wajib diisi`;
     }
     for (const field of formConfig.customFields.filter((item) => item.step === 2 && item.required)) {
@@ -548,15 +549,15 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 1: Nama Lengkap Kamu */}
           <div 
             id="field-fullName"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('fullName').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.fullName ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-1">
-              Nama Lengkap Kamu <span className="text-red-500">*</span>
+              {core('fullName').label} {core('fullName').required && <span className="text-red-500">*</span>}
             </label>
             <p className="text-xs text-[#687479] italic mb-3">
-              (Huruf awal kapital contoh Ilham Nur Sidik)
+              {core('fullName').helperText}
             </p>
             <input
               type="text"
@@ -565,7 +566,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                 setFormData(prev => ({ ...prev, fullName: e.target.value }));
                 if (errors.fullName) setErrors(prev => ({ ...prev, fullName: '' }));
               }}
-              placeholder="Jawaban Anda"
+              placeholder={core('fullName').placeholder}
               className="w-full h-11 px-3.5 bg-[#fbfcfc] border border-[#cbd5e1] focus:border-[#0eadad] focus:bg-white rounded-xl text-sm outline-none transition-all focus:ring-3 focus:ring-[#0eadad]/15 text-[#173f42]"
             />
             {errors.fullName && (
@@ -579,15 +580,15 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 2: Tanggal Lahir Kamu */}
           <div 
             id="field-birthDate"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('birthDate').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.birthDate ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-1">
-              Tanggal Lahir Kamu <span className="text-red-500">*</span>
+              {core('birthDate').label} {core('birthDate').required && <span className="text-red-500">*</span>}
             </label>
             <p className="text-xs text-[#687479] mb-2.5">
-              Tanggal
+              {core('birthDate').helperText}
             </p>
             <input
               type="date"
@@ -610,12 +611,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 3: Kamu Tinggal Dimana Niehhh */}
           <div 
             id="field-domicile"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('domicile').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.domicile ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-2.5">
-              Kamu Tinggal Dimana Niehhh <span className="text-red-500">*</span>
+              {core('domicile').label} {core('domicile').required && <span className="text-red-500">*</span>}
             </label>
             <input
               type="text"
@@ -638,12 +639,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 4: Nomor WA kamu 08 berapaaa🫣 */}
           <div 
             id="field-whatsapp"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('whatsapp').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.whatsapp ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-2.5">
-              Nomor WA kamu 08 berapaaa🫣 <span className="text-red-500">*</span>
+              {core('whatsapp').label} {core('whatsapp').required && <span className="text-red-500">*</span>}
             </label>
             <input
               type="tel"
@@ -666,13 +667,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 5: Sebelum lanjut, yukk ikuti saluran resmi kita untuk mendapatkan info menarik lainnya! ❤️ */}
           <div 
             id="field-followedChannel"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('followedChannel').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.followedChannel ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <div className="mb-3">
               <h3 className="text-sm font-bold text-[#173f42] leading-snug">
-                Sebelum lanjut, yukk ikuti saluran resmi kita untuk mendapatkan info menarik lainnya! ❤️ <span className="text-red-500">*</span>
+                {core('followedChannel').label} {core('followedChannel').required && <span className="text-red-500">*</span>}
               </h3>
               <a 
                 href={formConfig.officialChannelUrl}
@@ -755,12 +756,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 6: Pilihan Kegiatan✨ */}
           <div 
             id="field-activityChoice"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('activityChoice').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.activityChoice ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-1">
-              Pilihan Kegiatan✨ <span className="text-red-500">*</span>
+              {core('activityChoice').label} {core('activityChoice').required && <span className="text-red-500">*</span>}
             </label>
             <div className="space-y-2">
               {availableActivities.map((activity) => (
@@ -786,13 +787,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 7: Upload bukti contribution fee */}
           <div 
             id="field-contributionProof"
-            className={`${!formConfig.enableContributionProof ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('contributionProof').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.contributionProof ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <div className="space-y-2.5 mb-4">
               <h3 className="text-sm font-bold text-[#173f42] leading-snug">
-                {formConfig.contributionProofLabel} {formConfig.contributionProofRequired && <span className="text-red-500">*</span>}
+                {core('contributionProof').label} {core('contributionProof').required && <span className="text-red-500">*</span>}
               </h3>
               
               <div className="bg-[#f0fbfb] p-3 rounded-xl border border-[#d2f0ef] text-xs text-[#173f42] space-y-1">
@@ -935,16 +936,16 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 8: Pembayaran Melalui */}
           <div 
             id="field-paymentMethod"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('paymentMethod').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.paymentMethod ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-3">
-              Pembayaran Melalui <span className="text-red-500">*</span>
+              {core('paymentMethod').label} {core('paymentMethod').required && <span className="text-red-500">*</span>}
             </label>
 
             <div className="space-y-2">
-              {['Mandiri', 'Seabank', 'Gopay'].map((method) => (
+              {formConfig.paymentMethods.map((method) => (
                 <label 
                   key={method}
                   onClick={() => {
@@ -981,12 +982,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 9: Bukti screenshoot tag 3 teman kamu di kolom komentar poster batch 43 Pulangkesinii */}
           <div 
             id="field-tagFriendsProof"
-            className={`${!formConfig.enableTagFriends ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('tagFriendsProof').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.tagFriendsProof ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-3 leading-snug">
-              {formConfig.tagFriendsLabel} {formConfig.tagFriendsRequired && <span className="text-red-500">*</span>}
+              {core('tagFriendsProof').label} {core('tagFriendsProof').required && <span className="text-red-500">*</span>}
             </label>
 
             <input
@@ -1060,12 +1061,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 10: Bukti repost poster batch 43 Pulangkesinii ke IG Story */}
           <div 
             id="field-repostStoryProof"
-            className={`${!formConfig.enableRepostStory ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('repostStoryProof').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.repostStoryProof ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-3 leading-snug">
-              {formConfig.repostStoryLabel} {formConfig.repostStoryRequired && <span className="text-red-500">*</span>}
+              {core('repostStoryProof').label} {core('repostStoryProof').required && <span className="text-red-500">*</span>}
             </label>
 
             <input
@@ -1139,12 +1140,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 11: Alasan kamu mau Pulangkesinii? 🥺❤️ */}
           <div 
             id="field-reason"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!core('reason').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.reason ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-3 leading-snug">
-              {formConfig.reasonLabel} {formConfig.reasonRequired && <span className="text-red-500">*</span>}
+              {core('reason').label} {core('reason').required && <span className="text-red-500">*</span>}
             </label>
             <textarea
               rows={3}

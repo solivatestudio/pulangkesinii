@@ -9,6 +9,7 @@ import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
 import { CalendarDays, ChevronDown, ChevronRight, Globe2, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
+import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
 
 type Activity = { 
   id: number | string; 
@@ -39,24 +40,6 @@ const defaultFaqItems = [
   { question: 'Apakah peserta mendapatkan sertifikat?', answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.' },
   { question: 'Bagaimana cara menjadi partner atau berkolaborasi?', answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.' },
 ];
-
-function ActivityCard({ compact=false, item, onOpen }: { compact?:boolean; item:Activity; onOpen:(item:Activity)=>void; key?:any }) {
-  return <article className={`activity-card ${compact?'compact-card':''}`}>
-    <button className="card-link" aria-label={`Lihat detail ${item.category}`} onClick={()=>onOpen(item)}/>
-    <div className={`activity-cover cover-${item.color} photo-cover`}>
-      <img src={item.photo} alt={`Dokumentasi kegiatan ${item.category} Pulangkesinii`} loading="lazy"/>
-      <span className="placeholder-label">Slot terbatas tanpa seleksi</span>
-      <div className="cover-copy"><small>{item.category} · {item.city}</small><strong>Jadwal berikutnya<br/>segera hadir</strong></div>
-    </div>
-    <div className="activity-info">
-      <h3>{item.title || '[Judul Kegiatan]'}</h3>
-      <div className="activity-meta">
-        <span><CalendarDays/> {item.startDate || '[Tanggal Pelaksanaan]'}</span>
-        <span><Tag/> {item.priceLabel || '[Biaya/Gratis]'}</span>
-      </div>
-    </div>
-  </article>;
-}
 
 export default function App(){
   const [query,setQuery]=useState('');
