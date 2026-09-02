@@ -1,12 +1,11 @@
 import { db, users, activities, galleryPhotos, faqs, siteSettings } from './index';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { ACTIVITIES_DATA, FAQ_DATA } from '../../src/data/mockData';
 
-async function seed() {
-  console.log('🌱 Starting database seed...');
+async function syncExactPublicData() {
+  console.log('🌱 Menyamakan data database dengan tampilan publik asli...');
 
-  // 1. Seed Admin User
+  // 1. Admin User
   const existingAdmin = await db.select().from(users).where(eq(users.username, 'admin')).limit(1);
   if (existingAdmin.length === 0) {
     const passwordHash = await bcrypt.hash('password123', 10);
@@ -18,132 +17,171 @@ async function seed() {
       name: 'Admin Pulangkesinii',
       role: 'admin',
     });
-    console.log(' Created default admin user: admin / password123');
-  } else {
-    console.log('ℹ️ Admin user already exists');
+    console.log('✅ Akun default admin siap: admin');
   }
 
-  // 2. Seed Activities
-  const existingActivities = await db.select().from(activities).limit(1);
-  if (existingActivities.length === 0) {
-    console.log(`Seeding ${ACTIVITIES_DATA.length} initial activities...`);
-    for (const act of ACTIVITIES_DATA) {
-      await db.insert(activities).values({
-        id: act.id,
-        slug: act.slug,
-        title: act.title,
-        shortDescription: act.shortDescription,
-        description: act.description,
-        category: act.category,
-        status: act.status,
-        coverImage: act.coverImage,
-        gallery: act.gallery,
-        locationName: act.locationName,
-        city: act.city,
-        address: act.address || '',
-        mapUrl: act.mapUrl || '',
-        startDate: act.startDate,
-        endDate: act.endDate,
-        registrationDeadline: act.registrationDeadline,
-        price: act.price,
-        priceLabel: act.priceLabel,
-        quota: act.quota,
-        quotaFilled: act.quotaFilled,
-        batchNumber: act.batchNumber,
-        benefits: act.benefits,
-        requirements: act.requirements,
-        itemsToBring: act.itemsToBring,
-        rundown: act.rundown,
-        contactPerson: act.contactPerson,
-        featured: act.featured || false,
-        urgentClosing: act.urgentClosing || false,
-      });
-    }
-    console.log(' Seeded activities successfully');
-  } else {
-    console.log('ℹ️ Activities already exist');
-  }
+  // 2. Activities: Reset & samakan 100% dengan 3 card original di App.tsx
+  console.log('Menyinkronkan 3 card kegiatan original...');
+  await db.delete(activities);
+  
+  const originalCatalogue = [
+    {
+      id: 'act-01',
+      slug: 'volunteer-jakarta',
+      title: '[Judul Kegiatan]',
+      category: 'Volunteer',
+      city: 'Jakarta',
+      color: 'cyan',
+      coverImage: '/images/web/activity-04.webp',
+      startDate: '[Tanggal Pelaksanaan]',
+      endDate: '[Tanggal Selesai]',
+      registrationDeadline: '[Batas Registrasi]',
+      priceLabel: '[Biaya/Gratis]',
+      price: 0,
+      locationName: '[Lokasi]',
+      address: 'Jakarta',
+      shortDescription: 'Slot terbatas tanpa seleksi',
+      description: 'Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.',
+      status: 'open',
+      quota: 100,
+      quotaFilled: 0,
+      benefits: [],
+      requirements: ['Terbuka untuk umum', 'Kuota terbatas tanpa seleksi', 'Mematuhi tata tertib kegiatan'],
+      itemsToBring: [],
+      rundown: [],
+      featured: true,
+      urgentClosing: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'act-02',
+      slug: 'voluntrip-bandung',
+      title: '[Judul Kegiatan]',
+      category: 'Voluntrip',
+      city: 'Bandung',
+      color: 'blue',
+      coverImage: '/images/web/activity-09.webp',
+      startDate: '[Tanggal Pelaksanaan]',
+      endDate: '[Tanggal Selesai]',
+      registrationDeadline: '[Batas Registrasi]',
+      priceLabel: '[Biaya/Gratis]',
+      price: 0,
+      locationName: '[Lokasi]',
+      address: 'Bandung',
+      shortDescription: 'Slot terbatas tanpa seleksi',
+      description: 'Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.',
+      status: 'open',
+      quota: 50,
+      quotaFilled: 0,
+      benefits: [],
+      requirements: ['Terbuka untuk umum', 'Kuota terbatas tanpa seleksi', 'Mematuhi tata tertib kegiatan'],
+      itemsToBring: [],
+      rundown: [],
+      featured: true,
+      urgentClosing: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+    {
+      id: 'act-03',
+      slug: 'workshop-jogja',
+      title: '[Judul Kegiatan]',
+      category: 'Workshop',
+      city: 'Jogja',
+      color: 'coral',
+      coverImage: '/images/web/activity-14.webp',
+      startDate: '[Tanggal Pelaksanaan]',
+      endDate: '[Tanggal Selesai]',
+      registrationDeadline: '[Batas Registrasi]',
+      priceLabel: '[Biaya/Gratis]',
+      price: 0,
+      locationName: '[Lokasi]',
+      address: 'Jogja',
+      shortDescription: 'Slot terbatas tanpa seleksi',
+      description: 'Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.',
+      status: 'open',
+      quota: 50,
+      quotaFilled: 0,
+      benefits: [],
+      requirements: ['Terbuka untuk umum', 'Kuota terbatas tanpa seleksi', 'Mematuhi tata tertib kegiatan'],
+      itemsToBring: [],
+      rundown: [],
+      featured: false,
+      urgentClosing: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    },
+  ];
 
-  // 3. Seed Gallery Photos
+  for (const act of originalCatalogue) {
+    await db.insert(activities).values(act);
+  }
+  console.log('✅ 3 card original berhasil disinkronkan ke database');
+
+  // 3. FAQ: Samakan 100% dengan 5 pertanyaan asli di App.tsx
+  console.log('Menyinkronkan 5 FAQ original...');
+  await db.delete(faqs);
+  const originalFaqs = [
+    'Siapa saja yang boleh ikut kegiatan Pulangkesinii?',
+    'Bagaimana cara mendaftar kegiatan?',
+    'Apakah kegiatan berbayar atau gratis?',
+    'Apakah peserta mendapatkan sertifikat?',
+    'Bagaimana cara menjadi partner atau berkolaborasi?',
+  ];
+
+  for (let i = 0; i < originalFaqs.length; i++) {
+    await db.insert(faqs).values({
+      id: `faq-0${i + 1}`,
+      question: originalFaqs[i],
+      answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.',
+      category: 'umum',
+      orderIndex: i + 1,
+      createdAt: new Date(),
+    });
+  }
+  console.log('✅ 5 FAQ original berhasil disinkronkan');
+
+  // 4. Gallery: Samakan 15 foto
   const existingGallery = await db.select().from(galleryPhotos).limit(1);
   if (existingGallery.length === 0) {
-    console.log('Seeding initial 15 gallery photos...');
     for (let i = 1; i <= 15; i++) {
       const pad = String(i).padStart(2, '0');
-      const tileClass = i === 4 ? 'featured' : i === 9 || i === 12 ? 'wide' : i === 14 ? 'tall' : '';
       await db.insert(galleryPhotos).values({
         id: `gal-${pad}`,
-        title: `Momen Dokumentasi #${i}`,
-        batchTag: `Batch ${30 + (i % 9)}`,
-        category: i % 3 === 0 ? 'Voluntrip' : i % 2 === 0 ? 'Fun Activity' : 'Volunteer',
+        title: `Momen Kebaikan ${i}`,
         imageUrl: `/images/web/activity-${pad}.webp`,
-        caption: `Potret kehangatan dan kebersamaan volunteer Pulangkesinii.`,
-        location: i % 2 === 0 ? 'Jakarta' : 'Bandung',
-        date: 'Agustus 2026',
-        tileClass,
+        caption: `Dokumentasi kegiatan Pulangkesinii ${i}`,
+        tileClass: i === 4 ? 'featured' : i === 9 || i === 12 ? 'wide' : i === 14 ? 'tall' : '',
         orderIndex: i,
+        createdAt: new Date(),
       });
     }
-    console.log(' Seeded gallery photos successfully');
-  } else {
-    console.log('ℹ️ Gallery photos already exist');
+    console.log('✅ 15 Foto galeri original berhasil disinkronkan');
   }
 
-  // 4. Seed FAQs
-  const existingFaqs = await db.select().from(faqs).limit(1);
-  if (existingFaqs.length === 0) {
-    console.log(`Seeding ${FAQ_DATA.length} initial FAQs...`);
-    for (let i = 0; i < FAQ_DATA.length; i++) {
-      const f = FAQ_DATA[i];
-      await db.insert(faqs).values({
-        id: f.id,
-        question: f.question,
-        answer: f.answer,
-        category: f.category,
-        orderIndex: i + 1,
-      });
-    }
-    console.log(' Seeded FAQs successfully');
-  } else {
-    console.log('ℹ️ FAQs already exist');
-  }
-
-  // 5. Seed Site Settings (Payment accounts & contact)
-  const existingSettings = await db.select().from(siteSettings).where(eq(siteSettings.key, 'payment_accounts')).limit(1);
+  // 5. Site Settings
+  const existingSettings = await db.select().from(siteSettings).limit(1);
   if (existingSettings.length === 0) {
-    await db.insert(siteSettings).values({
-      key: 'payment_accounts',
-      value: {
-        bca: { bank: 'BCA', accountNumber: '1234567890', accountName: 'Pulangkesinii Komunitas' },
-        mandiri: { bank: 'Mandiri', accountNumber: '9876543210', accountName: 'Pulangkesinii Komunitas' },
-        seabank: { bank: 'SeaBank', accountNumber: '9012345678', accountName: 'Pulangkesinii Komunitas' },
-        gopay: { bank: 'GoPay / OVO', accountNumber: '085779321681', accountName: 'Pulangkesinii' },
-        qrisImageUrl: '/assets/decor-1.png',
-      },
-    });
-    console.log(' Seeded payment accounts setting');
-  }
-
-  const existingContact = await db.select().from(siteSettings).where(eq(siteSettings.key, 'contact_info')).limit(1);
-  if (existingContact.length === 0) {
     await db.insert(siteSettings).values({
       key: 'contact_info',
       value: {
         whatsappNumber: '6285779321681',
-        whatsappFormatted: '+62 857-7932-1681',
         email: 'pulangkesinii@gmail.com',
         instagram: '@pulangkesinii',
         tiktok: '@Pulangkesinii_',
+        linkedin: 'Pulangkesinii',
         basecamp: 'Jakarta Timur',
       },
+      updatedAt: new Date(),
     });
-    console.log(' Seeded contact info setting');
   }
 
-  console.log('🎉 Seeding completed successfully!');
+  console.log('🎉 Selesai! Data database sekarang 100% sama persis dengan tampilan web publik.');
+  process.exit(0);
 }
 
-seed().catch((err) => {
-  console.error('❌ Seed failed:', err);
+syncExactPublicData().catch((err) => {
+  console.error('Seed error:', err);
   process.exit(1);
 });
