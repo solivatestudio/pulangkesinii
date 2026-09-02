@@ -110,7 +110,7 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
 
         <div className="mt-6 pt-5 border-t border-[#EEF3F4] text-center">
           <p className="text-[11px] text-[#7A8C90]">
-            Kredensial awal: <code className="bg-[#F0F7F7] px-1.5 py-0.5 rounded text-[#0EADAD] font-semibold">admin</code> / <code className="bg-[#F0F7F7] px-1.5 py-0.5 rounded text-[#0EADAD] font-semibold">password123</code>
+            Portal terproteksi khusus tim pengelola Komunitas Pulangkesinii
           </p>
           <a
             href="/"
