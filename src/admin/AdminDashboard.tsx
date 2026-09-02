@@ -87,102 +87,119 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   return (
     <div className="min-h-screen bg-[#F5F9F9] flex flex-col md:flex-row text-[#26383C] admin-scope">
       {/* Mobile Top Header */}
-      <div className="md:hidden bg-white border-b border-[#E0F2F1] p-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-xl bg-[#E0F7F6] p-1 flex items-center justify-center border border-[#CDEEEB]">
+      <div className="md:hidden bg-white border-b border-[#E0F2F1] px-5 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-[#E0F7F6] p-1 flex items-center justify-center border border-[#CDEEEB]">
             <img src="/assets/logo-palette.png" alt="Pulangkesinii" className="w-full h-full object-contain" />
           </div>
-          <span className="admin-title text-xl text-[#173F42]">Pulangkesinii Admin</span>
+          <span className="font-bold text-base text-[#173F42]">Pulangkesinii</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 rounded-lg bg-gray-100 text-gray-700 cursor-pointer"
+          className="p-2 rounded-xl bg-[#F0F7F7] text-[#087C7E] hover:bg-[#E0F7F6] cursor-pointer transition-colors"
+          aria-label="Menu"
         >
           {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
         </button>
       </div>
 
+      {/* Mobile Drawer Backdrop */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-[#071D22]/40 backdrop-blur-xs z-30 md:hidden transition-opacity"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 w-64 h-screen bg-white border-r border-[#E0F2F1] p-5 flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`fixed md:sticky top-0 left-0 z-40 w-72 h-screen bg-white border-r border-[#E0F2F1] flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 ${
+          mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
-        <div className="space-y-6">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-2xl bg-[#E0F7F6] p-1.5 flex items-center justify-center shadow-xs border border-[#CDEEEB] flex-none">
+        {/* Top: Logo & Navigation */}
+        <div className="p-5 space-y-6 overflow-y-auto">
+          {/* Brand Header */}
+          <div className="flex items-center gap-3.5 pb-4 border-b border-[#F0F7F7]">
+            <div className="w-11 h-11 rounded-2xl bg-[#E0F7F6] p-1.5 flex items-center justify-center shadow-xs border border-[#CDEEEB] flex-none">
               <img src="/assets/logo-palette.png" alt="Pulangkesinii" className="w-full h-full object-contain" />
             </div>
-            <div>
-              <h1 className="admin-title text-xl text-[#173F42] leading-tight">Pulangkesinii</h1>
-              <span className="text-[10px] text-[#0EADAD] font-semibold tracking-wider uppercase block">Portal Pengelola</span>
+            <div className="min-w-0 flex-1">
+              <div className="font-bold text-base text-[#173F42] leading-tight truncate">Pulangkesinii</div>
+              <div className="text-[11px] text-[#0EADAD] font-semibold mt-0.5 tracking-wide">Portal Admin</div>
             </div>
           </div>
 
-          {/* Nav List */}
-          <nav className="space-y-1.5">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setActiveTab(item.id as any);
-                    setMobileMenuOpen(false);
-                  }}
-                  className={`w-full h-11 px-3.5 rounded-xl text-xs font-bold flex items-center justify-between transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-[#0EADAD] text-white shadow-sm shadow-[#0EADAD]/20'
-                      : 'text-[#4A5D61] hover:bg-[#F0F7F7] hover:text-[#0EADAD]'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon className="w-4 h-4 flex-none" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge !== undefined && item.badge > 0 && (
-                    <span
-                      className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                        isActive ? 'bg-white text-[#0EADAD]' : (item.badgeColor || 'bg-[#0EADAD]') + ' text-white'
-                      }`}
-                    >
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+          {/* Navigation Group */}
+          <div className="space-y-1.5">
+            <div className="px-3 pb-1 text-[10px] font-bold text-[#8EA2A6] uppercase tracking-wider">
+              Menu Pengelola
+            </div>
+            <nav className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => {
+                      setActiveTab(item.id as any);
+                      setMobileMenuOpen(false);
+                    }}
+                    className={`w-full h-11 px-3.5 rounded-xl text-[13px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-[#0EADAD] text-white font-semibold shadow-sm shadow-[#0EADAD]/25'
+                        : 'text-[#4A5D61] hover:bg-[#F2F8F8] hover:text-[#0EADAD]'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Icon className={`w-4 h-4 flex-none ${isActive ? 'text-white' : 'text-[#8FA3A6]'}`} />
+                      <span>{item.label}</span>
+                    </div>
+                    {item.badge !== undefined && item.badge > 0 && (
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
+                          isActive
+                            ? 'bg-white/20 text-white'
+                            : (item.badgeColor || 'bg-[#0EADAD]') + ' text-white'
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
         </div>
 
-        {/* Footer / User & Logout */}
-        <div className="pt-4 border-t border-[#EEF3F4] space-y-3">
+        {/* Bottom: External link & User Profile */}
+        <div className="p-5 border-t border-[#EEF3F4] space-y-3 bg-[#FCFDFD]">
           <a
             href="/"
             target="_blank"
             rel="noreferrer"
-            className="w-full h-9 px-3 rounded-lg bg-[#F0F7F7] text-[#0EADAD] hover:bg-[#E0F7F6] text-[11px] font-bold flex items-center justify-between transition-all"
+            className="w-full h-10 px-3.5 rounded-xl bg-[#F0F7F7] hover:bg-[#E0F7F6] text-[#087C7E] text-xs font-semibold flex items-center justify-between transition-all"
           >
             <span>Buka Website Publik</span>
-            <ExternalLink className="w-3.5 h-3.5" />
+            <ExternalLink className="w-3.5 h-3.5 text-[#0EADAD]" />
           </a>
 
-          <div className="flex items-center justify-between px-2 pt-1">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-700">
+          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E0F2F1]">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[#E0F7F6] text-[#087C7E] flex items-center justify-center text-xs font-bold flex-none">
                 {user?.username?.[0]?.toUpperCase() || 'A'}
               </div>
-              <div className="text-[11px]">
-                <div className="font-bold text-[#173F42]">{user?.name || 'Administrator'}</div>
-                <div className="text-gray-400 text-[9px]">{user?.role || 'Superadmin'}</div>
+              <div className="min-w-0">
+                <div className="font-bold text-xs text-[#173F42] truncate">{user?.name || 'Administrator'}</div>
+                <div className="text-[#8FA3A6] text-[10px] capitalize">{user?.role || 'Superadmin'}</div>
               </div>
             </div>
             <button
               onClick={handleLogout}
               title="Logout"
-              className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg transition-colors cursor-pointer"
+              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer flex-none ml-2"
             >
               <LogOut className="w-4 h-4" />
             </button>
