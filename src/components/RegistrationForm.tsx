@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadFiles } from '../utils/uploadthing';
+import { defaultFormConfig, normalizeFormConfig, type CustomFormField, type FormConfig } from '../formConfig';
 
 export interface RegistrationFormData {
   fullName: string;
@@ -42,6 +43,7 @@ export interface RegistrationFormData {
     previewUrl: string;
   };
   reason: string;
+  customAnswers: Record<string, string>;
 }
 
 interface RegistrationFormProps {
@@ -65,24 +67,32 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     paymentMethod: '',
     tagFriendsProof: { file: null, fileName: '', fileSize: 0, previewUrl: '' },
     repostStoryProof: { file: null, fileName: '', fileSize: 0, previewUrl: '' },
-    reason: ''
+    reason: '',
+    customAnswers: {}
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
-  const [formConfig, setFormConfig] = useState<any>(null);
+  const [formConfig, setFormConfig] = useState<FormConfig>(defaultFormConfig);
+  const [submitError, setSubmitError] = useState('');
+  const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number }>>([]);
+  const [selectedActivityId, setSelectedActivityId] = useState('');
 
   useEffect(() => {
     fetch('/api/settings/registration_form_config')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data && data.value) {
-          setFormConfig(data.value);
-        }
+        setFormConfig(normalizeFormConfig(data?.value));
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/activities').then((res) => res.ok ? res.json() : []).then((items) => {
+      setAvailableActivities(Array.isArray(items) ? items.filter((item) => item.status !== 'completed' && item.quotaFilled < item.quota) : []);
+    }).catch(() => setAvailableActivities([]));
   }, []);
 
   // File input refs
@@ -144,6 +154,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   ) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith('image/') || file.size > 4 * 1024 * 1024) {
+        setErrors((prev) => ({ ...prev, [field]: 'Gunakan gambar JPG/PNG/WebP maksimal 4 MB' }));
+        e.target.value = '';
+        return;
+      }
       const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : '';
       setFormData(prev => ({
         ...prev,
@@ -182,6 +197,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     }
     if (!formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Nomor WhatsApp wajib diisi';
+    }
+    for (const field of formConfig.customFields.filter((item) => item.step === 1 && item.required)) {
+      if (!formData.customAnswers[field.id]?.trim()) newErrors[field.id] = `${field.label} wajib diisi`;
     }
     if (!formData.followedChannel) {
       newErrors.followedChannel = 'Wajib mengonfirmasi telah mengikuti saluran resmi';
@@ -227,6 +245,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     if (formConfig?.reasonRequired !== false && !formData.reason.trim()) {
       newErrors.reason = `${formConfig?.reasonLabel || 'Alasan bergabung'} wajib diisi`;
     }
+    for (const field of formConfig.customFields.filter((item) => item.step === 2 && item.required)) {
+      if (!formData.customAnswers[field.id]?.trim()) newErrors[field.id] = `${field.label} wajib diisi`;
+    }
 
     setErrors(newErrors);
 
@@ -259,6 +280,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     if (!validateStep2()) return;
 
     setIsSubmitting(true);
+    setSubmitError('');
 
     let contributionProofUrl = '';
     let tagFriendsProofUrl = '';
@@ -290,11 +312,15 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         }
       }
     } catch (uploadErr) {
-      console.warn('Upload error, proceeding:', uploadErr);
+      setSubmitError('Upload bukti gagal. Periksa tipe/ukuran file dan coba lagi.');
+      setIsSubmitting(false);
+      return;
     }
 
     const payload = {
       fullName: formData.fullName.trim(),
+      activityId: selectedActivityId || undefined,
+      activityTitle: formData.activityChoice,
       birthDate: formData.birthDate,
       domicile: formData.domicile.trim(),
       whatsapp: formData.whatsapp.trim(),
@@ -302,22 +328,25 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       activityChoice: formData.activityChoice,
       paymentMethod: formData.paymentMethod,
       reason: formData.reason.trim(),
+      customAnswers: Object.fromEntries(formConfig.customFields.map((field) => [field.label, formData.customAnswers[field.id] || ''])),
       contributionProofUrl,
       tagFriendsProofUrl,
       repostStoryProofUrl,
       submittedAt: new Date().toISOString()
     };
 
-    console.log('=== DATA SUBMIT FORM (NEON DB) ===', payload);
-
     try {
-      await fetch('/api/registrations', {
+      const response = await fetch('/api/registrations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.error || 'Pendaftaran gagal dikirim');
     } catch (apiErr) {
-      console.error('Failed to submit to /api/registrations', apiErr);
+      setSubmitError(apiErr instanceof Error ? apiErr.message : 'Pendaftaran gagal dikirim');
+      setIsSubmitting(false);
+      return;
     }
 
     setIsSubmitting(false);
@@ -337,7 +366,28 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     }
   };
 
+  const renderCustomField = (field: CustomFormField) => {
+    const value = formData.customAnswers[field.id] || '';
+    const update = (nextValue: string) => {
+      setFormData((prev) => ({ ...prev, customAnswers: { ...prev.customAnswers, [field.id]: nextValue } }));
+      setErrors((prev) => ({ ...prev, [field.id]: '' }));
+    };
+    return (
+      <div id={`field-${field.id}`} key={field.id} className={`bg-white rounded-2xl p-4 sm:p-5 border ${errors[field.id] ? 'border-red-500' : 'border-[#e2e8f0]'}`}>
+        <label className="block text-sm font-bold text-[#173f42] mb-2">{field.label}{field.required && <span className="text-red-500"> *</span>}</label>
+        {field.type === 'textarea' ? (
+          <textarea value={value} onChange={(e) => update(e.target.value)} placeholder={field.placeholder || 'Jawaban Anda'} className="w-full min-h-24 p-3 border rounded-xl text-sm" />
+        ) : ['select', 'radio'].includes(field.type) ? (
+          field.type === 'select' ? <select value={value} onChange={(e) => update(e.target.value)} className="w-full h-11 px-3 border rounded-xl text-sm bg-white"><option value="">Pilih jawaban</option>{field.options?.map((option) => <option key={option}>{option}</option>)}</select> :
+          <div className="space-y-2">{field.options?.map((option) => <label key={option} className="flex gap-2 text-sm"><input type="radio" checked={value === option} onChange={() => update(option)} />{option}</label>)}</div>
+        ) : <input value={value} onChange={(e) => update(e.target.value)} placeholder={field.placeholder || 'Jawaban Anda'} className="w-full h-11 px-3 border rounded-xl text-sm" />}
+        {errors[field.id] && <p className="text-xs text-red-500 mt-2">{errors[field.id]}</p>}
+      </div>
+    );
+  };
+
   const handleReset = () => {
+    setSelectedActivityId('');
     if (window.confirm('Kosongkan semua isian formulir?')) {
       setFormData({
         fullName: '',
@@ -625,12 +675,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                 Sebelum lanjut, yukk ikuti saluran resmi kita untuk mendapatkan info menarik lainnya! ❤️ <span className="text-red-500">*</span>
               </h3>
               <a 
-                href="https://whatsapp.com/channel/0029Vb7x44LFXUuSeqigEW0B" 
+                href={formConfig.officialChannelUrl}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-xs font-bold text-[#0eadad] hover:text-[#0a7577] underline mt-2"
               >
-                <span>Klik disinii yaaa!</span>
+                <span>{formConfig.officialChannelName}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             </div>
@@ -666,6 +716,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               </p>
             )}
           </div>
+
+          {formConfig.customFields.filter((field) => field.step === 1).map(renderCustomField)}
 
           {/* Action Button Step 1 */}
           <div className="pt-2 space-y-3">
@@ -710,38 +762,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             <label className="block text-sm font-bold text-[#173f42] mb-1">
               Pilihan Kegiatan✨ <span className="text-red-500">*</span>
             </label>
-            <p className="text-xs text-[#687479] italic mb-3">
-              (Tersisa Jogja ajaa yaa gaiss)
-            </p>
-
             <div className="space-y-2">
-              <label 
-                onClick={() => {
-                  setFormData(prev => ({ 
-                    ...prev, 
-                    activityChoice: 'Sabtu (Panti Asuhan Al Wahhaab Sinar Melati 11 Jogja)' 
-                  }));
-                  if (errors.activityChoice) setErrors(prev => ({ ...prev, activityChoice: '' }));
-                }}
-                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                  formData.activityChoice === 'Sabtu (Panti Asuhan Al Wahhaab Sinar Melati 11 Jogja)'
-                    ? 'bg-[#e0f7f6] border-[#0eadad] text-[#087c7e] font-semibold'
-                    : 'bg-white border-[#cbd5e1] hover:bg-slate-50 text-[#2D3748]'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all ${
-                  formData.activityChoice === 'Sabtu (Panti Asuhan Al Wahhaab Sinar Melati 11 Jogja)'
-                    ? 'border-[#0eadad] bg-[#0eadad]'
-                    : 'border-[#94a3b8] bg-white'
-                }`}>
-                  {formData.activityChoice === 'Sabtu (Panti Asuhan Al Wahhaab Sinar Melati 11 Jogja)' && (
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                  )}
-                </div>
-                <span className="text-xs sm:text-sm leading-snug">
-                  Sabtu (Panti Asuhan Al Wahhaab Sinar Melati 11 Jogja)
-                </span>
-              </label>
+              {availableActivities.map((activity) => (
+                <label key={activity.id} onClick={() => {
+                  setSelectedActivityId(activity.id);
+                  setFormData((prev) => ({ ...prev, activityChoice: activity.title }));
+                  setErrors((prev) => ({ ...prev, activityChoice: '' }));
+                }} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer ${selectedActivityId === activity.id ? 'bg-[#e0f7f6] border-[#0eadad] text-[#087c7e] font-semibold' : 'bg-white border-[#cbd5e1]'}`}>
+                  <input type="radio" readOnly checked={selectedActivityId === activity.id} />
+                  <span className="text-xs sm:text-sm">{activity.title} · Sisa {activity.quota - activity.quotaFilled} slot</span>
+                </label>
+              ))}
+              {availableActivities.length === 0 && <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-xl">Belum ada kegiatan dengan kuota tersedia.</p>}
             </div>
             {errors.activityChoice && (
               <p className="text-xs text-red-500 mt-2 flex items-center gap-1 font-medium">
@@ -754,13 +786,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 7: Upload bukti contribution fee */}
           <div 
             id="field-contributionProof"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!formConfig.enableContributionProof ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.contributionProof ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <div className="space-y-2.5 mb-4">
               <h3 className="text-sm font-bold text-[#173f42] leading-snug">
-                Upload bukti contribution fee untuk kegiatan yang kamu pilih dengan biaya sebesar: <span className="text-red-500">*</span>
+                {formConfig.contributionProofLabel} {formConfig.contributionProofRequired && <span className="text-red-500">*</span>}
               </h3>
               
               <div className="bg-[#f0fbfb] p-3 rounded-xl border border-[#d2f0ef] text-xs text-[#173f42] space-y-1">
@@ -818,12 +850,12 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                   Untuk Kebijakan terkait biaya kontribusi, dapat dilihat pada link dibawah ini:
                 </p>
                 <a 
-                  href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view?usp=sharing"
+                  href={formConfig.contributionPolicyUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[11px] text-[#0eadad] hover:text-[#087c7e] underline break-all inline-flex items-center gap-1 font-medium"
                 >
-                  <span>https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view</span>
+                  <span>{formConfig.contributionPolicyUrl}</span>
                   <ExternalLink className="w-3 h-3 shrink-0" />
                 </a>
               </div>
@@ -834,7 +866,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               <input
                 type="file"
                 ref={contributionInputRef}
-                accept="image/*,application/pdf"
+                accept="image/*"
                 onChange={(e) => handleFileChange(e, 'contributionProof')}
                 className="hidden"
               />
@@ -853,7 +885,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                       <span>Tambahkan file</span>
                     </span>
                     <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                      Upload 1 file yang didukung. Maks 1 GB.
+                      Gambar JPG/PNG/WebP, maksimal 4 MB.
                     </p>
                   </div>
                 </div>
@@ -949,18 +981,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 9: Bukti screenshoot tag 3 teman kamu di kolom komentar poster batch 43 Pulangkesinii */}
           <div 
             id="field-tagFriendsProof"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!formConfig.enableTagFriends ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.tagFriendsProof ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-3 leading-snug">
-              Bukti screenshoot tag 3 teman kamu di kolom komentar poster batch 43 Pulangkesinii <span className="text-red-500">*</span>
+              {formConfig.tagFriendsLabel} {formConfig.tagFriendsRequired && <span className="text-red-500">*</span>}
             </label>
 
             <input
               type="file"
               ref={tagFriendsInputRef}
-              accept="image/*,application/pdf"
+              accept="image/*"
               onChange={(e) => handleFileChange(e, 'tagFriendsProof')}
               className="hidden"
             />
@@ -979,7 +1011,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Upload 1 file yang didukung. Maks 1 GB.
+                    Gambar JPG/PNG/WebP, maksimal 4 MB.
                   </p>
                 </div>
               </div>
@@ -1028,18 +1060,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           {/* FIELD 10: Bukti repost poster batch 43 Pulangkesinii ke IG Story */}
           <div 
             id="field-repostStoryProof"
-            className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+            className={`${!formConfig.enableRepostStory ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
               errors.repostStoryProof ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-3 leading-snug">
-              Bukti repost poster batch 43 Pulangkesinii ke IG Story <span className="text-red-500">*</span>
+              {formConfig.repostStoryLabel} {formConfig.repostStoryRequired && <span className="text-red-500">*</span>}
             </label>
 
             <input
               type="file"
               ref={repostStoryInputRef}
-              accept="image/*,application/pdf"
+              accept="image/*"
               onChange={(e) => handleFileChange(e, 'repostStoryProof')}
               className="hidden"
             />
@@ -1058,7 +1090,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Upload 1 file yang didukung. Maks 1 GB.
+                    Gambar JPG/PNG/WebP, maksimal 4 MB.
                   </p>
                 </div>
               </div>
@@ -1112,7 +1144,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             }`}
           >
             <label className="block text-sm font-bold text-[#173f42] mb-3 leading-snug">
-              Alasan kamu mau Pulangkesinii? 🥺❤️ <span className="text-red-500">*</span>
+              {formConfig.reasonLabel} {formConfig.reasonRequired && <span className="text-red-500">*</span>}
             </label>
             <textarea
               rows={3}
@@ -1131,6 +1163,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               </p>
             )}
           </div>
+
+          {formConfig.customFields.filter((field) => field.step === 2).map(renderCustomField)}
+          {submitError && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">{submitError}</div>}
 
           {/* Action Buttons Step 2 */}
           <div className="pt-2 space-y-3">

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App from './App';
-import { AdminLogin } from './admin/AdminLogin';
-import { AdminDashboard } from './admin/AdminDashboard';
+const AdminLogin = lazy(() => import('./admin/AdminLogin').then((module) => ({ default: module.AdminLogin })));
+const AdminDashboard = lazy(() => import('./admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 
 export const AppRouter: React.FC = () => {
   const [adminUser, setAdminUser] = useState<any>(null);
@@ -40,7 +40,7 @@ export const AppRouter: React.FC = () => {
             adminUser ? (
               <Navigate to="/admin" replace />
             ) : (
-              <AdminLogin onLoginSuccess={(user) => setAdminUser(user)} />
+              <Suspense fallback={<div className="min-h-screen" />}><AdminLogin onLoginSuccess={(user) => setAdminUser(user)} /></Suspense>
             )
           }
         />
@@ -54,7 +54,7 @@ export const AppRouter: React.FC = () => {
                 Memeriksa otentikasi admin...
               </div>
             ) : adminUser ? (
-              <AdminDashboard user={adminUser} onLogout={() => setAdminUser(null)} />
+              <Suspense fallback={<div className="min-h-screen" />}><AdminDashboard user={adminUser} onLogout={() => setAdminUser(null)} /></Suspense>
             ) : (
               <Navigate to="/admin/login" replace />
             )

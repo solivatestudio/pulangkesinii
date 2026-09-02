@@ -32,6 +32,7 @@ interface RegistrationItem {
   repostStoryProofUrl?: string;
   status: 'menunggu_verifikasi' | 'terkonfirmasi' | 'ditolak';
   adminNotes?: string;
+  customAnswers?: Record<string, string>;
   createdAt: string;
 }
 
@@ -359,6 +360,12 @@ export const RegistrationsTab: React.FC = () => {
                   <p className="p-3 bg-[#F8FAFB] rounded-xl border border-[#EEF2F5] text-gray-700 leading-relaxed">
                     {selectedReg.reason}
                   </p>
+                </div>
+              )}
+              {selectedReg.customAnswers && Object.keys(selectedReg.customAnswers).length > 0 && (
+                <div>
+                  <span className="text-gray-400 block text-[10px] mb-1">Jawaban Pertanyaan Kustom</span>
+                  <div className="space-y-2">{Object.entries(selectedReg.customAnswers).map(([key, value]) => <div key={key} className="p-3 bg-[#F8FAFB] rounded-xl"><strong>{key}</strong><p>{value}</p></div>)}</div>
                 </div>
               )}
 

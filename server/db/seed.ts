@@ -8,7 +8,11 @@ async function syncExactPublicData() {
   // 1. Admin User
   const existingAdmin = await db.select().from(users).where(eq(users.username, 'admin')).limit(1);
   if (existingAdmin.length === 0) {
-    const passwordHash = await bcrypt.hash('password123', 10);
+    const initialPassword = process.env.ADMIN_INITIAL_PASSWORD;
+    if (!initialPassword || initialPassword.length < 12) {
+      throw new Error('ADMIN_INITIAL_PASSWORD minimal 12 karakter wajib diatur sebelum membuat admin');
+    }
+    const passwordHash = await bcrypt.hash(initialPassword, 12);
     await db.insert(users).values({
       id: 'usr-admin-01',
       username: 'admin',

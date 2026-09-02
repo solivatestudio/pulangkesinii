@@ -13,54 +13,7 @@ import {
   AlertCircle,
   ExternalLink
 } from 'lucide-react';
-
-export interface CustomFormField {
-  id: string;
-  label: string;
-  type: 'text' | 'textarea' | 'select' | 'radio' | 'file';
-  options?: string[]; // for select or radio
-  placeholder?: string;
-  required: boolean;
-  step: 1 | 2;
-}
-
-export interface FormConfig {
-  formTitle: string;
-  formDescription: string;
-  contributionPolicyUrl: string;
-  officialChannelName: string;
-  officialChannelUrl: string;
-  enableTagFriends: boolean;
-  tagFriendsRequired: boolean;
-  tagFriendsLabel: string;
-  enableRepostStory: boolean;
-  repostStoryRequired: boolean;
-  repostStoryLabel: string;
-  enableContributionProof: boolean;
-  contributionProofRequired: boolean;
-  reasonLabel: string;
-  reasonRequired: boolean;
-  customFields: CustomFormField[];
-}
-
-const defaultConfig: FormConfig = {
-  formTitle: 'Formulir Pendaftaran Volunteer',
-  formDescription: 'Lengkapi data diri dan verifikasi persyaratan untuk bergabung dalam kegiatan sosial Pulangkesinii.',
-  contributionPolicyUrl: 'https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view',
-  officialChannelName: '@pulangkesinii',
-  officialChannelUrl: 'https://instagram.com/pulangkesinii',
-  enableTagFriends: true,
-  tagFriendsRequired: true,
-  tagFriendsLabel: 'Bukti Tag 3 Teman di Postingan Instagram',
-  enableRepostStory: true,
-  repostStoryRequired: true,
-  repostStoryLabel: 'Bukti Repost Poster di Instagram Story',
-  enableContributionProof: true,
-  contributionProofRequired: true,
-  reasonLabel: 'Alasan dan Motivasi Mengikuti Kegiatan',
-  reasonRequired: true,
-  customFields: [],
-};
+import { defaultFormConfig as defaultConfig, normalizeFormConfig, type CustomFormField, type FormConfig } from '../../formConfig';
 
 export const FormBuilderTab: React.FC = () => {
   const [config, setConfig] = useState<FormConfig>(defaultConfig);
@@ -71,7 +24,7 @@ export const FormBuilderTab: React.FC = () => {
 
   // New custom field draft
   const [newFieldLabel, setNewFieldLabel] = useState('');
-  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'select' | 'file'>('text');
+  const [newFieldType, setNewFieldType] = useState<'text' | 'textarea' | 'select' | 'radio'>('text');
   const [newFieldOptions, setNewFieldOptions] = useState('');
   const [newFieldRequired, setNewFieldRequired] = useState(false);
   const [newFieldStep, setNewFieldStep] = useState<1 | 2>(1);
@@ -86,9 +39,7 @@ export const FormBuilderTab: React.FC = () => {
       const res = await fetch('/api/settings/registration_form_config');
       if (res.ok) {
         const data = await res.json();
-        if (data && data.value) {
-          setConfig({ ...defaultConfig, ...data.value });
-        }
+        setConfig(normalizeFormConfig(data?.value));
       }
     } catch (err) {
       console.error('Failed to load form configuration', err);
@@ -126,7 +77,7 @@ export const FormBuilderTab: React.FC = () => {
       id: `custom-${Date.now()}`,
       label: newFieldLabel.trim(),
       type: newFieldType,
-      options: newFieldType === 'select' ? newFieldOptions.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
+      options: ['select', 'radio'].includes(newFieldType) ? newFieldOptions.split(',').map((s) => s.trim()).filter(Boolean) : undefined,
       required: newFieldRequired,
       step: newFieldStep,
     };
@@ -271,6 +222,10 @@ export const FormBuilderTab: React.FC = () => {
                 className="w-full h-10 px-3.5 text-xs rounded-xl border border-[#D5DFE0] focus:border-[#0EADAD] outline-none"
               />
             </div>
+            <div>
+              <label className="block text-xs font-semibold text-[#173F42] mb-1">URL Saluran Resmi</label>
+              <input type="url" value={config.officialChannelUrl} onChange={(e) => setConfig({ ...config, officialChannelUrl: e.target.value })} className="w-full h-10 px-3.5 text-xs rounded-xl border border-[#D5DFE0] focus:border-[#0EADAD] outline-none" />
+            </div>
           </div>
 
           {/* Card 2: Pengaturan Bukti Upload & Syarat */}
@@ -295,7 +250,9 @@ export const FormBuilderTab: React.FC = () => {
                 </label>
               </div>
               {config.enableContributionProof && (
-                <div className="flex items-center gap-2 pt-1 text-xs">
+                <div className="space-y-2 pt-1 text-xs">
+                  <input type="text" value={config.contributionProofLabel} onChange={(e) => setConfig({ ...config, contributionProofLabel: e.target.value })} className="w-full h-8 px-3 text-[11px] rounded-lg border border-[#D5DFE0] bg-white outline-none" />
+                  <label className="flex items-center gap-2">
                   <input
                     type="checkbox"
                     checked={config.contributionProofRequired}
@@ -303,6 +260,7 @@ export const FormBuilderTab: React.FC = () => {
                     className="accent-[#0EADAD]"
                   />
                   <span className="text-[#6B7E82] text-[11px]">Wajib diisi (Required)</span>
+                  </label>
                 </div>
               )}
             </div>
@@ -437,11 +395,11 @@ export const FormBuilderTab: React.FC = () => {
                   <option value="text">Teks Singkat</option>
                   <option value="textarea">Teks Panjang (Catatan/Alasan)</option>
                   <option value="select">Pilihan Dropdown</option>
-                  <option value="file">Upload File / Dokumen</option>
+                  <option value="radio">Pilihan Radio</option>
                 </select>
               </div>
 
-              {newFieldType === 'select' && (
+              {['select', 'radio'].includes(newFieldType) && (
                 <div>
                   <label className="block text-xs font-semibold text-[#173F42] mb-1">
                     Daftar Pilihan (Pisahkan dengan koma)

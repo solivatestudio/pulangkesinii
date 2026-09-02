@@ -8,18 +8,35 @@ var __export = (target, all) => {
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import jwt from "jsonwebtoken";
+import jwt2 from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import crypto from "node:crypto";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import { z } from "zod";
 import * as dotenv3 from "dotenv";
-import { eq, desc, asc } from "drizzle-orm";
+import { eq, desc, asc, sql as sql2, and, lt } from "drizzle-orm";
 import { createRouteHandler } from "uploadthing/express";
 
 // server/uploadthing.ts
 import { createUploadthing } from "uploadthing/express";
 import * as dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env" });
 var f = createUploadthing();
+var requireAdminUpload = async ({ req }) => {
+  const cookie = req.headers.cookie || "";
+  const authorization = req.headers.authorization || "";
+  const cookieToken = cookie.match(/(?:^|;\s*)auth_token=([^;]+)/)?.[1];
+  const token = cookieToken ? decodeURIComponent(cookieToken) : authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
+  const secret = process.env.JWT_SECRET;
+  if (!token || !secret) {
+    throw new Error("Unauthorized");
+  }
+  jwt.verify(token, secret);
+  return { authorized: true };
+};
 var uploadRouter = {
   proofUploader: f({
     image: {
@@ -35,7 +52,7 @@ var uploadRouter = {
       maxFileSize: "8MB",
       maxFileCount: 1
     }
-  }).onUploadComplete(async ({ file }) => {
+  }).middleware(requireAdminUpload).onUploadComplete(async ({ file }) => {
     console.log("Media upload complete:", file.ufsUrl || file.url);
     return { url: file.ufsUrl || file.url };
   })
@@ -123,6 +140,7 @@ var registrations = pgTable("registrations", {
   repostStoryProofUrl: text("repost_story_proof_url").default(""),
   status: varchar("status", { length: 32 }).notNull().default("menunggu_verifikasi"),
   adminNotes: text("admin_notes").default(""),
+  customAnswers: jsonb("custom_answers").$type().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
 var galleryPhotos = pgTable("gallery_photos", {
@@ -164,11 +182,18 @@ dotenv3.config({ path: ".env.local" });
 dotenv3.config({ path: ".env" });
 var app = express();
 var PORT = process.env.PORT || 5e3;
-var JWT_SECRET = process.env.JWT_SECRET || "pulangkesinii_jwt_secret_key_2026_super_secure";
+var JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET || JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET wajib diisi dengan nilai acak minimal 32 karakter");
+}
+var allowedOrigins = (process.env.ALLOWED_ORIGINS || "").split(",").map((value) => value.trim()).filter(Boolean);
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => callback(null, !origin || process.env.NODE_ENV !== "production" || allowedOrigins.includes(origin)),
   credentials: true
 }));
+app.use("/api/auth/login", rateLimit({ windowMs: 15 * 6e4, limit: 10, standardHeaders: true, legacyHeaders: false }));
+app.use("/api/registrations", rateLimit({ windowMs: 15 * 6e4, limit: 30, standardHeaders: true, legacyHeaders: false }));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -199,18 +224,57 @@ app.get("/api/health", (req, res) => {
   });
 });
 var requireAuth = (req, res, next) => {
-  const token = req.cookies?.auth_token || req.headers.authorization?.replace("Bearer ", "");
+  const bearer = req.headers.authorization;
+  const token = req.cookies?.auth_token || (bearer?.startsWith("Bearer ") ? bearer.slice(7) : void 0);
   if (!token) {
     return res.status(401).json({ error: "Unauthorized: Harap login terlebih dahulu" });
   }
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt2.verify(token, JWT_SECRET);
     req.user = decoded;
     next();
   } catch (err) {
     return res.status(401).json({ error: "Sesi login tidak valid atau kadaluarsa" });
   }
 };
+var validateBody = (schema) => (req, res, next) => {
+  const parsed = schema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Data tidak valid", details: parsed.error.issues });
+  req.body = parsed.data;
+  next();
+};
+var activityBody = z.object({
+  id: z.string().max(64).optional(),
+  slug: z.string().max(128).optional(),
+  title: z.string().trim().min(1).max(300),
+  shortDescription: z.string().max(1e3),
+  description: z.string().max(2e4),
+  category: z.string().max(64),
+  status: z.enum(["open", "closing_soon", "full", "completed"]),
+  coverImage: z.string().min(1).max(2e3),
+  gallery: z.array(z.string().max(2e3)).optional(),
+  locationName: z.string().max(300),
+  city: z.string().max(64),
+  address: z.string().max(1e3).optional(),
+  mapUrl: z.string().max(2e3).optional(),
+  startDate: z.string().max(64),
+  endDate: z.string().max(64),
+  registrationDeadline: z.string().max(64),
+  price: z.coerce.number().int().min(0),
+  priceLabel: z.string().max(64),
+  quota: z.coerce.number().int().min(1),
+  quotaFilled: z.coerce.number().int().min(0),
+  batchNumber: z.coerce.number().int().min(1),
+  benefits: z.array(z.string().max(500)).optional(),
+  requirements: z.array(z.string().max(500)).optional(),
+  itemsToBring: z.array(z.string().max(500)).optional(),
+  rundown: z.array(z.object({ time: z.string().max(64), activity: z.string().max(500) })).optional(),
+  contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(),
+  featured: z.boolean().optional(),
+  urgentClosing: z.boolean().optional()
+}).strict();
+var faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1e3), answer: z.string().min(1).max(1e4), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
+var galleryBody = z.object({ id: z.string().max(64).optional(), title: z.string().min(1).max(128), batchTag: z.string().max(64).optional(), category: z.string().max(64).optional(), imageUrl: z.string().url(), caption: z.string().max(5e3).optional(), location: z.string().max(128).optional(), date: z.string().max(64).optional(), tileClass: z.string().max(32).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
 app.post("/api/auth/login", async (req, res) => {
   try {
     if (!process.env.DATABASE_URL) {
@@ -231,7 +295,7 @@ app.post("/api/auth/login", async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ error: "Username atau password salah" });
     }
-    const token = jwt.sign(
+    const token = jwt2.sign(
       { id: user.id, username: user.username, role: user.role },
       JWT_SECRET,
       { expiresIn: "7d" }
@@ -250,8 +314,7 @@ app.post("/api/auth/login", async (req, res) => {
         email: user.email,
         name: user.name,
         role: user.role
-      },
-      token
+      }
     });
   } catch (err) {
     console.error("Login error:", err);
@@ -279,6 +342,29 @@ app.get("/api/auth/me", requireAuth, async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
+var changePasswordBody = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(12).max(200).regex(/[a-z]/, "Password harus memiliki huruf kecil").regex(/[A-Z]/, "Password harus memiliki huruf besar").regex(/[0-9]/, "Password harus memiliki angka")
+}).strict().refine((data) => data.currentPassword !== data.newPassword, {
+  message: "Password baru harus berbeda dari password lama",
+  path: ["newPassword"]
+});
+app.put("/api/auth/password", requireAuth, validateBody(changePasswordBody), async (req, res) => {
+  try {
+    if (!req.user) return res.status(401).json({ error: "Unauthorized" });
+    const found = await db.select().from(users).where(eq(users.id, req.user.id)).limit(1);
+    const user = found[0];
+    if (!user) return res.status(404).json({ error: "User tidak ditemukan" });
+    const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash);
+    if (!valid) return res.status(400).json({ error: "Password saat ini salah" });
+    const passwordHash = await bcrypt.hash(req.body.newPassword, 12);
+    await db.update(users).set({ passwordHash }).where(eq(users.id, user.id));
+    res.clearCookie("auth_token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
+    return res.json({ success: true, message: "Password berhasil diubah. Silakan login kembali." });
+  } catch {
+    return res.status(500).json({ error: "Gagal mengubah password" });
+  }
+});
 app.get("/api/activities", async (_req, res) => {
   try {
     const list = await db.select().from(activities).orderBy(desc(activities.createdAt));
@@ -296,7 +382,7 @@ app.get("/api/activities/:id", async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-app.post("/api/activities", requireAuth, async (req, res) => {
+app.post("/api/activities", requireAuth, validateBody(activityBody), async (req, res) => {
   try {
     const data = req.body;
     const id = data.id || `act-${Date.now()}`;
@@ -325,7 +411,7 @@ app.post("/api/activities", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Gagal menambah kegiatan: " + err.message });
   }
 });
-app.put("/api/activities/:id", requireAuth, async (req, res) => {
+app.put("/api/activities/:id", requireAuth, validateBody(activityBody), async (req, res) => {
   try {
     const { id } = req.params;
     const data = req.body;
@@ -357,12 +443,36 @@ app.delete("/api/activities/:id", requireAuth, async (req, res) => {
     return res.status(500).json({ error: "Gagal menghapus kegiatan: " + err.message });
   }
 });
+var registrationSchema = z.object({
+  activityId: z.string().max(64).nullable().optional(),
+  activityTitle: z.string().max(300).optional(),
+  activityChoice: z.string().min(1).max(300),
+  fullName: z.string().trim().min(2).max(128),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  domicile: z.string().trim().min(2).max(128),
+  whatsapp: z.string().trim().regex(/^\+?[0-9][0-9\s-]{7,20}$/),
+  followedChannel: z.string().max(128).default(""),
+  paymentMethod: z.string().min(1).max(64),
+  reason: z.string().trim().max(5e3).default(""),
+  contributionProofUrl: z.string().url().or(z.literal("")).default(""),
+  tagFriendsProofUrl: z.string().url().or(z.literal("")).default(""),
+  repostStoryProofUrl: z.string().url().or(z.literal("")).default(""),
+  customAnswers: z.record(z.string(), z.string().max(5e3)).default({})
+}).strict();
 app.post("/api/registrations", async (req, res) => {
   try {
-    const data = req.body;
-    const randomSuffix = Math.floor(1e3 + Math.random() * 9e3);
-    const regCode = `PLG-${(/* @__PURE__ */ new Date()).getFullYear()}-${randomSuffix}`;
-    const id = `reg-${Date.now()}`;
+    const data = registrationSchema.parse(req.body);
+    const configRow = await db.select().from(siteSettings).where(eq(siteSettings.key, "registration_form_config")).limit(1);
+    const formConfig = configRow[0]?.value || {};
+    const missingProof = formConfig.enableContributionProof !== false && formConfig.contributionProofRequired !== false && !data.contributionProofUrl || formConfig.enableTagFriends !== false && formConfig.tagFriendsRequired !== false && !data.tagFriendsProofUrl || formConfig.enableRepostStory !== false && formConfig.repostStoryRequired !== false && !data.repostStoryProofUrl;
+    if (missingProof) return res.status(400).json({ error: "Bukti wajib belum lengkap" });
+    const requiredCustomFields = Array.isArray(formConfig.customFields) ? formConfig.customFields.filter((field) => field?.required) : [];
+    if (requiredCustomFields.some((field) => !data.customAnswers[field.label]?.trim())) {
+      return res.status(400).json({ error: "Pertanyaan wajib belum lengkap" });
+    }
+    const suffix = crypto.randomBytes(5).toString("hex").toUpperCase();
+    const regCode = `PLG-${(/* @__PURE__ */ new Date()).getFullYear()}-${suffix}`;
+    const id = crypto.randomUUID();
     const newReg = {
       id,
       registrationCode: regCode,
@@ -381,14 +491,18 @@ app.post("/api/registrations", async (req, res) => {
       repostStoryProofUrl: data.repostStoryProofUrl || "",
       status: "menunggu_verifikasi",
       adminNotes: "",
+      customAnswers: data.customAnswers,
       createdAt: /* @__PURE__ */ new Date()
     };
-    await db.insert(registrations).values(newReg);
     if (data.activityId) {
-      const act = await db.select().from(activities).where(eq(activities.id, data.activityId)).limit(1);
-      if (act.length > 0) {
-        await db.update(activities).set({ quotaFilled: (act[0].quotaFilled || 0) + 1 }).where(eq(activities.id, data.activityId));
-      }
+      const updated = await db.update(activities).set({ quotaFilled: sql2`${activities.quotaFilled} + 1` }).where(and(eq(activities.id, data.activityId), lt(activities.quotaFilled, activities.quota))).returning({ id: activities.id });
+      if (!updated.length) return res.status(409).json({ error: "Kegiatan tidak tersedia atau kuota sudah penuh" });
+    }
+    try {
+      await db.insert(registrations).values(newReg);
+    } catch (error) {
+      if (data.activityId) await db.update(activities).set({ quotaFilled: sql2`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, data.activityId));
+      throw error;
     }
     return res.status(201).json({
       success: true,
@@ -397,7 +511,8 @@ app.post("/api/registrations", async (req, res) => {
     });
   } catch (err) {
     console.error("Registration error:", err);
-    return res.status(500).json({ error: "Gagal mengirim pendaftaran: " + err.message });
+    if (err instanceof z.ZodError) return res.status(400).json({ error: "Data pendaftaran tidak valid", details: err.issues });
+    return res.status(500).json({ error: "Gagal mengirim pendaftaran" });
   }
 });
 app.get("/api/registrations", requireAuth, async (_req, res) => {
@@ -408,7 +523,7 @@ app.get("/api/registrations", requireAuth, async (_req, res) => {
     return res.status(500).json({ error: "Gagal memuat pendaftaran: " + err.message });
   }
 });
-app.patch("/api/registrations/:id/status", requireAuth, async (req, res) => {
+app.patch("/api/registrations/:id/status", requireAuth, validateBody(z.object({ status: z.enum(["menunggu_verifikasi", "terkonfirmasi", "ditolak"]).optional(), adminNotes: z.string().max(5e3).optional() }).strict()), async (req, res) => {
   try {
     const { id } = req.params;
     const { status, adminNotes } = req.body;
@@ -423,7 +538,9 @@ app.patch("/api/registrations/:id/status", requireAuth, async (req, res) => {
 });
 app.delete("/api/registrations/:id", requireAuth, async (req, res) => {
   try {
+    const found = await db.select({ activityId: registrations.activityId }).from(registrations).where(eq(registrations.id, req.params.id)).limit(1);
     await db.delete(registrations).where(eq(registrations.id, req.params.id));
+    if (found[0]?.activityId) await db.update(activities).set({ quotaFilled: sql2`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, found[0].activityId));
     return res.json({ success: true, message: "Data pendaftar berhasil dihapus" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -437,7 +554,7 @@ app.get("/api/gallery", async (_req, res) => {
     return res.status(500).json({ error: "Gagal memuat galeri: " + err.message });
   }
 });
-app.post("/api/gallery", requireAuth, async (req, res) => {
+app.post("/api/gallery", requireAuth, validateBody(galleryBody), async (req, res) => {
   try {
     const data = req.body;
     const id = data.id || `gal-${Date.now()}`;
@@ -451,6 +568,15 @@ app.post("/api/gallery", requireAuth, async (req, res) => {
     return res.status(201).json(newPhoto);
   } catch (err) {
     return res.status(500).json({ error: "Gagal menambah foto: " + err.message });
+  }
+});
+app.put("/api/gallery/:id", requireAuth, validateBody(galleryBody.omit({ id: true })), async (req, res) => {
+  try {
+    const { id: _ignored, createdAt: _createdAt, ...data } = req.body;
+    await db.update(galleryPhotos).set({ ...data, orderIndex: Number(data.orderIndex || 0) }).where(eq(galleryPhotos.id, req.params.id));
+    return res.json({ success: true, message: "Foto berhasil diperbarui" });
+  } catch {
+    return res.status(500).json({ error: "Gagal memperbarui foto" });
   }
 });
 app.delete("/api/gallery/:id", requireAuth, async (req, res) => {
@@ -469,7 +595,7 @@ app.get("/api/faqs", async (_req, res) => {
     return res.status(500).json({ error: "Gagal memuat FAQ: " + err.message });
   }
 });
-app.post("/api/faqs", requireAuth, async (req, res) => {
+app.post("/api/faqs", requireAuth, validateBody(faqBody), async (req, res) => {
   try {
     const data = req.body;
     const id = data.id || `faq-${Date.now()}`;
@@ -485,7 +611,7 @@ app.post("/api/faqs", requireAuth, async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-app.put("/api/faqs/:id", requireAuth, async (req, res) => {
+app.put("/api/faqs/:id", requireAuth, validateBody(faqBody.partial()), async (req, res) => {
   try {
     const { id } = req.params;
     await db.update(faqs).set(req.body).where(eq(faqs.id, id));
@@ -514,7 +640,15 @@ app.get("/api/settings", async (_req, res) => {
     return res.status(500).json({ error: "Gagal memuat pengaturan: " + err.message });
   }
 });
-app.put("/api/settings/:key", requireAuth, async (req, res) => {
+app.get("/api/settings/:key", async (req, res) => {
+  try {
+    const found = await db.select().from(siteSettings).where(eq(siteSettings.key, req.params.key)).limit(1);
+    return found[0] ? res.json(found[0]) : res.json({ key: req.params.key, value: null });
+  } catch {
+    return res.status(500).json({ error: "Gagal memuat pengaturan" });
+  }
+});
+app.put("/api/settings/:key", requireAuth, validateBody(z.object({ value: z.unknown() }).strict()), async (req, res) => {
   try {
     const { key } = req.params;
     const { value } = req.body;
@@ -529,7 +663,15 @@ app.put("/api/settings/:key", requireAuth, async (req, res) => {
     return res.status(500).json({ error: err.message });
   }
 });
-if (!process.env.VERCEL) {
+app.delete("/api/settings/:key", requireAuth, async (req, res) => {
+  try {
+    await db.delete(siteSettings).where(eq(siteSettings.key, req.params.key));
+    return res.json({ success: true, message: "Pengaturan berhasil dihapus" });
+  } catch {
+    return res.status(500).json({ error: "Gagal menghapus pengaturan" });
+  }
+});
+if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
   app.listen(PORT, () => {
     console.log(`\u{1F680} Pulangkesinii API Server running on port ${PORT}`);
   });

@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Check, CreditCard, Phone, Mail, Instagram, MapPin } from 'lucide-react';
+import { Save, CreditCard, Phone, LockKeyhole } from 'lucide-react';
 import { UploadButton } from '../../utils/uploadthing';
 
 export const SettingsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [savingAccounts, setSavingAccounts] = useState(false);
   const [savingContact, setSavingContact] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmation: '' });
 
   const [accounts, setAccounts] = useState({
     bca: { bank: 'BCA', accountNumber: '1234567890', accountName: 'Pulangkesinii Komunitas' },
@@ -72,6 +75,30 @@ export const SettingsTab: React.FC = () => {
       console.error(err);
     } finally {
       setSavingContact(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    if (passwords.newPassword !== passwords.confirmation) {
+      setPasswordError('Konfirmasi password baru tidak sama.');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      const res = await fetch('/api/auth/password', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword: passwords.currentPassword, newPassword: passwords.newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Gagal mengubah password');
+      alert(data.message);
+      window.location.assign('/admin/login');
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : 'Gagal mengubah password');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -254,6 +281,20 @@ export const SettingsTab: React.FC = () => {
               <span>{savingContact ? 'Menyimpan...' : 'Simpan Info Kontak'}</span>
             </button>
           </div>
+        </form>
+      </div>
+
+      <div className="bg-white p-6 rounded-2xl border border-[#E0F2F1] shadow-xs">
+        <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-gray-100">
+          <LockKeyhole className="w-5 h-5 text-[#0EADAD]" />
+          <div><h3 className="font-bold text-sm text-[#173F42]">Ganti Password Admin</h3><p className="text-xs text-gray-500">Setelah berhasil, sesi akan ditutup dan Anda harus login kembali.</p></div>
+        </div>
+        <form onSubmit={handleChangePassword} className="space-y-4 text-xs max-w-xl">
+          <div><label className="block font-bold mb-1">Password Saat Ini</label><input type="password" autoComplete="current-password" required value={passwords.currentPassword} onChange={(e) => setPasswords({ ...passwords, currentPassword: e.target.value })} className="w-full h-10 px-3 border border-gray-300 rounded-xl outline-none focus:border-[#0EADAD]" /></div>
+          <div><label className="block font-bold mb-1">Password Baru</label><input type="password" autoComplete="new-password" required minLength={12} value={passwords.newPassword} onChange={(e) => setPasswords({ ...passwords, newPassword: e.target.value })} className="w-full h-10 px-3 border border-gray-300 rounded-xl outline-none focus:border-[#0EADAD]" /><p className="mt-1 text-gray-500">Minimal 12 karakter, berisi huruf besar, huruf kecil, dan angka.</p></div>
+          <div><label className="block font-bold mb-1">Konfirmasi Password Baru</label><input type="password" autoComplete="new-password" required minLength={12} value={passwords.confirmation} onChange={(e) => setPasswords({ ...passwords, confirmation: e.target.value })} className="w-full h-10 px-3 border border-gray-300 rounded-xl outline-none focus:border-[#0EADAD]" /></div>
+          {passwordError && <p className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 font-semibold">{passwordError}</p>}
+          <button type="submit" disabled={savingPassword} className="h-10 px-5 bg-[#173F42] text-white font-bold rounded-xl flex items-center gap-2 disabled:opacity-50"><LockKeyhole className="w-4 h-4" />{savingPassword ? 'Mengubah...' : 'Ganti Password'}</button>
         </form>
       </div>
     </div>

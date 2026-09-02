@@ -68,6 +68,7 @@ export const registrations = pgTable('registrations', {
   repostStoryProofUrl: text('repost_story_proof_url').default(''),
   status: varchar('status', { length: 32 }).notNull().default('menunggu_verifikasi'),
   adminNotes: text('admin_notes').default(''),
+  customAnswers: jsonb('custom_answers').$type<Record<string, string>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

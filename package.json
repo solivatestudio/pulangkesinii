@@ -7,10 +7,11 @@
     "dev": "concurrently \"tsx watch server/index.ts\" \"vite --port=3000 --host=0.0.0.0\"",
     "dev:frontend": "vite --port=3000 --host=0.0.0.0",
     "server": "tsx server/index.ts",
-    "build": "vite build && esbuild server/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:express --external:@neondatabase/serverless --external:bcryptjs --external:jsonwebtoken --external:cookie-parser --external:cors --external:dotenv --external:drizzle-orm --external:uploadthing",
+    "build": "vite build && esbuild server/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:express --external:@neondatabase/serverless --external:bcryptjs --external:jsonwebtoken --external:cookie-parser --external:cors --external:dotenv --external:drizzle-orm --external:uploadthing --external:helmet --external:express-rate-limit --external:zod",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "test": "vitest run --pool=forks --testTimeout=20000 --hookTimeout=20000",
     "db:push": "drizzle-kit push --config=drizzle.config.ts",
     "db:seed": "tsx server/db/seed.ts"
   },
@@ -28,7 +29,10 @@
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.45.2",
+    "effect": "^3.22.1",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
@@ -36,7 +40,8 @@
     "react-dom": "^19.0.1",
     "react-router-dom": "^7.18.3",
     "uploadthing": "^7.7.4",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -45,13 +50,20 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.14.0",
+    "@types/supertest": "^7.2.1",
     "autoprefixer": "^10.4.21",
     "concurrently": "^10.0.5",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.25.0",
+    "supertest": "^7.2.2",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.23.13",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "effect": "^3.22.1",
+    "esbuild": "^0.25.0"
   }
 }
