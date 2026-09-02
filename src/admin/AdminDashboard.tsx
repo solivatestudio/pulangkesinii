@@ -13,10 +13,12 @@ import {
   Clock,
   Sparkles,
   Menu,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { ActivitiesTab } from './tabs/ActivitiesTab';
 import { RegistrationsTab } from './tabs/RegistrationsTab';
+import { FormBuilderTab } from './tabs/FormBuilderTab';
 import { GalleryTab } from './tabs/GalleryTab';
 import { FaqsTab } from './tabs/FaqsTab';
 import { SettingsTab } from './tabs/SettingsTab';
@@ -27,7 +29,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'activities' | 'registrations' | 'gallery' | 'faqs' | 'settings'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'registrations' | 'form_builder' | 'gallery' | 'faqs' | 'settings'>('activities');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stats, setStats] = useState({
     totalActivities: 0,
@@ -79,6 +81,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const navItems = [
     { id: 'activities', label: 'Kegiatan & Cards', icon: Calendar, badge: stats.openActivities },
     { id: 'registrations', label: 'Pendaftaran Peserta', icon: Users, badge: stats.pendingRegistrations, badgeColor: 'bg-amber-500' },
+    { id: 'form_builder', label: 'Form Builder', icon: FileText },
     { id: 'gallery', label: 'Galeri Momen', icon: ImageIcon },
     { id: 'faqs', label: 'FAQ & Tanya Jawab', icon: HelpCircle },
     { id: 'settings', label: 'Rekening & Kontak', icon: Settings },
@@ -279,6 +282,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         {/* Tab Content */}
         {activeTab === 'activities' && <ActivitiesTab />}
         {activeTab === 'registrations' && <RegistrationsTab />}
+        {activeTab === 'form_builder' && <FormBuilderTab />}
         {activeTab === 'gallery' && <GalleryTab />}
         {activeTab === 'faqs' && <FaqsTab />}
         {activeTab === 'settings' && <SettingsTab />}

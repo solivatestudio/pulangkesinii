@@ -72,6 +72,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
+  const [formConfig, setFormConfig] = useState<any>(null);
+
+  useEffect(() => {
+    fetch('/api/settings/registration_form_config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.value) {
+          setFormConfig(data.value);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // File input refs
   const contributionInputRef = useRef<HTMLInputElement>(null);
@@ -194,20 +206,26 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     if (!formData.activityChoice) {
       newErrors.activityChoice = 'Pilihan kegiatan wajib dipilih';
     }
-    if (!formData.contributionProof.file) {
-      newErrors.contributionProof = 'Bukti pembayaran contribution fee wajib diupload';
+    if (formConfig?.enableContributionProof !== false && formConfig?.contributionProofRequired !== false) {
+      if (!formData.contributionProof.file) {
+        newErrors.contributionProof = 'Bukti pembayaran contribution fee wajib diupload';
+      }
     }
     if (!formData.paymentMethod) {
       newErrors.paymentMethod = 'Metode pembayaran wajib dipilih';
     }
-    if (!formData.tagFriendsProof.file) {
-      newErrors.tagFriendsProof = 'Bukti tag 3 teman wajib diupload';
+    if (formConfig?.enableTagFriends !== false && formConfig?.tagFriendsRequired !== false) {
+      if (!formData.tagFriendsProof.file) {
+        newErrors.tagFriendsProof = `${formConfig?.tagFriendsLabel || 'Bukti tag 3 teman'} wajib diupload`;
+      }
     }
-    if (!formData.repostStoryProof.file) {
-      newErrors.repostStoryProof = 'Bukti repost IG Story wajib diupload';
+    if (formConfig?.enableRepostStory !== false && formConfig?.repostStoryRequired !== false) {
+      if (!formData.repostStoryProof.file) {
+        newErrors.repostStoryProof = `${formConfig?.repostStoryLabel || 'Bukti repost IG Story'} wajib diupload`;
+      }
     }
-    if (!formData.reason.trim()) {
-      newErrors.reason = 'Alasan bergabung wajib diisi';
+    if (formConfig?.reasonRequired !== false && !formData.reason.trim()) {
+      newErrors.reason = `${formConfig?.reasonLabel || 'Alasan bergabung'} wajib diisi`;
     }
 
     setErrors(newErrors);
@@ -427,10 +445,10 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           </div>
 
           <h2 id="form-modal-title" className="text-lg sm:text-xl font-extrabold text-white leading-tight">
-            Formulir Pendaftaran
+            {formConfig?.formTitle || 'Formulir Pendaftaran'}
           </h2>
           <p className="text-xs text-[#dff6f5] mt-0.5">
-            Ruang untuk berbuat baik & bertumbuh bersama
+            {formConfig?.formDescription || 'Ruang untuk berbuat baik & bertumbuh bersama'}
           </p>
         </div>
       </div>
