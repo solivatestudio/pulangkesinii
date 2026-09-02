@@ -198,7 +198,7 @@ export const RegistrationsTab: React.FC = () => {
       <div className="bg-white rounded-2xl border border-[#E0F2F1] overflow-hidden shadow-xs">
         {loading ? (
           <div className="p-12 text-center text-xs text-[#6B7E82]">
-            Memuat data pendaftar dari Neon DB...
+            Menyiapkan daftar pendaftar...
           </div>
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-xs text-[#6B7E82]">
@@ -369,9 +369,9 @@ export const RegistrationsTab: React.FC = () => {
                 </div>
               )}
 
-              {/* Uploaded proofs from UploadThing */}
+              {/* Lampiran bukti */}
               <div className="space-y-2 pt-2 border-t border-[#F0F7F7]">
-                <span className="font-bold text-[#173F42] block">Lampiran Bukti (UploadThing CDN)</span>
+                <span className="font-bold text-[#173F42] block">Lampiran Bukti</span>
                 
                 {selectedReg.contributionProofUrl ? (
                   <div className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-200">

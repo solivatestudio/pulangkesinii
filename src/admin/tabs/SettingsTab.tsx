@@ -53,7 +53,7 @@ export const SettingsTab: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: accounts }),
       });
-      if (res.ok) alert('Rekening pembayaran berhasil disimpan ke database!');
+      if (res.ok) alert('Rekening pembayaran berhasil disimpan.');
     } catch (err) {
       console.error(err);
     } finally {
@@ -70,7 +70,7 @@ export const SettingsTab: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: contact }),
       });
-      if (res.ok) alert('Info kontak berhasil disimpan ke database!');
+      if (res.ok) alert('Informasi kontak berhasil disimpan.');
     } catch (err) {
       console.error(err);
     } finally {

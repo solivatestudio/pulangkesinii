@@ -47,7 +47,7 @@ export const GalleryTab: React.FC = () => {
   const handleAddPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newImageUrl) {
-      alert('Harap masukkan URL foto atau upload via UploadThing');
+      alert('Masukkan URL foto atau unggah gambar terlebih dahulu.');
       return;
     }
 
@@ -155,7 +155,7 @@ export const GalleryTab: React.FC = () => {
 
             <form onSubmit={handleAddPhoto} className="p-6 space-y-4 text-xs">
               <div>
-                <label className="block font-bold text-[#26383C] mb-1">Unggah Gambar ke UploadThing</label>
+                <label className="block font-bold text-[#26383C] mb-1">Unggah Gambar</label>
                 <div className="p-4 bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center gap-2">
                   {newImageUrl ? (
                     <img src={newImageUrl} alt="Preview" className="h-28 object-cover rounded-xl border border-gray-300" />
@@ -166,7 +166,7 @@ export const GalleryTab: React.FC = () => {
                       if (res && res[0]) {
                         const url = res[0].ufsUrl || res[0].url;
                         setNewImageUrl(url);
-                        alert('Gambar berhasil diupload ke UploadThing!');
+                        alert('Gambar berhasil diunggah.');
                       }
                     }}
                     onUploadError={(err: Error) => alert(`Upload gagal: ${err.message}`)}

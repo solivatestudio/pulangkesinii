@@ -247,7 +247,7 @@ export const ActivitiesTab: React.FC = () => {
       {/* Activities Table/Grid */}
       {loading ? (
         <div className="bg-white rounded-2xl p-12 text-center text-xs text-[#6B7E82]">
-          Memuat data kegiatan dari Neon DB...
+          Menyiapkan daftar kegiatan...
         </div>
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center text-xs text-[#6B7E82] border border-[#E0F2F1]">
@@ -439,7 +439,7 @@ export const ActivitiesTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Foto Cover & UploadThing */}
+              {/* Foto cover */}
               <div>
                 <label className="block font-bold text-[#26383C] mb-1">Foto Cover Kegiatan *</label>
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -455,7 +455,7 @@ export const ActivitiesTab: React.FC = () => {
                       type="text"
                       value={formData.coverImage || ''}
                       onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                      placeholder="Masukkan URL foto atau unggah langsung lewat UploadThing"
+                      placeholder="Masukkan URL foto atau unggah gambar"
                       className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none text-xs"
                       required
                     />
@@ -467,7 +467,7 @@ export const ActivitiesTab: React.FC = () => {
                           if (res && res[0]) {
                             const uploadedUrl = res[0].ufsUrl || res[0].url;
                             setFormData((prev) => ({ ...prev, coverImage: uploadedUrl }));
-                            alert('Cover berhasil diupload ke UploadThing!');
+                            alert('Gambar sampul berhasil diunggah.');
                           }
                         }}
                         onUploadError={(error: Error) => {
