@@ -15,7 +15,6 @@ dotenv.config({ path: '.env' });
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'pulangkesinii_jwt_secret_key_2026_super_secure';
-const UPLOADTHING_TOKEN = process.env.UPLOADTHING_TOKEN || 'eyJhcGlLZXkiOiJza19saXZlXzQ1ZGUzNjBkMTgzY2VkYTkwOGI1NTJmMWEwZTVkMTJjM2M5YTY2MDdlZGUzNDMxOTY3MDg2MTdmMmEyNjk5Y2EiLCJhcHBJZCI6InI5bnE1YWdlNGYiLCJyZWdpb25zIjpbInNlYTEiXX0=';
 
 // Middlewares
 app.use(cors({
@@ -34,16 +33,28 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   next();
 });
 
-// UploadThing route handler
-app.use(
-  '/api/uploadthing',
-  createRouteHandler({
-    router: uploadRouter,
-    config: {
-      token: UPLOADTHING_TOKEN,
-    },
-  })
-);
+// UploadThing route handler (aktifkan jika token tersedia)
+if (process.env.UPLOADTHING_TOKEN) {
+  app.use(
+    '/api/uploadthing',
+    createRouteHandler({
+      router: uploadRouter,
+      config: {
+        token: process.env.UPLOADTHING_TOKEN,
+      },
+    })
+  );
+}
+
+app.get('/api/health', (req: Request, res: Response) => {
+  return res.json({
+    status: 'ok',
+    message: 'Pulangkesinii Serverless Backend is running on Vercel',
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    hasUploadthingToken: Boolean(process.env.UPLOADTHING_TOKEN),
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Auth Middleware
 interface AuthRequest extends Request {
@@ -72,6 +83,12 @@ const requireAuth = (req: AuthRequest, res: Response, next: NextFunction) => {
 // ==================== AUTH ROUTES ====================
 app.post('/api/auth/login', async (req: Request, res: Response) => {
   try {
+    if (!process.env.DATABASE_URL) {
+      return res.status(500).json({
+        error: 'DATABASE_URL belum diatur di Vercel Dashboard (Settings > Environment Variables).'
+      });
+    }
+
     const { username, password } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Username dan password wajib diisi' });
