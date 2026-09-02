@@ -89,10 +89,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
       {/* Mobile Top Header */}
       <div className="md:hidden bg-white border-b border-[#E0F2F1] p-4 flex items-center justify-between sticky top-0 z-30 shadow-xs">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#0EADAD] flex items-center justify-center text-white font-black text-sm">
-            P
+          <div className="w-9 h-9 rounded-xl bg-[#E0F7F6] p-1 flex items-center justify-center border border-[#CDEEEB]">
+            <img src="/assets/logo-palette.png" alt="Pulangkesinii" className="w-full h-full object-contain" />
           </div>
-          <span className="font-bold text-sm text-[#173F42] font-heading">Pulangkesinii Admin</span>
+          <span className="admin-title text-xl text-[#173F42]">Pulangkesinii Admin</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -111,12 +111,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         <div className="space-y-6">
           {/* Brand Logo */}
           <div className="flex items-center gap-3 px-2">
-            <div className="w-10 h-10 rounded-2xl bg-[#0EADAD] flex items-center justify-center text-white font-black text-base shadow-sm">
-              P
+            <div className="w-10 h-10 rounded-2xl bg-[#E0F7F6] p-1.5 flex items-center justify-center shadow-xs border border-[#CDEEEB] flex-none">
+              <img src="/assets/logo-palette.png" alt="Pulangkesinii" className="w-full h-full object-contain" />
             </div>
             <div>
-              <h1 className="font-bold text-sm text-[#173F42]">Pulangkesinii</h1>
-              <span className="text-[10px] text-[#0EADAD] font-bold tracking-wider uppercase">Content Manager</span>
+              <h1 className="admin-title text-xl text-[#173F42] leading-tight">Pulangkesinii</h1>
+              <span className="text-[10px] text-[#0EADAD] font-semibold tracking-wider uppercase block">Portal Pengelola</span>
             </div>
           </div>
 
@@ -194,28 +194,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
       <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
         {/* Top Summary Banner */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white p-4 rounded-2xl border border-[#E0F2F1] shadow-xs">
-            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Total Kegiatan</span>
-            <span className="text-xl sm:text-2xl font-black text-[#173F42] mt-1 block">{stats.totalActivities}</span>
-            <span className="text-[10px] text-[#00A389] font-semibold mt-0.5 block">{stats.openActivities} aktif</span>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-[#6B7E82] font-semibold">Total Kegiatan</span>
+              <div className="w-8 h-8 rounded-xl bg-[#E0F7F6] text-[#087C7E] flex items-center justify-center">
+                <Calendar className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalActivities}</span>
+              <span className="text-[11px] text-[#00A389] font-medium mt-1 inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00A389]" />
+                {stats.openActivities} aktif di web
+              </span>
+            </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-[#E0F2F1] shadow-xs">
-            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Total Pendaftar</span>
-            <span className="text-xl sm:text-2xl font-black text-[#173F42] mt-1 block">{stats.totalRegistrations}</span>
-            <span className="text-[10px] text-[#D97706] font-semibold mt-0.5 block">{stats.pendingRegistrations} perlu verifikasi</span>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-[#6B7E82] font-semibold">Pendaftaran</span>
+              <div className="w-8 h-8 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center">
+                <Users className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalRegistrations}</span>
+              <span className="text-[11px] text-[#D97706] font-medium mt-1 inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
+                {stats.pendingRegistrations} verifikasi
+              </span>
+            </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-[#E0F2F1] shadow-xs">
-            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">Foto Galeri Momen</span>
-            <span className="text-xl sm:text-2xl font-black text-[#173F42] mt-1 block">{stats.totalPhotos}</span>
-            <span className="text-[10px] text-[#0EADAD] font-semibold mt-0.5 block">Dokumentasi kegiatan</span>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-[#6B7E82] font-semibold">Foto Galeri</span>
+              <div className="w-8 h-8 rounded-xl bg-[#DDECFF] text-[#2563EB] flex items-center justify-center">
+                <ImageIcon className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalPhotos}</span>
+              <span className="text-[11px] text-[#2563EB] font-medium mt-1 inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
+                Momen kebaikan
+              </span>
+            </div>
           </div>
 
-          <div className="bg-white p-4 rounded-2xl border border-[#E0F2F1] shadow-xs">
-            <span className="text-[10px] text-gray-500 font-semibold uppercase tracking-wider block">FAQ & Tanya Jawab</span>
-            <span className="text-xl sm:text-2xl font-black text-[#173F42] mt-1 block">{stats.totalFaqs}</span>
-            <span className="text-[10px] text-[#4A5D61] font-semibold mt-0.5 block">Pertanyaan aktif</span>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] text-[#6B7E82] font-semibold">Tanya Jawab</span>
+              <div className="w-8 h-8 rounded-xl bg-[#FFE1D9] text-[#EA580C] flex items-center justify-center">
+                <HelpCircle className="w-4 h-4" />
+              </div>
+            </div>
+            <div>
+              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalFaqs}</span>
+              <span className="text-[11px] text-[#EA580C] font-medium mt-1 inline-flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EA580C]" />
+                FAQ aktif di beranda
+              </span>
+            </div>
           </div>
         </div>
 

@@ -55,11 +55,11 @@ export const AdminLogin: React.FC<AdminLoginProps> = ({ onLoginSuccess }) => {
       <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-[0_15px_35px_rgba(14,173,173,0.12)] border border-[#E0F2F1]">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-[#E0F7F6] text-[#0EADAD] rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xs">
-            <ShieldCheck className="w-9 h-9" />
+          <div className="w-16 h-16 bg-[#E0F7F6] p-2 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xs border border-[#CDEEEB]">
+            <img src="/assets/logo-palette.png" alt="Pulangkesinii" className="w-full h-full object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-[#173F42]">Dashboard Admin</h1>
-          <p className="text-xs text-[#6B7E82] mt-1">
+          <h1 className="admin-title text-3xl text-[#173F42]">Dashboard Admin</h1>
+          <p className="text-xs text-[#6B7E82] mt-1.5">
             Masuk untuk mengelola kegiatan, pendaftar, galeri, dan konten Pulangkesinii
           </p>
         </div>

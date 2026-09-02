@@ -200,8 +200,8 @@ export const ActivitiesTab: React.FC = () => {
       {/* Top action bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-[#E0F2F1] shadow-xs">
         <div>
-          <h2 className="text-lg font-bold text-[#173F42]">Manajemen Kegiatan & Cards</h2>
-          <p className="text-xs text-[#6B7E82] mt-0.5">
+          <h2 className="admin-title text-2xl text-[#173F42]">Manajemen Kegiatan</h2>
+          <p className="text-xs text-[#6B7E82] mt-1">
             Kelola judul, tanggal, harga, foto cover, kuota, rundown, dan status kegiatan
           </p>
         </div>

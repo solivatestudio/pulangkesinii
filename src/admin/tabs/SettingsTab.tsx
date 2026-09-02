@@ -81,6 +81,14 @@ export const SettingsTab: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* Top Header */}
+      <div className="bg-white p-5 rounded-2xl border border-[#E0F2F1] shadow-xs">
+        <h2 className="admin-title text-2xl text-[#173F42]">Pengaturan Website</h2>
+        <p className="text-xs text-[#6B7E82] mt-1">
+          Atur rekening pembayaran biaya kontribusi dan informasi kontak resmi yang ditampilkan di website
+        </p>
+      </div>
+
       {/* Rekening Pembayaran */}
       <div className="bg-white p-6 rounded-2xl border border-[#E0F2F1] shadow-xs">
         <div className="flex items-center gap-2.5 mb-4 pb-3 border-b border-gray-100">
