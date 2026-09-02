@@ -426,6 +426,10 @@ app.put('/api/settings/:key', requireAuth, async (req: Request, res: Response) =
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Pulangkesinii API Server running on port ${PORT}`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Pulangkesinii API Server running on port ${PORT}`);
+  });
+}
+
+export default app;
