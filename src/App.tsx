@@ -26,6 +26,9 @@ type Activity = {
 
 const places = ['Semua', 'Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
 const categories = ['Semua', 'Volunteer', 'Voluntrip', 'Workshop'];
+const humanizeDate = (value?: string) => value && /^\d{4}-\d{2}-\d{2}$/.test(value)
+  ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
+  : value;
 
 const defaultCatalogue: Activity[] = [
   { id: 1, category: 'Volunteer', city: 'Jakarta', color: 'cyan', photo: '/images/web/activity-04.webp', title: '[Judul Kegiatan]', startDate: '[Tanggal Pelaksanaan]', priceLabel: '[Biaya/Gratis]' },
@@ -74,7 +77,7 @@ export default function App(){
               color: item.color || colors[idx % 3],
               photo: item.coverImage || `/images/web/activity-${String(idx + 1).padStart(2, '0')}.webp`,
               title: item.title || '[Judul Kegiatan]',
-              startDate: item.startDate || '[Tanggal Pelaksanaan]',
+              startDate: humanizeDate(item.startDate) || '[Tanggal Pelaksanaan]',
               priceLabel: item.priceLabel || '[Biaya/Gratis]',
               locationName: item.locationName || '[Lokasi]',
               description: item.description,

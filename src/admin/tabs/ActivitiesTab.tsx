@@ -18,6 +18,19 @@ import {
 import { UploadButton } from '../../utils/uploadthing';
 import { PublicActivityCard } from '../../components/PublicActivityCard';
 
+const cities = ['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
+const formatRupiah = (value: number) => new Intl.NumberFormat('id-ID').format(value || 0);
+const formatDateId = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
+  ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
+  : value;
+const toDateInput = (value?: string) => {
+  if (!value) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const months: Record<string, string> = { januari:'01', februari:'02', maret:'03', april:'04', mei:'05', juni:'06', juli:'07', agustus:'08', september:'09', oktober:'10', november:'11', desember:'12' };
+  const match = value.toLowerCase().match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})/);
+  return match && months[match[2]] ? `${match[3]}-${months[match[2]]}-${match[1].padStart(2, '0')}` : '';
+};
+
 interface ActivityItem {
   id: string;
   slug: string;
@@ -115,9 +128,9 @@ export const ActivitiesTab: React.FC = () => {
       locationName: 'Panti / Ruang Belajar',
       address: 'Jakarta',
       mapUrl: 'https://maps.google.com',
-      startDate: '20 Oktober 2026',
-      endDate: '21 Oktober 2026',
-      registrationDeadline: '15 Oktober 2026',
+      startDate: '2026-10-20',
+      endDate: '2026-10-21',
+      registrationDeadline: '2026-10-15',
       price: 0,
       priceLabel: 'Gratis',
       quota: 50,
@@ -140,7 +153,7 @@ export const ActivitiesTab: React.FC = () => {
 
   const openEditModal = (act: ActivityItem) => {
     setEditingActivity(act);
-    setFormData(act);
+    setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), registrationDeadline: toDateInput(act.registrationDeadline) });
     setIsModalOpen(true);
   };
 
@@ -166,10 +179,22 @@ export const ActivitiesTab: React.FC = () => {
       const method = editingActivity ? 'PUT' : 'POST';
       const endpoint = editingActivity ? `/api/activities/${editingActivity.id}` : '/api/activities';
 
+      const payload = {
+        id: formData.id, slug: formData.slug, title: formData.title, shortDescription: formData.shortDescription,
+        description: formData.description || '', category: formData.category, status: formData.status,
+        coverImage: formData.coverImage, gallery: formData.gallery || [], locationName: formData.locationName,
+        city: formData.city, address: formData.address || '', mapUrl: formData.mapUrl || '', startDate: formData.startDate,
+        endDate: formData.endDate || formData.startDate, registrationDeadline: formData.registrationDeadline,
+        price: formData.price || 0, priceLabel: formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`,
+        quota: formData.quota || 50, quotaFilled: formData.quotaFilled || 0, batchNumber: formData.batchNumber || 1,
+        benefits: (formData.benefits || []).map((item) => item.trim()).filter(Boolean), requirements: formData.requirements || [], itemsToBring: formData.itemsToBring || [],
+        rundown: formData.rundown || [], contactPerson: formData.contactPerson || null,
+        featured: Boolean(formData.featured), urgentClosing: Boolean(formData.urgentClosing),
+      };
       const res = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -177,7 +202,8 @@ export const ActivitiesTab: React.FC = () => {
         fetchActivities();
       } else {
         const data = await res.json();
-        alert('Gagal menyimpan kegiatan: ' + (data.error || 'Server error'));
+        const detail = Array.isArray(data.details) ? data.details.map((item: { path?: Array<string | number>; message?: string }) => `${item.path?.join('.') || 'field'}: ${item.message}`).join('\n') : '';
+        alert(`Gagal menyimpan kegiatan: ${data.error || 'Terjadi kesalahan'}${detail ? `\n${detail}` : ''}`);
       }
     } catch (err) {
       console.error(err);
@@ -260,7 +286,7 @@ export const ActivitiesTab: React.FC = () => {
               key={act.id}
               className="bg-white rounded-2xl border border-[#E0F2F1] overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col"
             >
-              <div className="p-3 bg-[#eef8f7]"><PublicActivityCard item={{ id: act.id, category: act.category, city: act.city, photo: act.coverImage, title: act.title, startDate: act.startDate, priceLabel: act.priceLabel }} /></div>
+              <div className="p-3 bg-[#eef8f7]"><PublicActivityCard item={{ id: act.id, category: act.category, city: act.city, photo: act.coverImage, title: act.title, startDate: formatDateId(act.startDate), priceLabel: act.priceLabel }} /></div>
               <div className="p-4">
                 <div className="pt-2 flex items-center justify-between border-t border-[#F0F7F7]">
                   <a
@@ -339,14 +365,12 @@ export const ActivitiesTab: React.FC = () => {
                 </div>
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Kota / Wilayah *</label>
-                  <input
-                    type="text"
+                  <select
                     value={formData.city || ''}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                    placeholder="Jakarta / Bandung / dll."
-                    className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                    className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none bg-white"
                     required
-                  />
+                  >{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select>
                 </div>
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Status Kegiatan</label>
@@ -368,42 +392,60 @@ export const ActivitiesTab: React.FC = () => {
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Tanggal Pelaksanaan *</label>
                   <input
-                    type="text"
+                    type="date"
                     value={formData.startDate || ''}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    placeholder="25 Oktober 2026"
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                     required
                   />
+                  {formData.startDate && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.startDate)}</p>}
+                </div>
+                <div>
+                  <label className="block font-bold text-[#26383C] mb-1">Tanggal Selesai *</label>
+                  <input
+                    type="date"
+                    value={formData.endDate || ''}
+                    min={formData.startDate || undefined}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                    required
+                  />
+                  {formData.endDate && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.endDate)}</p>}
                 </div>
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Batas Pendaftaran *</label>
                   <input
-                    type="text"
+                    type="date"
                     value={formData.registrationDeadline || ''}
+                    max={formData.startDate || undefined}
                     onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
-                    placeholder="20 Oktober 2026"
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                     required
                   />
+                  {formData.registrationDeadline && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.registrationDeadline)}</p>}
                 </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Biaya (0 = Gratis) *</label>
-                  <div className="flex gap-2">
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-[#0EADAD]">Rp</span>
                     <input
-                      type="number"
-                      value={formData.price ?? 0}
+                      type="text"
+                      inputMode="numeric"
+                      value={formatRupiah(formData.price || 0)}
                       onChange={(e) => {
-                        const price = Number(e.target.value);
+                        const price = Number(e.target.value.replace(/\D/g, '')) || 0;
                         setFormData({
                           ...formData,
                           price,
                           priceLabel: price === 0 ? 'Gratis' : `Rp ${price.toLocaleString('id-ID')}`,
                         });
                       }}
-                      className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                      className="w-full h-10 pl-9 pr-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none font-semibold"
                     />
                   </div>
+                  <p className="mt-1 text-[11px] text-[#6B7E82]">{formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`}</p>
                 </div>
               </div>
 
@@ -506,19 +548,9 @@ export const ActivitiesTab: React.FC = () => {
               {/* Rundown & Benefit */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#F0F7F7]">
                 <div>
-                  <label className="block font-bold text-[#26383C] mb-1">Benefit Volunteer (Pisahkan dengan koma)</label>
-                  <textarea
-                    rows={2}
-                    value={formData.benefits?.join(', ') || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        benefits: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                      })
-                    }
-                    placeholder="E-Sertifikat, Relasi Baru, Snack"
-                    className="w-full p-2.5 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                  />
+                  <div className="flex items-center justify-between mb-2"><label className="font-bold text-[#26383C]">Benefit Volunteer</label><button type="button" onClick={() => setFormData({ ...formData, benefits: [...(formData.benefits || []), ''] })} className="text-[#0EADAD] font-bold flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah</button></div>
+                  <div className="space-y-2">{(formData.benefits || []).map((benefit, index) => <div key={index} className="flex gap-2"><input value={benefit} onChange={(e) => { const benefits = [...(formData.benefits || [])]; benefits[index] = e.target.value; setFormData({ ...formData, benefits }); }} placeholder={`Benefit ${index + 1}`} className="w-full h-9 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /><button type="button" aria-label={`Hapus benefit ${index + 1}`} onClick={() => setFormData({ ...formData, benefits: (formData.benefits || []).filter((_, itemIndex) => itemIndex !== index) })} className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div>)}</div>
+                  {(formData.benefits || []).length === 0 && <button type="button" onClick={() => setFormData({ ...formData, benefits: [''] })} className="w-full p-3 border border-dashed rounded-xl text-gray-500">+ Tambahkan benefit</button>}
                 </div>
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Syarat Mengikuti (Pisahkan dengan koma)</label>
