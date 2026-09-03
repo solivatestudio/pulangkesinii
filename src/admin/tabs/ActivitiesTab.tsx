@@ -367,7 +367,11 @@ export const ActivitiesTab: React.FC = () => {
                   <label className="block font-bold text-[#26383C] mb-1">Kota / Wilayah *</label>
                   <select
                     value={formData.city || ''}
-                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    onChange={(e) => {
+                      const city = e.target.value;
+                      const currentAddress = (formData.address || '').trim();
+                      setFormData({ ...formData, city, address: cities.includes(currentAddress) ? '' : formData.address });
+                    }}
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none bg-white"
                     required
                   >{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select>
@@ -387,10 +391,13 @@ export const ActivitiesTab: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="rounded-2xl border border-[#DDEDEC] bg-[#F8FCFC] p-4 space-y-3">
+                <div><h4 className="font-bold text-[#173F42]">Detail Lokasi</h4><p className="text-[11px] text-[#6B7E82]">Informasi ini ditampilkan pada detail kegiatan di website publik.</p></div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div><label className="block font-bold text-[#26383C] mb-1">Nama Lokasi *</label><input type="text" required value={formData.locationName || ''} onChange={(e) => setFormData({ ...formData, locationName: e.target.value })} placeholder="Contoh: Panti Asuhan Pelita Kasih" className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /></div>
                 <div><label className="block font-bold text-[#26383C] mb-1">Tautan Google Maps</label><input type="url" value={formData.mapUrl || ''} onChange={(e) => setFormData({ ...formData, mapUrl: e.target.value })} placeholder="https://maps.google.com/..." className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /></div>
-                <div className="sm:col-span-2"><label className="block font-bold text-[#26383C] mb-1">Alamat Lengkap *</label><textarea required rows={2} value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Alamat lengkap tempat kegiatan" className="w-full p-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /></div>
+                <div className="sm:col-span-2"><label className="block font-bold text-[#26383C] mb-1">Alamat Lengkap *</label><textarea required rows={2} value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder={`Contoh: Jl. ..., ${formData.city || 'Jakarta'}`} className="w-full p-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /><p className="mt-1 text-[11px] text-[#6B7E82]">Pastikan alamat berada di wilayah {formData.city || 'yang dipilih'}.</p></div>
+                </div>
               </div>
 
               {/* Tanggal & Biaya */}
