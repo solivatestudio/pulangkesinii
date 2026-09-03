@@ -387,6 +387,12 @@ export const ActivitiesTab: React.FC = () => {
                 </div>
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="block font-bold text-[#26383C] mb-1">Nama Lokasi *</label><input type="text" required value={formData.locationName || ''} onChange={(e) => setFormData({ ...formData, locationName: e.target.value })} placeholder="Contoh: Panti Asuhan Pelita Kasih" className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /></div>
+                <div><label className="block font-bold text-[#26383C] mb-1">Tautan Google Maps</label><input type="url" value={formData.mapUrl || ''} onChange={(e) => setFormData({ ...formData, mapUrl: e.target.value })} placeholder="https://maps.google.com/..." className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /></div>
+                <div className="sm:col-span-2"><label className="block font-bold text-[#26383C] mb-1">Alamat Lengkap *</label><textarea required rows={2} value={formData.address || ''} onChange={(e) => setFormData({ ...formData, address: e.target.value })} placeholder="Alamat lengkap tempat kegiatan" className="w-full p-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /></div>
+              </div>
+
               {/* Tanggal & Biaya */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>

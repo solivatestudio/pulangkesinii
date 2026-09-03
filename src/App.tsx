@@ -7,7 +7,7 @@ import { HouseIcon } from '@phosphor-icons/react/dist/csr/House';
 import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
-import { CalendarDays, ChevronDown, ChevronRight, Globe2, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, X } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronRight, Clock, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, PackageCheck, Route, Search, Tag, Users, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
 import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
 
@@ -22,6 +22,19 @@ type Activity = {
   priceLabel?: string;
   locationName?: string;
   description?: string;
+  shortDescription?: string;
+  address?: string;
+  mapUrl?: string;
+  endDate?: string;
+  registrationDeadline?: string;
+  quota?: number;
+  quotaFilled?: number;
+  benefits?: string[];
+  requirements?: string[];
+  itemsToBring?: string[];
+  rundown?: Array<{ time: string; activity: string }>;
+  gallery?: string[];
+  contactPerson?: { name: string; role: string; whatsapp: string };
 };
 
 const places = ['Semua', 'Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
@@ -29,6 +42,7 @@ const categories = ['Semua', 'Volunteer', 'Voluntrip', 'Workshop'];
 const humanizeDate = (value?: string) => value && /^\d{4}-\d{2}-\d{2}$/.test(value)
   ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
   : value;
+const meaningful = (value?: string) => value && !/^\[.*\]$/.test(value.trim()) ? value : undefined;
 
 const defaultCatalogue: Activity[] = [
   { id: 1, category: 'Volunteer', city: 'Jakarta', color: 'cyan', photo: '/images/web/activity-04.webp', title: '[Judul Kegiatan]', startDate: '[Tanggal Pelaksanaan]', priceLabel: '[Biaya/Gratis]' },
@@ -81,6 +95,19 @@ export default function App(){
               priceLabel: item.priceLabel || '[Biaya/Gratis]',
               locationName: item.locationName || '[Lokasi]',
               description: item.description,
+              shortDescription: item.shortDescription,
+              address: item.address,
+              mapUrl: item.mapUrl,
+              endDate: humanizeDate(item.endDate),
+              registrationDeadline: humanizeDate(item.registrationDeadline),
+              quota: item.quota,
+              quotaFilled: item.quotaFilled,
+              benefits: Array.isArray(item.benefits) ? item.benefits : [],
+              requirements: Array.isArray(item.requirements) ? item.requirements : [],
+              itemsToBring: Array.isArray(item.itemsToBring) ? item.itemsToBring : [],
+              rundown: Array.isArray(item.rundown) ? item.rundown : [],
+              gallery: Array.isArray(item.gallery) ? item.gallery : [],
+              contactPerson: item.contactPerson,
             }))
           );
         }
@@ -158,7 +185,24 @@ export default function App(){
     <footer><nav><a href="#tentang">Tentang Pulangkesinii</a><span>|</span><button onClick={()=>setLegal('terms')}>Syarat & Ketentuan</button><span>|</span><a href="#kontak">Pusat Bantuan</a><span>|</span><a href="/admin">Portal Admin</a></nav><div className="socials"><span><Instagram/></span><span><Linkedin/></span><a href="mailto:pulangkesinii@gmail.com"><Mail/></a><span><MapPin/></span></div><button className="privacy-link" onClick={()=>setLegal('privacy')}>Kebijakan Privasi</button><p>Copyright © {new Date().getFullYear()} Pulangkesinii. All Rights Reserved</p></footer>
   </main>
 
-  {selected&&!showRegistrationForm&&<div className="modal-backdrop" onMouseDown={()=>setSelected(null)}><section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={e=>e.stopPropagation()}><button className="sheet-close" onClick={()=>setSelected(null)} aria-label="Tutup detail"><X/></button><div className={`sheet-cover cover-${selected.color} photo-cover`}><img src={selected.photo} alt={`Dokumentasi kegiatan ${selected.category} Pulangkesinii`}/><span>{selected.category} · {selected.city}</span></div><h2 id="detail-title">{selected.title || '[Judul Kegiatan]'}</h2><div className="sheet-meta"><span><CalendarDays/>{selected.startDate || '[Tanggal Pelaksanaan]'}</span><span><MapPin/>{selected.locationName || '[Lokasi]'}</span><span><Tag/>{selected.priceLabel || '[Biaya/Gratis]'}</span></div><div className="detail-split"><div className="detail-split-col"><h3>Deskripsi Acara</h3><p>{selected.description || 'Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.'}</p></div><div className="detail-split-col"><h3>Syarat & Ketentuan</h3><p>Terbuka untuk umum, kuota terbatas tanpa seleksi, dan mematuhi tata tertib kegiatan.</p><a href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view" target="_blank" rel="noopener noreferrer">Kebijakan Biaya Kontribusi ↗</a></div></div><button type="button" onClick={()=>setShowRegistrationForm(true)} className="detail-sheet-cta">Daftar Sekarang</button></section></div>}
+  {selected&&!showRegistrationForm&&<div className="modal-backdrop" onMouseDown={()=>setSelected(null)}><section className="detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title" onMouseDown={e=>e.stopPropagation()}>
+    <button className="sheet-close" onClick={()=>setSelected(null)} aria-label="Tutup detail"><X/></button>
+    <div className={`sheet-cover cover-${selected.color} photo-cover`}><img src={selected.photo} alt={`Dokumentasi kegiatan ${selected.category} Pulangkesinii`}/><span>{selected.category} · {selected.city}</span></div>
+    <h2 id="detail-title">{selected.title || '[Judul Kegiatan]'}</h2>
+    {selected.shortDescription&&<p className="detail-lead">{selected.shortDescription}</p>}
+    <div className="sheet-meta"><span><CalendarDays/>{selected.startDate}{selected.endDate&&selected.endDate!==selected.startDate?` – ${selected.endDate}`:''}</span><span><MapPin/>{meaningful(selected.locationName) || selected.city}</span><span><Tag/>{selected.priceLabel}</span><span><Users/>{selected.quotaFilled || 0}/{selected.quota || 0} peserta</span></div>
+    {(meaningful(selected.address)||meaningful(selected.locationName)||selected.mapUrl)&&<div className="detail-location"><MapPin/><div><strong>{meaningful(selected.locationName) || selected.city}</strong>{meaningful(selected.address)&&<p>{selected.address}</p>}{selected.mapUrl&&<a href={selected.mapUrl} target="_blank" rel="noopener noreferrer">Buka lokasi di peta ↗</a>}</div></div>}
+    <div className="detail-section"><h3>Deskripsi Acara</h3><p>{selected.description || 'Informasi kegiatan akan segera diperbarui.'}</p></div>
+    <div className="detail-grid">
+      {selected.benefits&&selected.benefits.length>0&&<div className="detail-list"><h3>Benefit Volunteer</h3><ul>{selected.benefits.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
+      {selected.requirements&&selected.requirements.length>0&&<div className="detail-list"><h3>Syarat Mengikuti</h3><ul>{selected.requirements.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
+      {selected.itemsToBring&&selected.itemsToBring.length>0&&<div className="detail-list"><h3><PackageCheck/> Yang Perlu Dibawa</h3><ul>{selected.itemsToBring.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
+    </div>
+    {selected.rundown&&selected.rundown.length>0&&<div className="detail-section"><h3>Rangkaian Kegiatan</h3><div className="detail-rundown">{selected.rundown.map((item,index)=><div key={`${item.time}-${index}`}><span><Clock/>{item.time}</span><p>{item.activity}</p></div>)}</div></div>}
+    {selected.gallery&&selected.gallery.length>0&&<div className="detail-section"><h3>Galeri Kegiatan</h3><div className="detail-gallery">{selected.gallery.map((image,index)=><button key={`${image}-${index}`} onClick={()=>setGalleryImage(image)}><img src={image} alt={`Galeri ${selected.title} ${index+1}`}/></button>)}</div></div>}
+    <div className="detail-footer-info">{selected.registrationDeadline&&<span>Batas pendaftaran: <strong>{selected.registrationDeadline}</strong></span>}{selected.contactPerson?.whatsapp&&<a href={`https://wa.me/${selected.contactPerson.whatsapp.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer"><MessageCircle/> Hubungi {selected.contactPerson.name}</a>}</div>
+    <button type="button" onClick={()=>setShowRegistrationForm(true)} className="detail-sheet-cta">Daftar Sekarang</button>
+  </section></div>}
   {showRegistrationForm&&<div className="modal-backdrop" onMouseDown={()=>setShowRegistrationForm(false)}><section ref={el=>{if(el)el.scrollTop=0}} tabIndex={-1} className="detail-sheet form-sheet" role="dialog" aria-modal="true" aria-labelledby="form-modal-title" onMouseDown={e=>e.stopPropagation()} onKeyDown={e=>{if(e.key==='Escape'){setShowRegistrationForm(false)}}}><button className="sheet-close" onClick={()=>setShowRegistrationForm(false)} aria-label="Tutup form"><X/></button><RegistrationForm onClose={()=>setShowRegistrationForm(false)}/></section></div>}
   {galleryImage&&<div className="modal-backdrop gallery-backdrop" onMouseDown={()=>setGalleryImage(null)}><section className="gallery-viewer" role="dialog" aria-modal="true" aria-label="Foto dokumentasi kegiatan" onMouseDown={e=>e.stopPropagation()}><button className="sheet-close" onClick={()=>setGalleryImage(null)} aria-label="Tutup foto"><X/></button><img src={galleryImage} alt="Dokumentasi kegiatan Pulangkesinii dalam ukuran besar"/><p>Momen kebaikan bersama Pulangkesinii.</p></section></div>}
   {legal&&<div className="modal-backdrop" onMouseDown={()=>setLegal(null)}><section className="legal-sheet" role="dialog" aria-modal="true" onMouseDown={e=>e.stopPropagation()}><button className="sheet-close" onClick={()=>setLegal(null)} aria-label="Tutup"><X/></button><HouseIcon className="brand-symbol" weight="duotone" aria-hidden="true"/><h2>{legal==='terms'?'Syarat & Ketentuan':'Kebijakan Privasi'}</h2><p>Dokumen resmi masih menunggu verifikasi tim Pulangkesinii. Halaman ini disiapkan sebagai state sementara dan tidak menetapkan kebijakan baru.</p><a href="mailto:pulangkesinii@gmail.com">Hubungi Pulangkesinii</a></section></div>}
