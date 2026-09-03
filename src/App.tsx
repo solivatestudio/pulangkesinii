@@ -35,6 +35,8 @@ type Activity = {
   rundown?: Array<{ time: string; activity: string }>;
   gallery?: string[];
   contactPerson?: { name: string; role: string; whatsapp: string };
+  urgentClosing?: boolean;
+  status?: string;
 };
 
 const places = ['Semua', 'Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
@@ -50,17 +52,71 @@ const publicAddress = (address?: string) => {
 };
 
 const defaultCatalogue: Activity[] = [
-  { id: 1, category: 'Volunteer', city: 'Jakarta', color: 'cyan', photo: '/images/web/activity-04.webp', title: '[Judul Kegiatan]', startDate: '[Tanggal Pelaksanaan]', priceLabel: '[Biaya/Gratis]' },
-  { id: 2, category: 'Voluntrip', city: 'Bandung', color: 'blue', photo: '/images/web/activity-09.webp', title: '[Judul Kegiatan]', startDate: '[Tanggal Pelaksanaan]', priceLabel: '[Biaya/Gratis]' },
-  { id: 3, category: 'Workshop', city: 'Jogja', color: 'coral', photo: '/images/web/activity-14.webp', title: '[Judul Kegiatan]', startDate: '[Tanggal Pelaksanaan]', priceLabel: '[Biaya/Gratis]' },
+  { 
+    id: 'act-01', 
+    category: 'Volunteer', 
+    city: 'Jakarta', 
+    color: 'cyan', 
+    photo: '/images/web/activity-04.webp', 
+    title: 'Volunteer Sahabat Mengajar & Cerita Anak', 
+    startDate: '2026-09-20', 
+    priceLabel: 'Gratis',
+    locationName: 'RPTRA Pulo Gebang',
+    address: 'Jl. Pulo Gebang Indah, Jakarta Timur',
+    shortDescription: 'Berbagi cerita, membaca buku, dan belajar kreativitas bersama anak-anak lingkungan.',
+    description: 'Program volunteer edukasi satu hari untuk menghadirkan ruang belajar yang menyenangkan, interaktif, dan penuh inspirasi.',
+    quota: 40,
+    quotaFilled: 18,
+    benefits: ['E-Sertifikat Relawan', 'Merchandise Pulangkesinii', 'Relasi Komunitas Positif', 'Makan Siang & Snack'],
+    urgentClosing: true,
+    status: 'open'
+  },
+  { 
+    id: 'act-02', 
+    category: 'Voluntrip', 
+    city: 'Bandung', 
+    color: 'blue', 
+    photo: '/images/web/activity-09.webp', 
+    title: 'Voluntrip Konservasi Alam & Jelajah Budaya', 
+    startDate: '2026-10-05', 
+    priceLabel: 'Gratis',
+    locationName: 'Kawasan Wisata Lembang',
+    address: 'Desa Wisata Lembang, Bandung Barat',
+    shortDescription: 'Menanam pohon endemik, aksi bersih alam, dan berbaur bersama kearifan lokal.',
+    description: 'Perjalanan sosial 2 hari 1 malam yang menggabungkan aksi pelestarian lingkungan hidup dan interaksi hangat bersama warga.',
+    quota: 30,
+    quotaFilled: 14,
+    benefits: ['Transportasi Bersama (PP)', 'Homestay Bersama Warga', 'Sertifikat Pengabdian', 'Dokumentasi Foto & Video'],
+    urgentClosing: false,
+    status: 'open'
+  },
+  { 
+    id: 'act-03', 
+    category: 'Workshop', 
+    city: 'Jogja', 
+    color: 'coral', 
+    photo: '/images/web/activity-14.webp', 
+    title: 'Workshop Pemberdayaan Digital Komunitas Muda', 
+    startDate: '2026-10-18', 
+    priceLabel: 'Gratis',
+    locationName: 'Ruang Kolaborasi Kreatif',
+    address: 'Jl. Malioboro No. 45, Yogyakarta',
+    shortDescription: 'Pelatihan pembuatan konten sosial, storytelling dampak, dan digital branding.',
+    description: 'Workshop intensif bersama para praktisi kreatif untuk membekali generasi muda dengan keterampilan storytelling sosial.',
+    quota: 50,
+    quotaFilled: 22,
+    benefits: ['Toolkit & Modul Digital', 'E-Certificate Eksklusif', 'Networking Sesi Mentoring', 'Snack & Coffee Break'],
+    urgentClosing: false,
+    status: 'open'
+  },
 ];
 
 const defaultFaqItems = [
-  { question: 'Siapa saja yang boleh ikut kegiatan Pulangkesinii?', answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.' },
-  { question: 'Bagaimana cara mendaftar kegiatan?', answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.' },
-  { question: 'Apakah kegiatan berbayar atau gratis?', answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.' },
-  { question: 'Apakah peserta mendapatkan sertifikat?', answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.' },
-  { question: 'Bagaimana cara menjadi partner atau berkolaborasi?', answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.' },
+  { question: 'Siapa saja yang boleh ikut kegiatan Pulangkesinii?', answer: 'Semua anak muda, pelajar, mahasiswa, pekerja, dan masyarakat umum yang memiliki semangat berbuat baik dan ingin bertumbuh bersama komunitas sosial.' },
+  { question: 'Bagaimana cara mendaftar kegiatan?', answer: 'Cukup pilih kegiatan yang kamu minati di katalog, klik tombol "Daftar Sekarang", isi formulir pendaftaran singkat, dan konfirmasikan keikutsertaanmu.' },
+  { question: 'Apakah kegiatan berbayar atau gratis?', answer: 'Sebagian besar kegiatan volunteer reguler adalah gratis. Untuk kegiatan khusus seperti Voluntrip, terdapat transparansi kontribusi akomodasi yang dijelaskan pada detail acara.' },
+  { question: 'Apakah peserta mendapatkan sertifikat?', answer: 'Ya! Setiap relawan yang berpartisipasi dan menyelesaikan kegiatan akan mendapatkan E-Sertifikat resmi dari Pulangkesinii sebagai apresiasi kontribusi.' },
+  { question: 'Bagaimana cara menjadi partner atau berkolaborasi?', answer: 'Komunitas, institusi, maupun perusahaan dapat menghubungi kami melalui email di pulangkesinii@gmail.com atau WhatsApp resmi kami untuk peluang kolaborasi sosial.' },
 ];
 
 export default function App(){
@@ -75,14 +131,23 @@ export default function App(){
   const [galleryImage,setGalleryImage]=useState<string|null>(null);
   const [showRegistrationForm,setShowRegistrationForm]=useState(false);
 
-  // Dynamic state that initially preserves exact original public data
+  // Dynamic state populated directly from PostgreSQL database with fallback
   const [catalogue, setCatalogue] = useState<Activity[]>(defaultCatalogue);
   const [faqItems, setFaqItems] = useState<Array<{ question: string; answer: string }>>(defaultFaqItems);
   const [galleryPhotos, setGalleryPhotos] = useState<string[]>(
     Array.from({ length: 15 }, (_, index) => `/images/web/activity-${String(index + 1).padStart(2, '0')}.webp`)
   );
+  const [contactInfo, setContactInfo] = useState({
+    whatsappNumber: '6285779321681',
+    email: 'pulangkesinii@gmail.com',
+    instagram: '@pulangkesinii',
+    tiktok: '@Pulangkesinii_',
+    linkedin: 'Pulangkesinii',
+    basecamp: 'Jakarta Timur',
+  });
 
   useEffect(() => {
+    // 1. Fetch activities from DB
     fetch('/api/activities')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -94,11 +159,11 @@ export default function App(){
               category: item.category || 'Volunteer',
               city: item.city || 'Jakarta',
               color: item.color || colors[idx % 3],
-              photo: item.coverImage || `/images/web/activity-${String(idx + 1).padStart(2, '0')}.webp`,
-              title: item.title || '[Judul Kegiatan]',
-              startDate: humanizeDate(item.startDate) || '[Tanggal Pelaksanaan]',
-              priceLabel: item.priceLabel || '[Biaya/Gratis]',
-              locationName: item.locationName || '[Lokasi]',
+              photo: item.coverImage || `/images/web/activity-${String((idx % 15) + 1).padStart(2, '0')}.webp`,
+              title: item.title,
+              startDate: humanizeDate(item.startDate),
+              priceLabel: item.priceLabel || 'Gratis',
+              locationName: item.locationName || item.city,
               description: item.description,
               shortDescription: item.shortDescription,
               address: item.address,
@@ -113,12 +178,15 @@ export default function App(){
               rundown: Array.isArray(item.rundown) ? item.rundown : [],
               gallery: Array.isArray(item.gallery) ? item.gallery : [],
               contactPerson: item.contactPerson,
+              urgentClosing: Boolean(item.urgentClosing),
+              status: item.status || 'open',
             }))
           );
         }
       })
       .catch(() => {});
 
+    // 2. Fetch FAQs from DB
     fetch('/api/faqs')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -126,18 +194,29 @@ export default function App(){
           setFaqItems(
             data.map((f: any) => ({
               question: f.question,
-              answer: f.answer || 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.',
+              answer: f.answer,
             }))
           );
         }
       })
       .catch(() => {});
 
+    // 3. Fetch Gallery Photos from DB
     fetch('/api/gallery')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) {
           setGalleryPhotos(data.map((g: any) => g.imageUrl));
+        }
+      })
+      .catch(() => {});
+
+    // 4. Fetch Site Contact Settings from DB
+    fetch('/api/settings/contact_info')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.value) {
+          setContactInfo((prev) => ({ ...prev, ...data.value }));
         }
       })
       .catch(() => {});
@@ -321,23 +400,6 @@ export default function App(){
                     <Search />
                   </button>
                 </form>
-
-                <div className="hero-quick-categories">
-                  <span className="quick-cat-label">Pilihan:</span>
-                  {categories.map((c) => (
-                    <button 
-                      key={c} 
-                      type="button" 
-                      className={`hero-quick-chip ${category === c ? 'active' : ''}`}
-                      onClick={() => {
-                        setCategory(c);
-                        showSearchResults();
-                      }}
-                    >
-                      {c}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="hero-visual-col">
@@ -372,7 +434,10 @@ export default function App(){
               <h2>Segera Berakhir</h2>
             </div>
             <div className="urgent-rail">
-              {catalogue.slice(0, 2).map((i) => (
+              {(catalogue.filter((i) => i.urgentClosing || i.status === 'closing_soon').length > 0 
+                ? catalogue.filter((i) => i.urgentClosing || i.status === 'closing_soon').slice(0, 4)
+                : catalogue.slice(0, 2)
+              ).map((i) => (
                 <ActivityCard key={i.id} item={i} compact onOpen={setSelected} />
               ))}
             </div>
@@ -733,7 +798,7 @@ export default function App(){
                 <p>Tim Pulangkesinii akan membantu mengarahkanmu ke informasi yang tepat.</p>
                 <a 
                   className="wa-button" 
-                  href="https://wa.me/6285779321681?text=Halo%20Pulangkesinii%2C%20saya%20ingin%20bertanya%20tentang%20kegiatan%20volunteer%20yang%20tersedia." 
+                  href={`https://wa.me/${contactInfo.whatsappNumber.replace(/[^0-9]/g, '')}?text=Halo%20Pulangkesinii%2C%20saya%20ingin%20bertanya%20tentang%20kegiatan%20volunteer.`} 
                   target="_blank" 
                   rel="noreferrer"
                 >
@@ -743,21 +808,21 @@ export default function App(){
 
               <div className="contact-channels-col">
                 <div className="contact-list">
-                  <a href="mailto:pulangkesinii@gmail.com">
+                  <a href={`mailto:${contactInfo.email}`}>
                     <Mail />
-                    <span><small>Email</small>Pulangkesinii@gmail.com</span>
+                    <span><small>Email</small>{contactInfo.email}</span>
                   </a>
                   <div>
                     <Instagram />
-                    <span><small>Instagram</small>@pulangkesinii</span>
+                    <span><small>Instagram</small>{contactInfo.instagram}</span>
                   </div>
                   <div>
                     <span className="text-icon">Tt</span>
-                    <span><small>TikTok</small>@Pulangkesinii_</span>
+                    <span><small>TikTok</small>{contactInfo.tiktok}</span>
                   </div>
                   <div>
                     <Linkedin />
-                    <span><small>LinkedIn</small>Pulangkesinii</span>
+                    <span><small>LinkedIn</small>{contactInfo.linkedin}</span>
                   </div>
                   <div>
                     <span className="text-icon">@</span>
@@ -765,7 +830,7 @@ export default function App(){
                   </div>
                   <div>
                     <MapPin />
-                    <span><small>Basecamp</small>Jakarta Timur</span>
+                    <span><small>Basecamp</small>{contactInfo.basecamp}</span>
                   </div>
                 </div>
               </div>

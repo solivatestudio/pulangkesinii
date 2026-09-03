@@ -24,11 +24,11 @@ async function syncExactPublicData() {
     console.log('✅ Akun default admin siap: admin');
   }
 
-  // 2. Activities: Reset & samakan 100% dengan 3 card original di App.tsx
-  console.log('Menyinkronkan 3 card kegiatan original...');
+  // 2. Activities: Seed data dummy original
+  console.log('Menyinkronkan data kegiatan dummy ke database...');
   await db.delete(activities);
   
-  const originalCatalogue = [
+  const dummyCatalogue = [
     {
       id: 'act-01',
       slug: 'volunteer-jakarta',
@@ -118,15 +118,15 @@ async function syncExactPublicData() {
     },
   ];
 
-  for (const act of originalCatalogue) {
+  for (const act of dummyCatalogue) {
     await db.insert(activities).values(act);
   }
-  console.log('✅ 3 card original berhasil disinkronkan ke database');
+  console.log('✅ Data dummy kegiatan berhasil disinkronkan ke database');
 
-  // 3. FAQ: Samakan 100% dengan 5 pertanyaan asli di App.tsx
-  console.log('Menyinkronkan 5 FAQ original...');
+  // 3. FAQ: Dummy pertanyaan & jawaban
+  console.log('Menyinkronkan FAQ dummy ke database...');
   await db.delete(faqs);
-  const originalFaqs = [
+  const dummyFaqs = [
     'Siapa saja yang boleh ikut kegiatan Pulangkesinii?',
     'Bagaimana cara mendaftar kegiatan?',
     'Apakah kegiatan berbayar atau gratis?',
@@ -134,17 +134,17 @@ async function syncExactPublicData() {
     'Bagaimana cara menjadi partner atau berkolaborasi?',
   ];
 
-  for (let i = 0; i < originalFaqs.length; i++) {
+  for (let i = 0; i < dummyFaqs.length; i++) {
     await db.insert(faqs).values({
       id: `faq-0${i + 1}`,
-      question: originalFaqs[i],
+      question: dummyFaqs[i],
       answer: 'Jawaban kebijakan resmi masih menunggu verifikasi. Hubungi tim Pulangkesinii untuk informasi terbaru dan paling tepat.',
       category: 'umum',
       orderIndex: i + 1,
       createdAt: new Date(),
     });
   }
-  console.log('✅ 5 FAQ original berhasil disinkronkan');
+  console.log('✅ FAQ dummy berhasil disinkronkan');
 
   // 4. Gallery: Samakan 15 foto
   const existingGallery = await db.select().from(galleryPhotos).limit(1);

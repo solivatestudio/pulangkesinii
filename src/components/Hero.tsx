@@ -152,31 +152,6 @@ export const Hero: React.FC<HeroProps> = ({
                   </button>
                 </div>
 
-                {/* Quick Category Chips */}
-                <div className="pt-1 flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-                  <span className="text-[11px] font-bold text-[#647A80] shrink-0 mr-1 hidden sm:inline">
-                    Kategori:
-                  </span>
-                  {categoryChips.map((chip) => {
-                    const isSelected = selectedCategory === chip.label;
-                    return (
-                      <button
-                        key={chip.label}
-                        type="button"
-                        onClick={() => setSelectedCategory(chip.label)}
-                        className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-[#0EADAD] text-white shadow-2xs'
-                            : 'bg-[#F8FBFB] text-[#647A80] hover:bg-[#E6F7F7] hover:text-[#0EADAD] border border-[#E2E8F0]'
-                        }`}
-                      >
-                        <span className="text-xs">{chip.icon}</span>
-                        <span>{chip.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
               </form>
             </div>
 
