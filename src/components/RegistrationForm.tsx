@@ -332,8 +332,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       customAnswers: Object.fromEntries(formConfig.customFields.map((field) => [field.label, formData.customAnswers[field.id] || ''])),
       contributionProofUrl,
       tagFriendsProofUrl,
-      repostStoryProofUrl,
-      submittedAt: new Date().toISOString()
+      repostStoryProofUrl
     };
 
     try {

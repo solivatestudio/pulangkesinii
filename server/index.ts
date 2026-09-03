@@ -319,6 +319,8 @@ const registrationSchema = z.object({
   tagFriendsProofUrl: z.string().url().or(z.literal('')).default(''),
   repostStoryProofUrl: z.string().url().or(z.literal('')).default(''),
   customAnswers: z.record(z.string(), z.string().max(5000)).default({}),
+  // Kept for compatibility with previously cached public-form bundles.
+  submittedAt: z.string().datetime().optional(),
 }).strict();
 
 app.post('/api/registrations', async (req: Request, res: Response) => {

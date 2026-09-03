@@ -55,7 +55,7 @@ describe.sequential('API CRUD integration', () => {
     const config = await db.select().from(siteSettings).where(eq(siteSettings.key, 'registration_form_config')).limit(1);
     const customFields = ((config[0]?.value as { customFields?: Array<{ label: string }> })?.customFields || []);
     const customAnswers = Object.fromEntries(customFields.map((field) => [field.label, 'Integration answer']));
-    const created = await request(app).post('/api/registrations').send({ activityId: ids.activity, activityTitle: 'Updated', activityChoice: 'Updated', fullName: 'Integration User', birthDate: '2000-01-01', domicile: 'Jakarta', whatsapp: '081234567890', followedChannel: 'Ya', paymentMethod: 'Mandiri', reason: 'Integration test', contributionProofUrl: 'https://example.com/proof.jpg', tagFriendsProofUrl: 'https://example.com/tag.jpg', repostStoryProofUrl: 'https://example.com/story.jpg', customAnswers });
+    const created = await request(app).post('/api/registrations').send({ activityId: ids.activity, activityTitle: 'Updated', activityChoice: 'Updated', fullName: 'Integration User', birthDate: '2000-01-01', domicile: 'Jakarta', whatsapp: '081234567890', followedChannel: 'Ya', paymentMethod: 'Mandiri', reason: 'Integration test', contributionProofUrl: 'https://example.com/proof.jpg', tagFriendsProofUrl: 'https://example.com/tag.jpg', repostStoryProofUrl: 'https://example.com/story.jpg', customAnswers, submittedAt: new Date().toISOString() });
     expect(created.status).toBe(201);
     ids.registration = created.body.data.id;
     const list = await request(app).get('/api/registrations').set('Authorization', auth);
