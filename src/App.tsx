@@ -192,7 +192,10 @@ export default function App(){
     {selected.shortDescription&&<p className="detail-lead">{selected.shortDescription}</p>}
     <div className="sheet-meta"><span><CalendarDays/>{selected.startDate}{selected.endDate&&selected.endDate!==selected.startDate?` – ${selected.endDate}`:''}</span><span><MapPin/>{meaningful(selected.locationName) || selected.city}</span><span><Tag/>{selected.priceLabel}</span><span><Users/>{selected.quotaFilled || 0}/{selected.quota || 0} peserta</span></div>
     {(meaningful(selected.address)||meaningful(selected.locationName)||selected.mapUrl)&&<div className="detail-location"><MapPin/><div><strong>{meaningful(selected.locationName) || selected.city}</strong>{meaningful(selected.address)&&<p>{selected.address}</p>}{selected.mapUrl&&<a href={selected.mapUrl} target="_blank" rel="noopener noreferrer">Buka lokasi di peta ↗</a>}</div></div>}
-    <div className="detail-section"><h3>Deskripsi Acara</h3><p>{selected.description || 'Informasi kegiatan akan segera diperbarui.'}</p></div>
+    <div className="detail-split">
+      <div className="detail-split-col"><h3>Deskripsi Acara</h3><p>{selected.description || 'Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.'}</p></div>
+      <div className="detail-split-col"><h3>Syarat & Ketentuan</h3><p>Terbuka untuk umum, kuota terbatas tanpa seleksi, dan mematuhi tata tertib kegiatan.</p><a href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view" target="_blank" rel="noopener noreferrer">Kebijakan Biaya Kontribusi ↗</a></div>
+    </div>
     <div className="detail-grid">
       {selected.benefits&&selected.benefits.length>0&&<div className="detail-list"><h3>Benefit Volunteer</h3><ul>{selected.benefits.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
       {selected.requirements&&selected.requirements.length>0&&<div className="detail-list"><h3>Syarat Mengikuti</h3><ul>{selected.requirements.map((item,index)=><li key={`${item}-${index}`}>{item}</li>)}</ul></div>}
