@@ -10,7 +10,8 @@ import {
   ArrowRight,
   FileCheck,
   Send,
-  Trash2
+  Trash2,
+  MessageCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadFiles } from '../utils/uploadthing';
@@ -77,7 +78,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
   const [formConfig, setFormConfig] = useState<FormConfig>(defaultFormConfig);
   const [submitError, setSubmitError] = useState('');
-  const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number }>>([]);
+  const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number; whatsappGroupUrl?: string }>>([]);
   const [selectedActivityId, setSelectedActivityId] = useState('');
   const core = (id: import('../formConfig').CoreFieldId) => formConfig.fields.find((field) => field.id === id) || defaultFormConfig.fields.find((field) => field.id === id)!;
 
@@ -408,6 +409,15 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   };
 
   if (isSubmitted) {
+    const selectedActivity = availableActivities.find(
+      (act) => act.id === selectedActivityId || act.title === formData.activityChoice
+    );
+    const targetWhatsappUrl =
+      selectedActivity?.whatsappGroupUrl?.trim() ||
+      formConfig.whatsappGroupUrl?.trim() ||
+      formConfig.officialChannelUrl?.trim() ||
+      'https://whatsapp.com/channel/0029Vb7x44LFXUuSeqigEW0B';
+
     return (
       <div className="w-full space-y-4 py-2">
         <div className="bg-white rounded-2xl p-4 sm:p-5 border border-[#e2e8f0] shadow-xs text-center space-y-4">
@@ -420,7 +430,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               Terima kasih, {formData.fullName || 'Kak'}! ❤️
             </h2>
             <p className="text-xs text-[#687479] mt-1.5 leading-relaxed">
-              Tanggapan kamu untuk <strong className="text-[#0eadad]">Batch 43 Pulangkesinii</strong> telah berhasil dicatat. Tim kami akan melakukan verifikasi berkas dan bukti pembayaran.
+              Tanggapan kamu untuk <strong className="text-[#0eadad]">{formData.activityChoice || 'Pulangkesinii'}</strong> telah berhasil dicatat. Tim kami akan melakukan verifikasi berkas dan bukti pembayaran.
             </p>
           </div>
 
@@ -444,7 +454,17 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             </div>
           </div>
 
-          <div className="pt-2 flex flex-col gap-2">
+          <div className="pt-2 flex flex-col gap-2.5">
+            <a
+              href={targetWhatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full h-11 bg-[#25D366] hover:bg-[#20ba59] active:scale-[0.99] text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <MessageCircle className="w-4 h-4 fill-white text-[#25D366]" />
+              <span>Gabung Grup WhatsApp Kegiatan</span>
+            </a>
+
             {onClose && (
               <button
                 type="button"

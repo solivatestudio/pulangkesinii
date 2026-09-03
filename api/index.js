@@ -117,6 +117,7 @@ var activities = pgTable("activities", {
   itemsToBring: jsonb("items_to_bring").$type().default([]),
   rundown: jsonb("rundown").$type().default([]),
   contactPerson: jsonb("contact_person").$type(),
+  whatsappGroupUrl: text("whatsapp_group_url").default(""),
   featured: boolean("featured").default(false),
   urgentClosing: boolean("urgent_closing").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -270,6 +271,7 @@ var activityBody = z.object({
   itemsToBring: z.array(z.string().max(500)).optional(),
   rundown: z.array(z.object({ time: z.string().max(64), activity: z.string().max(500) })).optional(),
   contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(),
+  whatsappGroupUrl: z.string().max(2e3).optional(),
   featured: z.boolean().optional(),
   urgentClosing: z.boolean().optional()
 }).strict();
@@ -401,6 +403,7 @@ app.post("/api/activities", requireAuth, validateBody(activityBody), async (req,
       rundown: Array.isArray(data.rundown) ? data.rundown : [],
       gallery: Array.isArray(data.gallery) ? data.gallery : [],
       contactPerson: data.contactPerson || { name: "Admin", role: "Event Coordinator", whatsapp: "6285779321681" },
+      whatsappGroupUrl: data.whatsappGroupUrl || "",
       createdAt: /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
     };
@@ -427,6 +430,7 @@ app.put("/api/activities/:id", requireAuth, validateBody(activityBody), async (r
       rundown: Array.isArray(data.rundown) ? data.rundown : [],
       gallery: Array.isArray(data.gallery) ? data.gallery : [],
       contactPerson: data.contactPerson,
+      whatsappGroupUrl: data.whatsappGroupUrl || "",
       updatedAt: /* @__PURE__ */ new Date()
     };
     await db.update(activities).set(updateData).where(eq(activities.id, id));

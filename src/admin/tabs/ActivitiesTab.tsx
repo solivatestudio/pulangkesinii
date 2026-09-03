@@ -58,6 +58,7 @@ interface ActivityItem {
   itemsToBring: string[];
   rundown: { time: string; activity: string }[];
   contactPerson: { name: string; role: string; whatsapp: string };
+  whatsappGroupUrl?: string;
   featured?: boolean;
   urgentClosing?: boolean;
 }
@@ -97,6 +98,7 @@ export const ActivitiesTab: React.FC = () => {
     itemsToBring: ['Tumbler air minum', 'Pakaian bernuansa cerah/krem'],
     rundown: [{ time: '13:00 - 15:00', activity: 'Sesi utama kegiatan' }],
     contactPerson: { name: 'Admin Humas', role: 'Event Coordinator', whatsapp: '6285779321681' },
+    whatsappGroupUrl: '',
     featured: false,
     urgentClosing: false,
   });
@@ -145,6 +147,7 @@ export const ActivitiesTab: React.FC = () => {
       itemsToBring: ['Tumbler minum pribadi', 'Pakaian nyaman'],
       rundown: [{ time: '13:00 - 16:00', activity: 'Sesi pengabdian dan keceriaan bersama' }],
       contactPerson: { name: 'Kak Humas', role: 'Event Coordinator', whatsapp: '6285779321681' },
+      whatsappGroupUrl: '',
       featured: false,
       urgentClosing: false,
     });
@@ -153,7 +156,7 @@ export const ActivitiesTab: React.FC = () => {
 
   const openEditModal = (act: ActivityItem) => {
     setEditingActivity(act);
-    setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), registrationDeadline: toDateInput(act.registrationDeadline) });
+    setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), registrationDeadline: toDateInput(act.registrationDeadline), whatsappGroupUrl: act.whatsappGroupUrl || '' });
     setIsModalOpen(true);
   };
 
@@ -188,7 +191,7 @@ export const ActivitiesTab: React.FC = () => {
         price: formData.price || 0, priceLabel: formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`,
         quota: formData.quota || 50, quotaFilled: formData.quotaFilled || 0, batchNumber: formData.batchNumber || 1,
         benefits: (formData.benefits || []).map((item) => item.trim()).filter(Boolean), requirements: formData.requirements || [], itemsToBring: formData.itemsToBring || [],
-        rundown: formData.rundown || [], contactPerson: formData.contactPerson || null,
+        rundown: formData.rundown || [], contactPerson: formData.contactPerson || null, whatsappGroupUrl: formData.whatsappGroupUrl || '',
         featured: Boolean(formData.featured), urgentClosing: Boolean(formData.urgentClosing),
       };
       const res = await fetch(endpoint, {
@@ -556,6 +559,22 @@ export const ActivitiesTab: React.FC = () => {
                   placeholder="Penjelasan detail tujuan dan pengalaman kegiatan..."
                   className="w-full p-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                 />
+              </div>
+
+              <div>
+                <label className="block font-bold text-[#26383C] mb-1">
+                  Tautan / Link Grup WhatsApp Kegiatan (Opsional)
+                </label>
+                <input
+                  type="url"
+                  value={formData.whatsappGroupUrl || ''}
+                  onChange={(e) => setFormData({ ...formData, whatsappGroupUrl: e.target.value })}
+                  placeholder="Contoh: https://chat.whatsapp.com/..."
+                  className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                />
+                <p className="mt-1 text-[11px] text-[#6B7E82]">
+                  Pendaftar kegiatan ini akan otomatis diarahkan ke grup WhatsApp ini setelah submit formulir.
+                </p>
               </div>
 
               {/* Rundown & Benefit */}

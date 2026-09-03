@@ -48,6 +48,7 @@ export interface ActivityItem {
   itemsToBring: string[];
   rundown: ActivityRundown[];
   contactPerson: ActivityContact;
+  whatsappGroupUrl?: string;
   featured?: boolean;
   urgentClosing?: boolean;
 }

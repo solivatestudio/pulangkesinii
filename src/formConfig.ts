@@ -14,6 +14,7 @@ export interface FormConfig {
   contributionPolicyUrl: string;
   officialChannelName: string;
   officialChannelUrl: string;
+  whatsappGroupUrl: string;
   enableTagFriends: boolean;
   tagFriendsRequired: boolean;
   tagFriendsLabel: string;
@@ -53,6 +54,7 @@ export const defaultFormConfig: FormConfig = {
   contributionPolicyUrl: 'https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view',
   officialChannelName: 'WhatsApp Pulangkesinii',
   officialChannelUrl: 'https://whatsapp.com/channel/0029Vb7x44LFXUuSeqigEW0B',
+  whatsappGroupUrl: 'https://chat.whatsapp.com/invite',
   enableTagFriends: true,
   tagFriendsRequired: true,
   tagFriendsLabel: 'Bukti screenshoot tag 3 teman kamu di kolom komentar poster Pulangkesinii',

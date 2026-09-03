@@ -44,6 +44,7 @@ export const activities = pgTable('activities', {
   itemsToBring: jsonb('items_to_bring').$type<string[]>().default([]),
   rundown: jsonb('rundown').$type<{ time: string; activity: string }[]>().default([]),
   contactPerson: jsonb('contact_person').$type<{ name: string; role: string; whatsapp: string }>(),
+  whatsappGroupUrl: text('whatsapp_group_url').default(''),
   featured: boolean('featured').default(false),
   urgentClosing: boolean('urgent_closing').default(false),
   createdAt: timestamp('created_at').defaultNow().notNull(),
