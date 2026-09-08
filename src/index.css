@@ -647,15 +647,32 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 
 @media (max-width: 1023px) {
-  .hero-mascot-blue {
+  .hero-visual-col {
+    display: block;
     position: absolute;
-    z-index: -1;
-    width: 76px;
-    height: 76px;
-    right: -10px;
-    top: 100px;
+    top: 14px;
+    right: 16px;
+    z-index: 1;
   }
+
+  .hero-mascot-composition {
+    position: static;
+    width: auto;
+    height: auto;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .hero-mascot-blue,
   .hero-mascot-yellow {
+    position: static;
+    width: 64px;
+    height: 64px;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.85));
+  }
+
+  .hero-mascot-composition .hero-floating-badge {
     display: none;
   }
 }
@@ -2218,7 +2235,8 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   transition: all 0.18s ease;
 }
 
-.contact-list > a:hover {
+.contact-list > a:hover,
+.contact-list > div:hover {
   border-color: #0eadad;
   box-shadow: 0 4px 12px rgba(14, 173, 173, 0.1);
 }
