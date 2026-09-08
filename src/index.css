@@ -77,7 +77,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 
 @media (min-width: 1280px) {
   .site-shell, .mobile-shell {
-    max-width: 1440px;
+    max-width: none;
   }
 }
 
@@ -1319,6 +1319,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   overflow: hidden;
 }
 
+.about-section .section-container {
+  position: relative;
+}
+
 @media (min-width: 768px) {
   .about-section {
     padding: 64px 0;
@@ -1386,6 +1390,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   height: 150px;
   object-fit: contain;
   animation: hero-float 4.8s ease-in-out infinite;
+}
+
+@media (max-width: 767px) {
+  .about-visual {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 48px;
+    height: 48px;
+  }
+
+  .about-mascot {
+    width: 48px;
+    height: 48px;
+  }
 }
 
 @media (min-width: 768px) {
@@ -1831,40 +1850,25 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   background: #f8fafc;
   border: 1px solid #e2ecee;
   border-radius: 16px;
-  padding: 20px 24px;
+  padding: 24px;
 }
 
-.mission-card details {
-  border: 0;
+.mission-card .brand-symbol {
+  width: 32px;
+  height: 32px;
+  margin-bottom: 8px;
+  color: #0b8e8e;
 }
 
-.mission-card summary {
-  list-style: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.mission-card span {
+  display: block;
   font-size: 14px;
-  font-weight: 700;
-  color: #172b32;
-  cursor: pointer;
-  padding-bottom: 12px;
-}
-
-.mission-card summary::-webkit-details-marker {
-  display: none;
-}
-
-.mission-card summary svg {
-  width: 18px;
-  height: 18px;
-}
-
-.mission-card details[open] summary svg {
-  transform: rotate(180deg);
+  font-weight: 800;
+  color: #0b8e8e;
 }
 
 .mission-card ul {
-  margin: 0;
+  margin: 8px 0 0;
   padding: 0 0 4px 20px;
   list-style-type: disc;
 }
@@ -2089,6 +2093,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   line-height: 1.25;
   margin: 14px 0 10px;
   color: #172b32;
+  padding-right: 40px;
 }
 
 .contact-cta-col p {
@@ -2136,6 +2141,26 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+
+@media (max-width: 767px) {
+  .contact-list {
+    grid-template-columns: 1fr;
+  }
+
+  .contact-main {
+    width: 64px;
+    height: 64px;
+    top: 8px;
+    right: 0;
+  }
+
+  .contact-decor {
+    width: 90px;
+    height: 90px;
+    right: -40px;
+    bottom: 40px;
+  }
 }
 
 .contact-list > a,

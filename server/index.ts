@@ -311,6 +311,7 @@ const registrationSchema = z.object({
   activityTitle: z.string().max(300).optional(),
   activityChoice: z.string().max(300).default(''),
   fullName: z.string().trim().max(128).default(''),
+  email: z.string().trim().email().max(128).or(z.literal('')).default(''),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')).default(''),
   domicile: z.string().trim().max(128).default(''),
   whatsapp: z.string().trim().regex(/^\+?[0-9][0-9\s-]{7,20}$/).or(z.literal('')).default(''),
@@ -338,8 +339,8 @@ app.post('/api/registrations', async (req: Request, res: Response) => {
     const contribution = configured('contributionProof', formConfig.enableContributionProof, formConfig.contributionProofRequired);
     const tagFriends = configured('tagFriendsProof', formConfig.enableTagFriends, formConfig.tagFriendsRequired);
     const repostStory = configured('repostStoryProof', formConfig.enableRepostStory, formConfig.repostStoryRequired);
-    const coreValues: Record<string, string> = { fullName: data.fullName, birthDate: data.birthDate, domicile: data.domicile, whatsapp: data.whatsapp, followedChannel: data.followedChannel, activityChoice: data.activityChoice, paymentMethod: data.paymentMethod, reason: data.reason };
-    const defaultRequiredCore = ['fullName', 'birthDate', 'domicile', 'whatsapp', 'followedChannel', 'activityChoice', 'paymentMethod', 'reason'];
+    const coreValues: Record<string, string> = { fullName: data.fullName, email: data.email, birthDate: data.birthDate, domicile: data.domicile, whatsapp: data.whatsapp, followedChannel: data.followedChannel, activityChoice: data.activityChoice, paymentMethod: data.paymentMethod, reason: data.reason };
+    const defaultRequiredCore = ['fullName', 'email', 'birthDate', 'domicile', 'whatsapp', 'followedChannel', 'activityChoice', 'paymentMethod', 'reason'];
     const missingCore = defaultRequiredCore.some((id) => {
       const field = configuredFields.find((item: any) => item?.id === id);
       return (field?.enabled ?? true) && (field?.required ?? true) && !coreValues[id]?.trim();
@@ -364,6 +365,7 @@ app.post('/api/registrations', async (req: Request, res: Response) => {
       activityId: data.activityId || null,
       activityTitle: data.activityTitle || data.activityChoice || 'Kegiatan Pulangkesinii',
       fullName: data.fullName,
+      email: data.email || '',
       birthDate: data.birthDate || '',
       domicile: data.domicile || '',
       whatsapp: data.whatsapp,

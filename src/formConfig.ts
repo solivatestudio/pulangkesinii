@@ -31,11 +31,12 @@ export interface FormConfig {
   paymentMethods: string[];
 }
 
-export type CoreFieldId = 'fullName' | 'birthDate' | 'domicile' | 'whatsapp' | 'followedChannel' | 'activityChoice' | 'contributionProof' | 'paymentMethod' | 'tagFriendsProof' | 'repostStoryProof' | 'reason';
-export interface CoreFormField { id: CoreFieldId; label: string; helperText?: string; placeholder?: string; enabled: boolean; required: boolean; step: 1 | 2; type: 'text' | 'date' | 'tel' | 'confirmation' | 'activity' | 'file' | 'payment' | 'textarea'; }
+export type CoreFieldId = 'fullName' | 'email' | 'birthDate' | 'domicile' | 'whatsapp' | 'followedChannel' | 'activityChoice' | 'contributionProof' | 'paymentMethod' | 'tagFriendsProof' | 'repostStoryProof' | 'reason';
+export interface CoreFormField { id: CoreFieldId; label: string; helperText?: string; placeholder?: string; enabled: boolean; required: boolean; step: 1 | 2; type: 'text' | 'email' | 'date' | 'tel' | 'confirmation' | 'activity' | 'file' | 'payment' | 'textarea'; }
 
 export const defaultCoreFields: CoreFormField[] = [
   { id: 'fullName', label: 'Nama Lengkap Kamu', helperText: '(Huruf awal kapital contoh Ilham Nur Sidik)', placeholder: 'Jawaban Anda', enabled: true, required: true, step: 1, type: 'text' },
+  { id: 'email', label: 'Alamat Email', helperText: 'Email harus aktif', placeholder: 'nama@email.com', enabled: true, required: true, step: 1, type: 'email' },
   { id: 'birthDate', label: 'Tanggal Lahir Kamu', helperText: 'Tanggal', enabled: true, required: true, step: 1, type: 'date' },
   { id: 'domicile', label: 'Kamu Tinggal Dimana Niehhh', placeholder: 'Jawaban Anda', enabled: true, required: true, step: 1, type: 'text' },
   { id: 'whatsapp', label: 'Nomor WA kamu 08 berapaaa🫣', placeholder: 'Jawaban Anda', enabled: true, required: true, step: 1, type: 'tel' },

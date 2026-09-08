@@ -19,6 +19,7 @@ import { defaultFormConfig, normalizeFormConfig, type CustomFormField, type Form
 
 export interface RegistrationFormData {
   fullName: string;
+  email: string;
   birthDate: string;
   domicile: string;
   whatsapp: string;
@@ -50,15 +51,18 @@ export interface RegistrationFormData {
 interface RegistrationFormProps {
   onClose?: () => void;
   onSubmitSuccess?: (data: RegistrationFormData) => void;
+  activity?: { id: number | string; title?: string } | null;
 }
 
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   onClose,
-  onSubmitSuccess
+  onSubmitSuccess,
+  activity,
 }) => {
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [formData, setFormData] = useState<RegistrationFormData>({
     fullName: '',
+    email: '',
     birthDate: '',
     domicile: '',
     whatsapp: '',
@@ -96,6 +100,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       setAvailableActivities(Array.isArray(items) ? items.filter((item) => item.status !== 'completed' && item.quotaFilled < item.quota) : []);
     }).catch(() => setAvailableActivities([]));
   }, []);
+
+  useEffect(() => {
+    if (activity) {
+      setSelectedActivityId(String(activity.id));
+      setFormData((prev) => ({ ...prev, activityChoice: activity.title || '' }));
+    }
+  }, [activity]);
 
   // File input refs
   const contributionInputRef = useRef<HTMLInputElement>(null);
@@ -191,6 +202,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     if (core('fullName').enabled && core('fullName').required && !formData.fullName.trim()) {
       newErrors.fullName = 'Nama lengkap wajib diisi';
     }
+    if (core('email').enabled && core('email').required && !formData.email.trim()) {
+      newErrors.email = 'Email wajib diisi';
+    } else if (core('email').enabled && formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = 'Format email tidak valid';
+    }
     if (core('birthDate').enabled && core('birthDate').required && !formData.birthDate) {
       newErrors.birthDate = 'Tanggal lahir wajib diisi';
     }
@@ -223,9 +239,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const validateStep2 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (core('activityChoice').enabled && core('activityChoice').required && !formData.activityChoice) {
-      newErrors.activityChoice = 'Pilihan kegiatan wajib dipilih';
-    }
     if (core('contributionProof').enabled && core('contributionProof').required) {
       if (!formData.contributionProof.file) {
         newErrors.contributionProof = 'Bukti pembayaran contribution fee wajib diupload';
@@ -321,6 +334,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
     const payload = {
       fullName: formData.fullName.trim(),
+      email: formData.email.trim(),
       activityId: selectedActivityId || undefined,
       activityTitle: formData.activityChoice,
       birthDate: formData.birthDate,
@@ -388,21 +402,21 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   };
 
   const handleReset = () => {
-    setSelectedActivityId('');
     if (window.confirm('Kosongkan semua isian formulir?')) {
-      setFormData({
+      setFormData((prev) => ({
+        ...prev,
         fullName: '',
+        email: '',
         birthDate: '',
         domicile: '',
         whatsapp: '',
         followedChannel: '',
-        activityChoice: '',
         contributionProof: { file: null, fileName: '', fileSize: 0, previewUrl: '' },
         paymentMethod: '',
         tagFriendsProof: { file: null, fileName: '', fileSize: 0, previewUrl: '' },
         repostStoryProof: { file: null, fileName: '', fileSize: 0, previewUrl: '' },
         reason: ''
-      });
+      }));
       setErrors({});
       setCurrentStep(1);
     }
@@ -431,6 +445,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             </h2>
             <p className="text-xs text-[#687479] mt-1.5 leading-relaxed">
               Tanggapan kamu untuk <strong className="text-[#0eadad]">{formData.activityChoice || 'Pulangkesinii'}</strong> telah berhasil dicatat. Tim kami akan melakukan verifikasi berkas dan bukti pembayaran.
+            </p>
+            <p className="text-xs font-semibold text-[#173f42] mt-2 bg-[#fff9db] border border-[#ffe066]/50 rounded-lg px-3 py-2 inline-block">
+              Approval group maksimal H-4
             </p>
           </div>
 
@@ -503,25 +520,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       className="w-full pt-1 focus:outline-none"
     >
       {/* Top Banner Header inside Modal */}
-      <div className="bg-gradient-to-r from-[#0eadad] to-[#128a8c] text-white p-4 sm:p-5 relative overflow-hidden rounded-2xl shadow-xs mb-3.5">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="bg-[#FFE066] text-[#173f42] text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full shadow-2xs">
-              BATCH 43
-            </span>
-            <span className="text-[11px] text-[#dff6f5] font-semibold">
-              Pulangkesinii Volunteer
-            </span>
-          </div>
-
-          <h2 id="form-modal-title" className="text-lg sm:text-xl font-extrabold text-white leading-tight">
-            {formConfig?.formTitle || 'Formulir Pendaftaran'}
-          </h2>
-          <p className="text-xs text-[#dff6f5] mt-0.5">
-            {formConfig?.formDescription || 'Ruang untuk berbuat baik & bertumbuh bersama'}
-          </p>
-        </div>
-      </div>
+      <div className="relative overflow-hidden rounded-2xl shadow-xs mb-3.5 min-h-[140px] sm:min-h-[176px] bg-cover bg-center" style={{ backgroundImage: "url('https://placehold.co/704x176/0eadad/ffffff?text=Banner+Dummy+704x176')" }} />
 
       {/* 2-Step Progress Indicator */}
       <div className="bg-[#f0fbfb] p-2.5 rounded-xl border border-[#d2f0ef] mb-4 flex items-center justify-between text-xs">
@@ -565,6 +564,60 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       {currentStep === 1 && (
         <form onSubmit={handleNextStep} className="space-y-3 sm:space-y-3.5 pb-2">
           
+          {/* FIELD 5: Sebelum lanjut, yukk ikuti saluran resmi kita untuk mendapatkan info menarik lainnya! ❤️ */}
+          <div 
+            id="field-followedChannel"
+            className={`${!core('followedChannel').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+              errors.followedChannel ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
+            }`}
+          >
+            <div className="mb-3">
+              <h3 className="text-sm font-bold text-[#173f42] leading-snug">
+                {core('followedChannel').label} {core('followedChannel').required && <span className="text-red-500">*</span>}
+              </h3>
+              <a 
+                href={formConfig.officialChannelUrl}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#0eadad] hover:text-[#0a7577] underline mt-2"
+              >
+                <span>{formConfig.officialChannelName}</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+
+            <div className="space-y-2 mt-3">
+              <label 
+                onClick={() => {
+                  setFormData(prev => ({ ...prev, followedChannel: 'Sudahhh kakkk!!' }));
+                  if (errors.followedChannel) setErrors(prev => ({ ...prev, followedChannel: '' }));
+                }}
+                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                  formData.followedChannel === 'Sudahhh kakkk!!'
+                    ? 'bg-[#e0f7f6] border-[#0eadad] text-[#087c7e] font-semibold'
+                    : 'bg-white border-[#cbd5e1] hover:bg-slate-50 text-[#2D3748]'
+                }`}
+              >
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                  formData.followedChannel === 'Sudahhh kakkk!!'
+                    ? 'border-[#0eadad] bg-[#0eadad]'
+                    : 'border-[#94a3b8] bg-white'
+                }`}>
+                  {formData.followedChannel === 'Sudahhh kakkk!!' && (
+                    <div className="w-2 h-2 rounded-full bg-white" />
+                  )}
+                </div>
+                <span className="text-xs sm:text-sm">Sudahhh kakkk!!</span>
+              </label>
+            </div>
+            {errors.followedChannel && (
+              <p className="text-xs text-red-500 mt-2 flex items-center gap-1 font-medium">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>{errors.followedChannel}</span>
+              </p>
+            )}
+          </div>
+
           {/* FIELD 1: Nama Lengkap Kamu */}
           <div 
             id="field-fullName"
@@ -592,6 +645,37 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               <p className="text-xs text-red-500 mt-2 flex items-center gap-1 font-medium">
                 <AlertCircle className="w-3.5 h-3.5" />
                 <span>{errors.fullName}</span>
+              </p>
+            )}
+          </div>
+
+          {/* FIELD: Alamat Email */}
+          <div 
+            id="field-email"
+            className={`${!core('email').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
+              errors.email ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
+            }`}
+          >
+            <label className="block text-sm font-bold text-[#173f42] mb-1">
+              {core('email').label} {core('email').required && <span className="text-red-500">*</span>}
+            </label>
+            <p className="text-xs text-[#687479] italic mb-3">
+              {core('email').helperText}
+            </p>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={(e) => {
+                setFormData(prev => ({ ...prev, email: e.target.value }));
+                if (errors.email) setErrors(prev => ({ ...prev, email: '' }));
+              }}
+              placeholder={core('email').placeholder}
+              className="w-full h-11 px-3.5 bg-[#fbfcfc] border border-[#cbd5e1] focus:border-[#0eadad] focus:bg-white rounded-xl text-sm outline-none transition-all focus:ring-3 focus:ring-[#0eadad]/15 text-[#173f42]"
+            />
+            {errors.email && (
+              <p className="text-xs text-red-500 mt-2 flex items-center gap-1 font-medium">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>{errors.email}</span>
               </p>
             )}
           </div>
@@ -683,60 +767,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             )}
           </div>
 
-          {/* FIELD 5: Sebelum lanjut, yukk ikuti saluran resmi kita untuk mendapatkan info menarik lainnya! ❤️ */}
-          <div 
-            id="field-followedChannel"
-            className={`${!core('followedChannel').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
-              errors.followedChannel ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
-            }`}
-          >
-            <div className="mb-3">
-              <h3 className="text-sm font-bold text-[#173f42] leading-snug">
-                {core('followedChannel').label} {core('followedChannel').required && <span className="text-red-500">*</span>}
-              </h3>
-              <a 
-                href={formConfig.officialChannelUrl}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#0eadad] hover:text-[#0a7577] underline mt-2"
-              >
-                <span>{formConfig.officialChannelName}</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            </div>
-
-            <div className="space-y-2 mt-3">
-              <label 
-                onClick={() => {
-                  setFormData(prev => ({ ...prev, followedChannel: 'Sudahhh kakkk!!' }));
-                  if (errors.followedChannel) setErrors(prev => ({ ...prev, followedChannel: '' }));
-                }}
-                className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
-                  formData.followedChannel === 'Sudahhh kakkk!!'
-                    ? 'bg-[#e0f7f6] border-[#0eadad] text-[#087c7e] font-semibold'
-                    : 'bg-white border-[#cbd5e1] hover:bg-slate-50 text-[#2D3748]'
-                }`}
-              >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
-                  formData.followedChannel === 'Sudahhh kakkk!!'
-                    ? 'border-[#0eadad] bg-[#0eadad]'
-                    : 'border-[#94a3b8] bg-white'
-                }`}>
-                  {formData.followedChannel === 'Sudahhh kakkk!!' && (
-                    <div className="w-2 h-2 rounded-full bg-white" />
-                  )}
-                </div>
-                <span className="text-xs sm:text-sm">Sudahhh kakkk!!</span>
-              </label>
-            </div>
-            {errors.followedChannel && (
-              <p className="text-xs text-red-500 mt-2 flex items-center gap-1 font-medium">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>{errors.followedChannel}</span>
-              </p>
-            )}
-          </div>
-
           {formConfig.customFields.filter((field) => field.step === 1).map(renderCustomField)}
 
           {/* Action Button Step 1 */}
@@ -772,37 +802,6 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       {currentStep === 2 && (
         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5 pb-2">
           
-          {/* FIELD 6: Pilihan Kegiatan✨ */}
-          <div 
-            id="field-activityChoice"
-            className={`${!core('activityChoice').enabled ? 'hidden' : ''} bg-white rounded-2xl p-4 sm:p-5 border transition-all shadow-xs ${
-              errors.activityChoice ? 'border-red-500 ring-2 ring-red-100' : 'border-[#e2e8f0]'
-            }`}
-          >
-            <label className="block text-sm font-bold text-[#173f42] mb-1">
-              {core('activityChoice').label} {core('activityChoice').required && <span className="text-red-500">*</span>}
-            </label>
-            <div className="space-y-2">
-              {availableActivities.map((activity) => (
-                <label key={activity.id} onClick={() => {
-                  setSelectedActivityId(activity.id);
-                  setFormData((prev) => ({ ...prev, activityChoice: activity.title }));
-                  setErrors((prev) => ({ ...prev, activityChoice: '' }));
-                }} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer ${selectedActivityId === activity.id ? 'bg-[#e0f7f6] border-[#0eadad] text-[#087c7e] font-semibold' : 'bg-white border-[#cbd5e1]'}`}>
-                  <input type="radio" readOnly checked={selectedActivityId === activity.id} />
-                  <span className="text-xs sm:text-sm">{activity.title} · Sisa {activity.quota - activity.quotaFilled} slot</span>
-                </label>
-              ))}
-              {availableActivities.length === 0 && <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-xl">Belum ada kegiatan dengan kuota tersedia.</p>}
-            </div>
-            {errors.activityChoice && (
-              <p className="text-xs text-red-500 mt-2 flex items-center gap-1 font-medium">
-                <AlertCircle className="w-3.5 h-3.5" />
-                <span>{errors.activityChoice}</span>
-              </p>
-            )}
-          </div>
-
           {/* FIELD 7: Upload bukti contribution fee */}
           <div 
             id="field-contributionProof"
@@ -900,6 +899,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <Upload className="w-5 h-5" />
                   </div>
                   <div>
+                    <p className="text-sm font-bold text-[#173f42] mb-2">
+                      Upload Bukti Pembayaran anda disini
+                    </p>
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#0eadad] bg-white border border-[#0eadad] px-3.5 py-1.5 rounded-lg shadow-2xs">
                       <Upload className="w-3.5 h-3.5" />
                       <span>Tambahkan file</span>

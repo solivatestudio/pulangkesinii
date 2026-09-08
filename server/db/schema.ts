@@ -57,6 +57,7 @@ export const registrations = pgTable('registrations', {
   activityId: varchar('activity_id', { length: 64 }).references(() => activities.id, { onDelete: 'set null' }),
   activityTitle: text('activity_title').notNull(),
   fullName: varchar('full_name', { length: 128 }).notNull(),
+  email: varchar('email', { length: 128 }).notNull().default(''),
   birthDate: varchar('birth_date', { length: 64 }).notNull(),
   domicile: varchar('domicile', { length: 128 }).notNull(),
   whatsapp: varchar('whatsapp', { length: 64 }).notNull(),

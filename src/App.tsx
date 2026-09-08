@@ -731,18 +731,15 @@ export default function App(){
                 <p>Menjadi komunitas sosial yang menginspirasi generasi muda untuk bertumbuh, berbagi, dan menciptakan dampak positif melalui aksi nyata yang berkelanjutan.</p>
               </div>
               <div className="mission-card">
-                <details open>
-                  <summary>
-                    Misi Pulangkesinii <ChevronDown />
-                  </summary>
-                  <ul>
-                    <li>Menjadi ruang aman bagi anak muda untuk berkembang melalui kegiatan sosial.</li>
-                    <li>Mendorong budaya volunteer yang inklusif dan menyenangkan.</li>
-                    <li>Menghubungkan individu dan komunitas dalam kolaborasi sosial.</li>
-                    <li>Menghadirkan program sosial yang kreatif dan edukatif.</li>
-                    <li>Membangun kepedulian sosial sebagai bagian dari gaya hidup.</li>
-                  </ul>
-                </details>
+                <CompassIcon className="brand-symbol" weight="duotone" aria-hidden="true" />
+                <span>Misi</span>
+                <ul>
+                  <li>Menjadi ruang aman bagi anak muda untuk berkembang melalui kegiatan sosial.</li>
+                  <li>Mendorong budaya volunteer yang inklusif dan menyenangkan.</li>
+                  <li>Menghubungkan individu dan komunitas dalam kolaborasi sosial.</li>
+                  <li>Menghadirkan program sosial yang kreatif dan edukatif.</li>
+                  <li>Membangun kepedulian sosial sebagai bagian dari gaya hidup.</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -992,7 +989,7 @@ export default function App(){
             <button className="sheet-close" onClick={() => setShowRegistrationForm(false)} aria-label="Tutup form">
               <X />
             </button>
-            <RegistrationForm onClose={() => setShowRegistrationForm(false)} />
+            <RegistrationForm activity={selected} onClose={() => setShowRegistrationForm(false)} />
           </section>
         </div>
       )}

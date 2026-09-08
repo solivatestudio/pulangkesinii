@@ -61,19 +61,19 @@ export const Hero: React.FC<HeroProps> = ({
     <section id="hero" className="relative overflow-hidden pt-6 pb-12 sm:pt-12 sm:pb-20 bg-gradient-to-b from-[#E6F7F7]/60 via-[#F8FBFB] to-[#F8FBFB]">
       
       {/* Decorative Brand Elements */}
-      <div className="absolute top-6 left-8 hidden lg:block opacity-75 pointer-events-none animate-float-gentle">
+      <div className="absolute top-6 left-4 lg:left-8 opacity-75 pointer-events-none animate-float-gentle">
         <img 
           src="/assets/star-blue.png" 
           alt="Blue Star Accent" 
-          className="w-14 h-14 object-contain"
+          className="w-9 h-9 lg:w-14 lg:h-14 object-contain"
         />
       </div>
 
-      <div className="absolute top-16 right-10 hidden lg:block opacity-85 pointer-events-none animate-float-gentle" style={{ animationDelay: '1.5s' }}>
+      <div className="absolute top-16 right-4 lg:right-10 opacity-85 pointer-events-none animate-float-gentle" style={{ animationDelay: '1.5s' }}>
         <img 
           src="/assets/star-yellow.png" 
           alt="Yellow Star Accent" 
-          className="w-16 h-16 object-contain"
+          className="w-10 h-10 lg:w-16 lg:h-16 object-contain"
         />
       </div>
 

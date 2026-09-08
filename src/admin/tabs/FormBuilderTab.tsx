@@ -39,7 +39,7 @@ export const FormBuilderTab: React.FC = () => {
       <div><h2 className="admin-title text-2xl text-[#173F42]">Form Builder Pendaftaran</h2><p className="text-xs text-[#6B7E82] mt-1">Semua field di bawah ini adalah field yang benar-benar tampil di form publik.</p></div>
       <button onClick={save} disabled={saving} className="h-10 px-5 bg-[#0EADAD] text-white text-xs font-bold rounded-xl flex items-center gap-2"><Save className="w-4 h-4" />{saving ? 'Menyimpan...' : 'Simpan & Terapkan'}</button>
     </div>
-    <div className="flex gap-2 overflow-x-auto">{([['fields','11 Field Publik'],['custom',`Field Tambahan (${config.customFields.length})`],['preview','Preview Struktur']] as const).map(([id,label]) => <button key={id} onClick={() => setTab(id)} className={`px-4 h-9 rounded-xl text-xs font-bold ${tab === id ? 'bg-[#173F42] text-white' : 'bg-white text-[#5A6E72]'}`}>{label}</button>)}</div>
+    <div className="flex gap-2 overflow-x-auto">{([['fields','12 Field Publik'],['custom',`Field Tambahan (${config.customFields.length})`],['preview','Preview Struktur']] as const).map(([id,label]) => <button key={id} onClick={() => setTab(id)} className={`px-4 h-9 rounded-xl text-xs font-bold ${tab === id ? 'bg-[#173F42] text-white' : 'bg-white text-[#5A6E72]'}`}>{label}</button>)}</div>
 
     {tab === 'fields' && <div className="space-y-5">
       <div className="bg-white p-5 rounded-2xl border grid md:grid-cols-2 gap-4 text-xs">

@@ -20,6 +20,7 @@ interface RegistrationItem {
   activityId?: string;
   activityTitle: string;
   fullName: string;
+  email: string;
   birthDate: string;
   domicile: string;
   whatsapp: string;
@@ -107,10 +108,11 @@ export const RegistrationsTab: React.FC = () => {
       return;
     }
 
-    const headers = ['Kode Regis', 'Nama Lengkap', 'WhatsApp', 'Domisili', 'Kegiatan', 'Metode Bayar', 'Status', 'Bukti Transfer URL', 'Tanggal Daftar'];
+    const headers = ['Kode Regis', 'Nama Lengkap', 'Email', 'WhatsApp', 'Domisili', 'Kegiatan', 'Metode Bayar', 'Status', 'Bukti Transfer URL', 'Tanggal Daftar'];
     const rows = registrations.map((r) => [
       `"${r.registrationCode}"`,
       `"${r.fullName}"`,
+      `"${r.email || ''}"`,
       `"${r.whatsapp}"`,
       `"${r.domicile}"`,
       `"${r.activityChoice || r.activityTitle}"`,
@@ -211,6 +213,7 @@ export const RegistrationsTab: React.FC = () => {
                 <tr>
                   <th className="py-3.5 px-4">Kode & Tanggal</th>
                   <th className="py-3.5 px-4">Nama Pendaftar</th>
+                  <th className="py-3.5 px-4">Email</th>
                   <th className="py-3.5 px-4">WhatsApp</th>
                   <th className="py-3.5 px-4">Kegiatan Pilihan</th>
                   <th className="py-3.5 px-4">Pembayaran</th>
@@ -231,6 +234,9 @@ export const RegistrationsTab: React.FC = () => {
                     <td className="py-3.5 px-4 font-semibold text-[#173F42]">
                       <div>{r.fullName}</div>
                       <div className="text-[10px] text-[#6B7E82] font-normal">{r.domicile}</div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="text-[11px] font-medium text-[#173F42]">{r.email || '-'}</span>
                     </td>
                     <td className="py-3.5 px-4">
                       <a
@@ -332,6 +338,10 @@ export const RegistrationsTab: React.FC = () => {
                 <div>
                   <span className="text-gray-400 block text-[10px]">Nama Lengkap</span>
                   <span className="font-bold text-[#173F42]">{selectedReg.fullName}</span>
+                </div>
+                <div>
+                  <span className="text-gray-400 block text-[10px]">Alamat Email</span>
+                  <span className="font-bold text-[#0EADAD]">{selectedReg.email || '-'}</span>
                 </div>
                 <div>
                   <span className="text-gray-400 block text-[10px]">Nomor WhatsApp</span>

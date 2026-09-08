@@ -129,6 +129,7 @@ var registrations = pgTable("registrations", {
   activityId: varchar("activity_id", { length: 64 }).references(() => activities.id, { onDelete: "set null" }),
   activityTitle: text("activity_title").notNull(),
   fullName: varchar("full_name", { length: 128 }).notNull(),
+  email: varchar("email", { length: 128 }).notNull().default(""),
   birthDate: varchar("birth_date", { length: 64 }).notNull(),
   domicile: varchar("domicile", { length: 128 }).notNull(),
   whatsapp: varchar("whatsapp", { length: 64 }).notNull(),
@@ -452,6 +453,7 @@ var registrationSchema = z.object({
   activityTitle: z.string().max(300).optional(),
   activityChoice: z.string().max(300).default(""),
   fullName: z.string().trim().max(128).default(""),
+  email: z.string().trim().email().max(128).or(z.literal("")).default(""),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).default(""),
   domicile: z.string().trim().max(128).default(""),
   whatsapp: z.string().trim().regex(/^\+?[0-9][0-9\s-]{7,20}$/).or(z.literal("")).default(""),
@@ -478,8 +480,8 @@ app.post("/api/registrations", async (req, res) => {
     const contribution = configured("contributionProof", formConfig.enableContributionProof, formConfig.contributionProofRequired);
     const tagFriends = configured("tagFriendsProof", formConfig.enableTagFriends, formConfig.tagFriendsRequired);
     const repostStory = configured("repostStoryProof", formConfig.enableRepostStory, formConfig.repostStoryRequired);
-    const coreValues = { fullName: data.fullName, birthDate: data.birthDate, domicile: data.domicile, whatsapp: data.whatsapp, followedChannel: data.followedChannel, activityChoice: data.activityChoice, paymentMethod: data.paymentMethod, reason: data.reason };
-    const defaultRequiredCore = ["fullName", "birthDate", "domicile", "whatsapp", "followedChannel", "activityChoice", "paymentMethod", "reason"];
+    const coreValues = { fullName: data.fullName, email: data.email, birthDate: data.birthDate, domicile: data.domicile, whatsapp: data.whatsapp, followedChannel: data.followedChannel, activityChoice: data.activityChoice, paymentMethod: data.paymentMethod, reason: data.reason };
+    const defaultRequiredCore = ["fullName", "email", "birthDate", "domicile", "whatsapp", "followedChannel", "activityChoice", "paymentMethod", "reason"];
     const missingCore = defaultRequiredCore.some((id2) => {
       const field = configuredFields.find((item) => item?.id === id2);
       return (field?.enabled ?? true) && (field?.required ?? true) && !coreValues[id2]?.trim();
@@ -500,6 +502,7 @@ app.post("/api/registrations", async (req, res) => {
       activityId: data.activityId || null,
       activityTitle: data.activityTitle || data.activityChoice || "Kegiatan Pulangkesinii",
       fullName: data.fullName,
+      email: data.email || "",
       birthDate: data.birthDate || "",
       domicile: data.domicile || "",
       whatsapp: data.whatsapp,
