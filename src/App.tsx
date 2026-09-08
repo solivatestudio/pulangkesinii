@@ -130,6 +130,14 @@ export default function App(){
   const [legal,setLegal]=useState<'terms'|'privacy'|null>(null);
   const [galleryImage,setGalleryImage]=useState<string|null>(null);
   const [showRegistrationForm,setShowRegistrationForm]=useState(false);
+  const [isScrolled,setIsScrolled]=useState(false);
+
+  useEffect(()=>{
+    const onScroll=()=>setIsScrolled(window.scrollY>20);
+    onScroll();
+    window.addEventListener('scroll',onScroll,{passive:true});
+    return ()=>window.removeEventListener('scroll',onScroll);
+  },[]);
 
   // Dynamic state populated directly from PostgreSQL database with fallback
   const [catalogue, setCatalogue] = useState<Activity[]>(defaultCatalogue);
@@ -325,11 +333,9 @@ export default function App(){
       <a className="skip-link" href="#kegiatan">Lewati ke daftar kegiatan</a>
       
       <main className="mobile-shell site-shell">
-        {/* HERO / BRAND HEADER */}
-        <section className="brand-header" aria-labelledby="hero-title">
-          <div className="hero-pattern" aria-hidden="true" />
-          
-          <div className="header-top-bar">
+        {/* STICKY TOP NAVIGATION */}
+        <div className={`header-top-bar ${isScrolled ? 'scrolled' : ''}`}>
+          <div className="header-inner">
             <div className="brand-lockup">
               <img src="/assets/logo-palette.png" alt="Logo Pulangkesinii" />
             </div>
@@ -369,7 +375,12 @@ export default function App(){
               </nav>
             )}
           </div>
+        </div>
 
+        {/* HERO / BRAND HEADER */}
+        <section className="brand-header" aria-labelledby="hero-title">
+          <div className="hero-pattern" aria-hidden="true" />
+          
           <div className="hero-copy">
             <div className="hero-grid-wrapper">
               <div className="hero-main-col">

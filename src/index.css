@@ -71,7 +71,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   margin: 0 auto;
   background: #fff;
   min-height: 100vh;
-  overflow: hidden;
+  overflow: clip;
   box-shadow: 0 0 35px rgba(24, 45, 50, 0.05);
 }
 
@@ -195,9 +195,21 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 
 .header-top-bar {
-  position: relative;
-  z-index: 10;
+  position: sticky;
+  top: 0;
+  z-index: 50;
   width: 100%;
+  background: #0eadad;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.header-top-bar.scrolled {
+  background: #ffffff;
+  box-shadow: 0 6px 24px rgba(9, 77, 79, 0.12);
+}
+
+.header-inner {
+  position: relative;
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
@@ -208,7 +220,7 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 
 @media (min-width: 768px) {
-  .header-top-bar {
+  .header-inner {
     padding: 0 32px;
     height: 90px;
   }
@@ -291,6 +303,33 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   .desktop-nav .nav-admin-btn:hover {
     background: #fff;
     color: #0eadad;
+  }
+}
+
+/* Scrolled state: white navbar with dark links */
+.header-top-bar.scrolled .desktop-nav a {
+  color: #173f42;
+}
+.header-top-bar.scrolled .desktop-nav a:hover {
+  color: #0eadad;
+}
+.header-top-bar.scrolled .desktop-nav .nav-admin-btn {
+  background: #e6f7f7;
+  border-color: rgba(14, 173, 173, 0.3);
+  color: #0eadad;
+}
+.header-top-bar.scrolled .desktop-nav .nav-admin-btn:hover {
+  background: #0eadad;
+  color: #fff;
+}
+.header-top-bar.scrolled .hero-menu-button {
+  background: #f8fbfb;
+  box-shadow: 0 0 0 1px #e2e8f0;
+}
+
+@media (max-width: 1023px) {
+  .header-top-bar.scrolled .brand-lockup {
+    box-shadow: 0 6px 20px rgba(16, 128, 128, 0.16), 0 0 0 1px rgba(226, 232, 240, 0.9);
   }
 }
 
