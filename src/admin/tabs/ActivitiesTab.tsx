@@ -577,7 +577,64 @@ export const ActivitiesTab: React.FC = () => {
                 </p>
               </div>
 
-              {/* Rundown & Benefit */}
+              {/* Rangkaian Kegiatan (Rundown) */}
+              <div className="pt-2 border-t border-[#F0F7F7]">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="font-bold text-[#26383C]">Rangkaian Kegiatan (Rundown)</label>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, rundown: [...(formData.rundown || []), { time: '', activity: '' }] })}
+                    className="text-[#0EADAD] font-bold flex items-center gap-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Tambah
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {(formData.rundown || []).map((item, index) => (
+                    <div key={index} className="grid grid-cols-1 sm:grid-cols-[150px_1fr_auto] gap-2">
+                      <input
+                        value={item.time}
+                        onChange={(e) => {
+                          const rundown = [...(formData.rundown || [])];
+                          rundown[index] = { ...rundown[index], time: e.target.value };
+                          setFormData({ ...formData, rundown });
+                        }}
+                        placeholder="13:00 - 15:00"
+                        className="h-9 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                      />
+                      <input
+                        value={item.activity}
+                        onChange={(e) => {
+                          const rundown = [...(formData.rundown || [])];
+                          rundown[index] = { ...rundown[index], activity: e.target.value };
+                          setFormData({ ...formData, rundown });
+                        }}
+                        placeholder="Sesi utama kegiatan"
+                        className="h-9 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                      />
+                      <button
+                        type="button"
+                        aria-label={`Hapus rundown ${index + 1}`}
+                        onClick={() => setFormData({ ...formData, rundown: (formData.rundown || []).filter((_, i) => i !== index) })}
+                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {(formData.rundown || []).length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, rundown: [{ time: '', activity: '' }] })}
+                    className="w-full p-3 border border-dashed rounded-xl text-gray-500 mt-2"
+                  >
+                    + Tambahkan rundown
+                  </button>
+                )}
+              </div>
+
+              {/* Benefit & Syarat */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#F0F7F7]">
                 <div>
                   <div className="flex items-center justify-between mb-2"><label className="font-bold text-[#26383C]">Benefit Volunteer</label><button type="button" onClick={() => setFormData({ ...formData, benefits: [...(formData.benefits || []), ''] })} className="text-[#0EADAD] font-bold flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah</button></div>

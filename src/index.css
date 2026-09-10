@@ -565,6 +565,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   color: #fff;
 }
 
+.latest-section .search-bar {
+  margin: 0 0 16px;
+}
+
 /* Hero Quick Categories */
 .hero-quick-categories {
   display: flex;

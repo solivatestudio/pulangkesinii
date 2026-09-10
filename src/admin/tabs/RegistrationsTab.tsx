@@ -13,6 +13,8 @@ import {
   FileCheck,
   AlertCircle
 } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface RegistrationItem {
   id: string;
@@ -42,6 +44,8 @@ export const RegistrationsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [cityFilter, setCityFilter] = useState('all');
+  const [activityCityById, setActivityCityById] = useState<Record<string, string>>({});
   const [selectedReg, setSelectedReg] = useState<RegistrationItem | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
@@ -60,6 +64,21 @@ export const RegistrationsTab: React.FC = () => {
 
   useEffect(() => {
     fetchRegistrations();
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/activities')
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        const items = Array.isArray(data) ? data : [];
+        setActivityCityById(
+          items.reduce((acc: Record<string, string>, act: any) => {
+            if (act.id && act.city) acc[act.id] = act.city;
+            return acc;
+          }, {})
+        );
+      })
+      .catch(() => {});
   }, []);
 
   const updateStatus = async (id: string, newStatus: string, adminNotes?: string) => {
@@ -102,46 +121,104 @@ export const RegistrationsTab: React.FC = () => {
     }
   };
 
-  const exportToCsv = () => {
-    if (registrations.length === 0) {
+  const exportToPdf = () => {
+    if (filtered.length === 0) {
       alert('Belum ada data pendaftar untuk diekspor');
       return;
     }
 
-    const headers = ['Kode Regis', 'Nama Lengkap', 'Email', 'WhatsApp', 'Domisili', 'Kegiatan', 'Metode Bayar', 'Status', 'Bukti Transfer URL', 'Tanggal Daftar'];
-    const rows = registrations.map((r) => [
-      `"${r.registrationCode}"`,
-      `"${r.fullName}"`,
-      `"${r.email || ''}"`,
-      `"${r.whatsapp}"`,
-      `"${r.domicile}"`,
-      `"${r.activityChoice || r.activityTitle}"`,
-      `"${r.paymentMethod}"`,
-      `"${r.status}"`,
-      `"${r.contributionProofUrl || ''}"`,
-      `"${new Date(r.createdAt).toLocaleString('id-ID')}"`,
-    ]);
+    const cityOf = (r: RegistrationItem) =>
+      (r.activityId && activityCityById[r.activityId]) || 'Tanpa Kota';
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `pendaftar-pulangkesinii-${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const grouped = new Map<string, RegistrationItem[]>();
+    filtered.forEach((r) => {
+      const city = cityOf(r);
+      if (!grouped.has(city)) grouped.set(city, []);
+      grouped.get(city)!.push(r);
+    });
+
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    const margin = 12;
+
+    doc.setFontSize(16);
+    doc.setTextColor(15, 118, 110);
+    doc.text('Data Pendaftaran Volunteer', margin, 14);
+
+    doc.setFontSize(9);
+    doc.setTextColor(100, 116, 139);
+    doc.text(
+      `Pulangkesinii · ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })} · ${filtered.length} pendaftar`,
+      margin,
+      20
+    );
+
+    const head = [['Kode Registrasi', 'Nama Lengkap', 'Email', 'WhatsApp', 'Domisili Peserta', 'Kegiatan', 'Pembayaran', 'Status', 'Tanggal Daftar']];
+    let y = 26;
+
+    Array.from(grouped.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .forEach(([city, items]) => {
+        if (y > 185) {
+          doc.addPage();
+          y = 20;
+        }
+
+        doc.setFontSize(11);
+        doc.setTextColor(15, 118, 110);
+        doc.text(`${city} (${items.length} pendaftar)`, margin, y);
+        y += 2;
+
+        const body = items.map((r) => [
+          r.registrationCode,
+          r.fullName,
+          r.email || '-',
+          r.whatsapp,
+          r.domicile,
+          r.activityChoice || r.activityTitle,
+          r.paymentMethod,
+          r.status,
+          new Date(r.createdAt).toLocaleString('id-ID', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        ]);
+
+        autoTable(doc, {
+          startY: y,
+          head,
+          body,
+          margin: { left: margin, right: margin },
+          theme: 'grid',
+          styles: { fontSize: 7, cellPadding: 1.5 },
+          headStyles: { fillColor: [224, 247, 246], textColor: [19, 78, 74], fontStyle: 'bold' },
+          alternateRowStyles: { fillColor: [248, 250, 252] },
+        });
+
+        y = (doc as any).lastAutoTable.finalY + 8;
+      });
+
+    doc.save(`pendaftar-pulangkesinii-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
+
+  const activityCity = (r: RegistrationItem) =>
+    (r.activityId && activityCityById[r.activityId]) || '-';
 
   const filtered = registrations.filter((r) => {
     const matchStatus = statusFilter === 'all' || r.status === statusFilter;
+    const matchCity = cityFilter === 'all' || activityCity(r) === cityFilter;
     const matchSearch =
       !search ||
       r.fullName.toLowerCase().includes(search.toLowerCase()) ||
       r.whatsapp.includes(search) ||
       (r.registrationCode && r.registrationCode.toLowerCase().includes(search.toLowerCase())) ||
       (r.activityChoice && r.activityChoice.toLowerCase().includes(search.toLowerCase()));
-    return matchStatus && matchSearch;
+    return matchStatus && matchCity && matchSearch;
   });
+
+  const cities = Array.from(new Set(Object.values(activityCityById))).sort();
 
   return (
     <div className="space-y-6">
@@ -154,11 +231,11 @@ export const RegistrationsTab: React.FC = () => {
           </p>
         </div>
         <button
-          onClick={exportToCsv}
+          onClick={exportToPdf}
           className="h-10 px-4 bg-[#172B32] hover:bg-[#203B44] text-white text-xs font-bold rounded-xl flex items-center gap-2 transition-all shadow-sm cursor-pointer"
         >
           <Download className="w-4 h-4" />
-          <span>Ekspor Data (CSV)</span>
+          <span>Ekspor Data (PDF)</span>
         </button>
       </div>
 
@@ -175,6 +252,16 @@ export const RegistrationsTab: React.FC = () => {
           />
         </div>
         <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+          <select
+            value={cityFilter}
+            onChange={(e) => setCityFilter(e.target.value)}
+            className="h-9 px-3 rounded-lg text-xs font-semibold whitespace-nowrap bg-white text-[#4A5D61] border border-[#D5DFE0] outline-none cursor-pointer"
+          >
+            <option value="all">Semua</option>
+            {cities.map((city) => (
+              <option key={city} value={city}>{city}</option>
+            ))}
+          </select>
           {[
             { id: 'all', label: 'Semua Status' },
             { id: 'menunggu_verifikasi', label: 'Menunggu' },

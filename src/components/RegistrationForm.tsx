@@ -51,7 +51,7 @@ export interface RegistrationFormData {
 interface RegistrationFormProps {
   onClose?: () => void;
   onSubmitSuccess?: (data: RegistrationFormData) => void;
-  activity?: { id: number | string; title?: string } | null;
+  activity?: { id: number | string; title?: string; quota?: number; quotaFilled?: number; status?: string } | null;
 }
 
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({
@@ -85,6 +85,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number; whatsappGroupUrl?: string }>>([]);
   const [selectedActivityId, setSelectedActivityId] = useState('');
   const core = (id: import('../formConfig').CoreFieldId) => formConfig.fields.find((field) => field.id === id) || defaultFormConfig.fields.find((field) => field.id === id)!;
+
+  const selectedQuota = typeof activity?.quota === 'number' ? activity.quota : undefined;
+  const selectedQuotaFilled = typeof activity?.quotaFilled === 'number' ? activity.quotaFilled : undefined;
+  const isSelectedActivityFull = selectedQuota !== undefined && selectedQuotaFilled !== undefined && selectedQuotaFilled >= selectedQuota;
+  const isSelectedActivityClosed = isSelectedActivityFull || activity?.status === 'full' || activity?.status === 'completed';
 
   useEffect(() => {
     fetch('/api/settings/registration_form_config')
@@ -292,6 +297,10 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSelectedActivityClosed) {
+      setSubmitError('Maaf, kuota kegiatan ini sudah penuh sehingga pendaftaran ditutup.');
+      return;
+    }
     if (!validateStep2()) return;
 
     setIsSubmitting(true);
@@ -558,6 +567,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         </div>
       </div>
 
+      {isSelectedActivityClosed && (
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-2xl p-3.5 mb-4 text-xs font-semibold flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <span>Maaf, kuota kegiatan ini sudah penuh sehingga pendaftaran ditutup.</span>
+        </div>
+      )}
+
       {/* =========================================================================
           BAGIAN 1: DATA DIRI & KONTAK
       ========================================================================= */}
@@ -773,7 +789,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           <div className="pt-2 space-y-3">
             <button
               type="submit"
-              className="w-full h-12 bg-[#0eadad] hover:bg-[#097b7d] active:scale-[0.99] text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+              disabled={isSelectedActivityClosed}
+              className="w-full h-12 bg-[#0eadad] hover:bg-[#097b7d] active:scale-[0.99] text-white font-bold text-sm sm:text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
             >
               <span>Lanjut ke Bagian 2 (Kegiatan & Bukti)</span>
               <ArrowRight className="w-4 h-4 text-white" />
@@ -1203,7 +1220,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
 
               <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || isSelectedActivityClosed}
                 className="w-2/3 h-12 bg-[#0eadad] hover:bg-[#097b7d] active:scale-[0.99] text-white font-bold text-xs sm:text-sm rounded-xl shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? (

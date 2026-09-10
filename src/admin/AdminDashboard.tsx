@@ -14,7 +14,9 @@ import {
   Sparkles,
   Menu,
   X,
-  FileText
+  FileText,
+  PanelLeftClose,
+  PanelLeftOpen
 } from 'lucide-react';
 import { ActivitiesTab } from './tabs/ActivitiesTab';
 import { RegistrationsTab } from './tabs/RegistrationsTab';
@@ -31,6 +33,7 @@ interface AdminDashboardProps {
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'activities' | 'registrations' | 'form_builder' | 'gallery' | 'faqs' | 'settings'>('activities');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stats, setStats] = useState({
     totalActivities: 0,
     openActivities: 0,
@@ -116,28 +119,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
       {/* Sidebar Navigation */}
       <aside
-        className={`fixed md:sticky top-0 left-0 z-40 w-72 h-screen bg-white border-r border-[#E0F2F1] flex flex-col justify-between transition-transform duration-200 ease-in-out md:translate-x-0 ${
+        className={`fixed md:sticky top-0 left-0 z-40 w-72 ${sidebarCollapsed ? 'md:w-20' : 'md:w-72'} h-screen bg-white border-r border-[#E0F2F1] flex flex-col justify-between transition-all duration-200 ease-in-out md:translate-x-0 ${
           mobileMenuOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
         {/* Top: Logo & Navigation */}
         <div className="p-5 space-y-6 overflow-y-auto">
           {/* Brand Header */}
-          <div className="flex items-center gap-3.5 pb-4 border-b border-[#F0F7F7]">
+          <div className={`pb-4 border-b border-[#F0F7F7] ${sidebarCollapsed ? 'flex flex-col items-center gap-3' : 'flex items-center gap-3.5'}`}>
             <div className="w-11 h-11 rounded-2xl bg-[#E0F7F6] p-1.5 flex items-center justify-center shadow-xs border border-[#CDEEEB] flex-none">
               <img src="/assets/logo-palette.png" alt="Pulangkesinii" className="w-full h-full object-contain" />
             </div>
-            <div className="min-w-0 flex-1">
-              <div className="font-bold text-base text-[#173F42] leading-tight truncate">Pulangkesinii</div>
-              <div className="text-[11px] text-[#0EADAD] font-semibold mt-0.5 tracking-wide">Portal Admin</div>
-            </div>
+            {sidebarCollapsed ? (
+              <button
+                onClick={() => setSidebarCollapsed(false)}
+                className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#F0F7F7] hover:text-[#0EADAD] transition-colors cursor-pointer flex-none"
+                aria-label="Buka sidebar"
+                title="Buka sidebar"
+              >
+                <PanelLeftOpen className="w-4 h-4" />
+              </button>
+            ) : (
+              <>
+                <div className="min-w-0 flex-1">
+                  <div className="font-bold text-base text-[#173F42] leading-tight truncate">Pulangkesinii</div>
+                  <div className="text-[11px] text-[#0EADAD] font-semibold mt-0.5 tracking-wide">Portal Admin</div>
+                </div>
+                <button
+                  onClick={() => setSidebarCollapsed(true)}
+                  className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg text-[#64748b] hover:bg-[#F0F7F7] hover:text-[#0EADAD] transition-colors cursor-pointer flex-none"
+                  aria-label="Tutup sidebar"
+                  title="Tutup sidebar"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Navigation Group */}
           <div className="space-y-1.5">
-            <div className="px-3 pb-1 text-[10px] font-bold text-[#8EA2A6] uppercase tracking-wider">
-              Menu Pengelola
-            </div>
+            {!sidebarCollapsed && (
+              <div className="px-3 pb-1 text-[10px] font-bold text-[#8EA2A6] uppercase tracking-wider">
+                Menu Pengelola
+              </div>
+            )}
             <nav className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
@@ -149,17 +175,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
                       setActiveTab(item.id as any);
                       setMobileMenuOpen(false);
                     }}
-                    className={`w-full h-11 px-3.5 rounded-xl text-[13px] font-medium flex items-center justify-between transition-all cursor-pointer ${
+                    title={sidebarCollapsed ? item.label : undefined}
+                    className={`w-full h-11 rounded-xl text-[13px] font-medium flex items-center transition-all cursor-pointer ${
+                      sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+                    } ${
                       isActive
                         ? 'bg-[#0EADAD] text-white font-semibold shadow-sm shadow-[#0EADAD]/25'
                         : 'text-[#4A5D61] hover:bg-[#F2F8F8] hover:text-[#0EADAD]'
                     }`}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3'}`}>
                       <Icon className={`w-4 h-4 flex-none ${isActive ? 'text-white' : 'text-[#8FA3A6]'}`} />
-                      <span>{item.label}</span>
+                      {!sidebarCollapsed && <span>{item.label}</span>}
                     </div>
-                    {item.badge !== undefined && item.badge > 0 && (
+                    {!sidebarCollapsed && item.badge !== undefined && item.badge > 0 && (
                       <span
                         className={`text-[11px] px-2 py-0.5 rounded-full font-bold ${
                           isActive
@@ -183,30 +212,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
             href="/"
             target="_blank"
             rel="noreferrer"
-            className="w-full h-10 px-3.5 rounded-xl bg-[#F0F7F7] hover:bg-[#E0F7F6] text-[#087C7E] text-xs font-semibold flex items-center justify-between transition-all"
+            title="Buka Website Publik"
+            className={`w-full h-10 rounded-xl bg-[#F0F7F7] hover:bg-[#E0F7F6] text-[#087C7E] text-xs font-semibold flex items-center transition-all ${
+              sidebarCollapsed ? 'justify-center px-0' : 'justify-between px-3.5'
+            }`}
           >
-            <span>Buka Website Publik</span>
+            {!sidebarCollapsed && <span>Buka Website Publik</span>}
             <ExternalLink className="w-3.5 h-3.5 text-[#0EADAD]" />
           </a>
 
-          <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E0F2F1]">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-8 h-8 rounded-lg bg-[#E0F7F6] text-[#087C7E] flex items-center justify-center text-xs font-bold flex-none">
+          {sidebarCollapsed ? (
+            <div className="flex flex-col items-center gap-2 p-2.5 rounded-xl bg-white border border-[#E0F2F1]">
+              <div className="w-8 h-8 rounded-lg bg-[#E0F7F6] text-[#087C7E] flex items-center justify-center text-xs font-bold">
                 {user?.username?.[0]?.toUpperCase() || 'A'}
               </div>
-              <div className="min-w-0">
-                <div className="font-bold text-xs text-[#173F42] truncate">{user?.name || 'Administrator'}</div>
-                <div className="text-[#8FA3A6] text-[10px] capitalize">{user?.role || 'Superadmin'}</div>
-              </div>
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              onClick={handleLogout}
-              title="Logout"
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer flex-none ml-2"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+          ) : (
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white border border-[#E0F2F1]">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-[#E0F7F6] text-[#087C7E] flex items-center justify-center text-xs font-bold flex-none">
+                  {user?.username?.[0]?.toUpperCase() || 'A'}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-bold text-xs text-[#173F42] truncate">{user?.name || 'Administrator'}</div>
+                  <div className="text-[#8FA3A6] text-[10px] capitalize">{user?.role || 'Superadmin'}</div>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                title="Logout"
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all cursor-pointer flex-none ml-2"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 

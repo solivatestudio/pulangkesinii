@@ -398,19 +398,6 @@ export default function App(){
                 <div className="hero-support">
                   <p>Temukan kegiatan volunteer, voluntrip, dan aktivitas sosial yang sesuai dengan waktu, minat, serta tempat pulangmu.</p>
                 </div>
-
-                <form className="search-bar" role="search" onSubmit={(e) => { e.preventDefault(); showSearchResults(); }}>
-                  <Search aria-hidden="true" />
-                  <input 
-                    value={query} 
-                    onChange={(e) => setQuery(e.target.value)} 
-                    placeholder="Cari kegiatan, lokasi, atau tema..." 
-                    aria-label="Cari kegiatan" 
-                  />
-                  <button type="submit" aria-label="Tampilkan hasil pencarian">
-                    <Search />
-                  </button>
-                </form>
               </div>
 
               <div className="hero-visual-col">
@@ -462,6 +449,19 @@ export default function App(){
               <span className="mini-badge">Katalog Lengkap</span>
               <h2>Jelajahi Kegiatan Terbaru</h2>
             </div>
+
+            <form className="search-bar" role="search" onSubmit={(e) => { e.preventDefault(); showSearchResults(); }}>
+              <Search aria-hidden="true" />
+              <input 
+                value={query} 
+                onChange={(e) => setQuery(e.target.value)} 
+                placeholder="Cari kegiatan, lokasi, atau tema..." 
+                aria-label="Cari kegiatan" 
+              />
+              <button type="submit" aria-label="Tampilkan hasil pencarian">
+                <Search />
+              </button>
+            </form>
 
             <div className="catalog-filter-bar">
               <div className="category-pills" aria-label="Filter kategori kegiatan">
@@ -977,8 +977,21 @@ export default function App(){
               )}
             </div>
 
-            <button type="button" onClick={() => setShowRegistrationForm(true)} className="detail-sheet-cta">
-              Daftar Sekarang
+            <button
+              type="button"
+              onClick={() => setShowRegistrationForm(true)}
+              disabled={
+                (typeof selected.quota === 'number' && typeof selected.quotaFilled === 'number' && selected.quotaFilled >= selected.quota) ||
+                selected.status === 'full' ||
+                selected.status === 'completed'
+              }
+              className="detail-sheet-cta disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {(typeof selected.quota === 'number' && typeof selected.quotaFilled === 'number' && selected.quotaFilled >= selected.quota) ||
+              selected.status === 'full' ||
+              selected.status === 'completed'
+                ? 'Kuota Penuh'
+                : 'Daftar Sekarang'}
             </button>
           </section>
         </div>
