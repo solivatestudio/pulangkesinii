@@ -7,7 +7,7 @@ import { HouseIcon } from '@phosphor-icons/react/dist/csr/House';
 import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
-import { CalendarDays, Check, ChevronDown, ChevronRight, Clock, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, PackageCheck, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronRight, Clock, Download, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, PackageCheck, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
 import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
 
@@ -41,6 +41,7 @@ type Activity = {
 
 const places = ['Semua', 'Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
 const categories = ['Semua', 'Volunteer', 'Voluntrip', 'Workshop'];
+const donationTypes = ['Uang', 'Peralatan Sekolah', 'Perabot Rumah', 'Paket Sembako', 'Lainnya'];
 const humanizeDate = (value?: string) => value && /^\d{4}-\d{2}-\d{2}$/.test(value)
   ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
   : value;
@@ -152,7 +153,10 @@ export default function App(){
     tiktok: '@Pulangkesinii_',
     linkedin: 'Pulangkesinii',
     basecamp: 'Jakarta Timur',
+    address: 'Jakarta Timur',
   });
+  const [qrisImageUrl, setQrisImageUrl] = useState('/images/web/qris.webp');
+  const [donation, setDonation] = useState({ nama: '', jumlah: '', bentuk: 'Uang', ucapan: '' });
 
   useEffect(() => {
     // 1. Fetch activities from DB
@@ -225,6 +229,17 @@ export default function App(){
       .then((data) => {
         if (data?.value) {
           setContactInfo((prev) => ({ ...prev, ...data.value }));
+        }
+      })
+      .catch(() => {});
+
+    // 5. Fetch Payment Accounts (QRIS) from DB
+    fetch('/api/settings/payment_accounts')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.value?.qrisImageUrl) {
+          const url = (data.value.qrisImageUrl === '/assets/decor-1.png' || data.value.qrisImageUrl === '/images/web/qris.jpeg') ? '/images/web/qris.webp' : data.value.qrisImageUrl;
+          setQrisImageUrl(url);
         }
       })
       .catch(() => {});
@@ -328,6 +343,13 @@ export default function App(){
   
   const showSearchResults=()=>document.querySelector('#semua-kegiatan')?.scrollIntoView({behavior:'smooth',block:'start'});
 
+  const handleDonationSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const wa = contactInfo.whatsappNumber.replace(/[^0-9]/g, '');
+    const text = `Halo Pulangkesinii, saya ingin berdonasi.\n\nNama: ${donation.nama}\nJumlah: ${donation.jumlah}\nBentuk Donasi: ${donation.bentuk}\nUcapan/Doa: ${donation.ucapan}`;
+    window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
   return (
     <div className="page-stage">
       <a className="skip-link" href="#kegiatan">Lewati ke daftar kegiatan</a>
@@ -348,7 +370,7 @@ export default function App(){
               <a href="#momen">Galeri</a>
               <a href="#faq">FAQ</a>
               <a href="#kontak">Kontak</a>
-              <a href="/admin" className="nav-admin-btn">Portal Admin</a>
+              <a href="#donasi" className="nav-admin-btn">Donasi</a>
             </nav>
 
             {/* Mobile Hamburger Button */}
@@ -371,7 +393,7 @@ export default function App(){
                 <a href="#momen" onClick={() => setMenuOpen(false)}>Galeri</a>
                 <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
                 <a href="#kontak" onClick={() => setMenuOpen(false)}>Kontak</a>
-                <a href="/admin" onClick={() => setMenuOpen(false)}>Portal Admin</a>
+                <a href="#donasi" onClick={() => setMenuOpen(false)}>Donasi</a>
               </nav>
             )}
           </div>
@@ -602,6 +624,91 @@ export default function App(){
                 </a>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* DONATION SECTION */}
+        <section className="donation-section" id="donasi" aria-labelledby="donasi-title">
+          <div className="section-container">
+            <div className="donation-heading">
+              <div className="simple-heading">
+                <span>Donasi</span>
+                <h2 id="donasi-title">Titip Kebaikanmu di Sini</h2>
+              </div>
+              <p className="donation-subtitle">Dukung misi sosial Pulangkesinii lewat donasi dalam bentuk apa pun yang bisa kamu berikan.</p>
+            </div>
+
+            <div className="donation-grid">
+              <div className="donation-visual">
+                {donation.bentuk === 'Uang' ? (
+                  <div className="qris-panel">
+                    <img src={qrisImageUrl} alt="Kode QRIS donasi Pulangkesinii" />
+                    <a href={qrisImageUrl} download className="qris-download">
+                      <Download size={16} /> Unduh QRIS
+                    </a>
+                  </div>
+                ) : (
+                  <div className="dropoff-panel">
+                    <div className="dropoff-item">
+                      <MapPin size={18} />
+                      <div>
+                        <small>Alamat Pengiriman</small>
+                        <strong>{contactInfo.address}</strong>
+                      </div>
+                    </div>
+                    <div className="dropoff-item">
+                      <MessageCircle size={18} />
+                      <div>
+                        <small>WhatsApp yang bisa dihubungi</small>
+                        <a href={`https://wa.me/${contactInfo.whatsappNumber.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                          {contactInfo.whatsappNumber}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <form className="donation-form" onSubmit={handleDonationSubmit}>
+                <label className="donation-field">
+                  <span>Nama</span>
+                  <input type="text" value={donation.nama} onChange={(e) => setDonation({ ...donation, nama: e.target.value })} placeholder="Tulis Nama Kamuuu" />
+                </label>
+
+                <label className="donation-field">
+                  <span>Jumlah</span>
+                  <input type="text" inputMode="numeric" value={donation.jumlah} onChange={(e) => setDonation({ ...donation, jumlah: e.target.value })} placeholder="tuliskan jumlah" />
+                </label>
+
+                {donation.bentuk === 'Uang' && (
+                  <div className="quick-amounts">
+                    {['10000', '15000', '50000', '100000'].map((val) => (
+                      <button type="button" key={val} className={donation.jumlah === val ? 'active' : ''} onClick={() => setDonation({ ...donation, jumlah: val })}>
+                        Rp{Number(val).toLocaleString('id-ID')}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <label className="donation-field">
+                  <span>Bentuk Donasi</span>
+                  <select value={donation.bentuk} onChange={(e) => setDonation({ ...donation, bentuk: e.target.value })}>
+                    {donationTypes.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </label>
+
+                <label className="donation-field">
+                  <span>Ucapan / Doa</span>
+                  <textarea value={donation.ucapan} onChange={(e) => setDonation({ ...donation, ucapan: e.target.value })} placeholder="Berikan Doa atau Ucapan Anda" rows={3} />
+                </label>
+
+                <button type="submit" className="donation-submit">
+                  <MessageCircle size={16} /> Kirim via WhatsApp
+                </button>
+              </form>
+            </div>
+
+            <p className="donation-note">Titip Kebaikanmu Disini — sekecil apa pun, berarti besar bagi mereka yang membutuhkan.</p>
           </div>
         </section>
 
@@ -856,7 +963,7 @@ export default function App(){
               <span>|</span>
               <a href="#kontak">Pusat Bantuan</a>
               <span>|</span>
-              <a href="/admin">Portal Admin</a>
+              <a href="#donasi">Donasi</a>
             </nav>
             <div className="socials">
               <span><Instagram /></span>

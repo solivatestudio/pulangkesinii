@@ -15,7 +15,7 @@ export const SettingsTab: React.FC = () => {
     mandiri: { bank: 'Mandiri', accountNumber: '9876543210', accountName: 'Pulangkesinii Komunitas' },
     seabank: { bank: 'SeaBank', accountNumber: '9012345678', accountName: 'Pulangkesinii Komunitas' },
     gopay: { bank: 'GoPay / OVO', accountNumber: '085779321681', accountName: 'Pulangkesinii' },
-    qrisImageUrl: '/assets/decor-1.png',
+    qrisImageUrl: '/images/web/qris.webp',
   });
 
   const [contact, setContact] = useState({
@@ -25,6 +25,7 @@ export const SettingsTab: React.FC = () => {
     instagram: '@pulangkesinii',
     tiktok: '@Pulangkesinii_',
     basecamp: 'Jakarta Timur',
+    address: 'Jakarta Timur',
   });
 
   useEffect(() => {
@@ -33,8 +34,14 @@ export const SettingsTab: React.FC = () => {
         setLoading(true);
         const res = await fetch('/api/settings');
         const data = await res.json();
-        if (data.payment_accounts) setAccounts(data.payment_accounts);
-        if (data.contact_info) setContact(data.contact_info);
+        if (data.payment_accounts) {
+          const acc = { ...data.payment_accounts };
+          if (!acc.qrisImageUrl || acc.qrisImageUrl === '/assets/decor-1.png' || acc.qrisImageUrl === '/images/web/qris.jpeg') {
+            acc.qrisImageUrl = '/images/web/qris.webp';
+          }
+          setAccounts(acc);
+        }
+        if (data.contact_info) setContact((prev) => ({ ...prev, ...data.contact_info }));
       } catch (err) {
         console.error(err);
       } finally {
@@ -266,6 +273,17 @@ export const SettingsTab: React.FC = () => {
                 value={contact.basecamp}
                 onChange={(e) => setContact({ ...contact, basecamp: e.target.value })}
                 placeholder="Jakarta Timur"
+                className="w-full h-10 px-3 border border-gray-300 rounded-xl outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block font-bold text-[#26383C] mb-1">Alamat Pengiriman Donasi</label>
+              <input
+                type="text"
+                value={contact.address}
+                onChange={(e) => setContact({ ...contact, address: e.target.value })}
+                placeholder="Alamat lengkap untuk pengiriman donasi barang"
                 className="w-full h-10 px-3 border border-gray-300 rounded-xl outline-none"
               />
             </div>

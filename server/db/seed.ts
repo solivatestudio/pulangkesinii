@@ -176,6 +176,7 @@ async function syncExactPublicData() {
         tiktok: '@Pulangkesinii_',
         linkedin: 'Pulangkesinii',
         basecamp: 'Jakarta Timur',
+        address: 'Jakarta Timur',
       },
       updatedAt: new Date(),
     });
