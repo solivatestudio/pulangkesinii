@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { CameraIcon } from '@phosphor-icons/react/dist/csr/Camera';
 import { CompassIcon } from '@phosphor-icons/react/dist/csr/Compass';
 import { HandshakeIcon as PhosphorHandshakeIcon } from '@phosphor-icons/react/dist/csr/Handshake';
@@ -964,6 +965,8 @@ export default function App(){
               <a href="#kontak">Pusat Bantuan</a>
               <span>|</span>
               <a href="#donasi">Donasi</a>
+              <span>|</span>
+              <Link to="/admin">Admin</Link>
             </nav>
             <div className="socials">
               <span><Instagram /></span>
