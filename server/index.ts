@@ -102,9 +102,9 @@ const validateBody = (schema: z.ZodType) => (req: Request, res: Response, next: 
 const activityBody = z.object({
   id: z.string().max(64).optional(), slug: z.string().max(128).optional(), title: z.string().trim().min(1).max(300),
   shortDescription: z.string().max(1000), description: z.string().max(20000), category: z.string().max(64), status: z.enum(['open', 'closing_soon', 'full', 'completed']),
-  coverImage: z.string().min(1).max(2000), gallery: z.array(z.string().max(2000)).optional(), locationName: z.string().max(300), city: z.enum(['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya']), address: z.string().max(1000).optional(), mapUrl: z.string().max(2000).optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), registrationDeadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), price: z.coerce.number().int().min(0), priceLabel: z.string().max(64), quota: z.coerce.number().int().min(1), quotaFilled: z.coerce.number().int().min(0), batchNumber: z.coerce.number().int().min(1),
-  benefits: z.array(z.string().max(500)).optional(), requirements: z.array(z.string().max(500)).optional(), itemsToBring: z.array(z.string().max(500)).optional(), rundown: z.array(z.object({ time: z.string().max(64), activity: z.string().max(500) })).optional(), contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(), whatsappGroupUrl: z.string().max(2000).optional(), featured: z.boolean().optional(), urgentClosing: z.boolean().optional(),
+  coverImage: z.string().min(1).max(2000), locationName: z.string().max(300), city: z.enum(['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya']), address: z.string().max(1000).optional(), mapUrl: z.string().max(2000).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), price: z.coerce.number().int().min(0), priceLabel: z.string().max(64), quota: z.coerce.number().int().min(1), quotaFilled: z.coerce.number().int().min(0),
+  requirements: z.array(z.string().max(500)).optional(), contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(), whatsappGroupUrl: z.string().max(2000).optional(), urgentClosing: z.boolean().optional(),
 }).strict();
 const faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1000), answer: z.string().min(1).max(10000), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
 const galleryBody = z.object({ id: z.string().max(64).optional(), title: z.string().min(1).max(128), batchTag: z.string().max(64).optional(), category: z.string().max(64).optional(), imageUrl: z.string().url(), caption: z.string().max(5000).optional(), location: z.string().max(128).optional(), date: z.string().max(64).optional(), tileClass: z.string().max(32).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
@@ -248,12 +248,7 @@ app.post('/api/activities', requireAuth, validateBody(activityBody), async (req:
       price: Number(data.price || 0),
       quota: Number(data.quota || 50),
       quotaFilled: Number(data.quotaFilled || 0),
-      batchNumber: Number(data.batchNumber || 1),
-      benefits: Array.isArray(data.benefits) ? data.benefits : [],
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
-      itemsToBring: Array.isArray(data.itemsToBring) ? data.itemsToBring : [],
-      rundown: Array.isArray(data.rundown) ? data.rundown : [],
-      gallery: Array.isArray(data.gallery) ? data.gallery : [],
       contactPerson: data.contactPerson || { name: 'Admin', role: 'Event Coordinator', whatsapp: '6285779321681' },
       whatsappGroupUrl: data.whatsappGroupUrl || '',
       createdAt: new Date(),
@@ -278,12 +273,7 @@ app.put('/api/activities/:id', requireAuth, validateBody(activityBody), async (r
       price: Number(data.price || 0),
       quota: Number(data.quota || 50),
       quotaFilled: Number(data.quotaFilled || 0),
-      batchNumber: Number(data.batchNumber || 1),
-      benefits: Array.isArray(data.benefits) ? data.benefits : [],
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
-      itemsToBring: Array.isArray(data.itemsToBring) ? data.itemsToBring : [],
-      rundown: Array.isArray(data.rundown) ? data.rundown : [],
-      gallery: Array.isArray(data.gallery) ? data.gallery : [],
       contactPerson: data.contactPerson,
       whatsappGroupUrl: data.whatsappGroupUrl || '',
       updatedAt: new Date(),

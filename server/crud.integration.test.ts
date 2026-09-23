@@ -44,7 +44,7 @@ describe.sequential('API CRUD integration', () => {
   });
 
   it('CRUD activities', async () => {
-    const payload = { id: ids.activity, slug: ids.activity, title: 'Integration Test', shortDescription: 'Test', description: 'Test', category: 'Volunteer', status: 'open', coverImage: 'https://example.com/image.jpg', locationName: 'Test', city: 'Jakarta', address: '', startDate: '2026-09-10', endDate: '2026-09-10', registrationDeadline: '2026-09-09', price: 0, priceLabel: 'Gratis', quota: 2, quotaFilled: 0, batchNumber: 1 };
+    const payload = { id: ids.activity, slug: ids.activity, title: 'Integration Test', shortDescription: 'Test', description: 'Test', category: 'Volunteer', status: 'open', coverImage: 'https://example.com/image.jpg', locationName: 'Test', city: 'Jakarta', address: '', startDate: '2026-09-10', endDate: '2026-09-10', price: 0, priceLabel: 'Gratis', quota: 2, quotaFilled: 0 };
     expect((await request(app).post('/api/activities').set('Authorization', auth).send(payload)).status).toBe(201);
     expect((await request(app).get(`/api/activities/${ids.activity}`)).body.title).toBe('Integration Test');
     expect((await request(app).put(`/api/activities/${ids.activity}`).set('Authorization', auth).send({ ...payload, title: 'Updated' })).status).toBe(200);

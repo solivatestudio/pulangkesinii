@@ -8,7 +8,7 @@ import { HouseIcon } from '@phosphor-icons/react/dist/csr/House';
 import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
-import { CalendarDays, Check, ChevronDown, ChevronRight, Clock, Download, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, PackageCheck, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronRight, Download, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
 import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
 
@@ -27,14 +27,9 @@ type Activity = {
   address?: string;
   mapUrl?: string;
   endDate?: string;
-  registrationDeadline?: string;
   quota?: number;
   quotaFilled?: number;
-  benefits?: string[];
   requirements?: string[];
-  itemsToBring?: string[];
-  rundown?: Array<{ time: string; activity: string }>;
-  gallery?: string[];
   contactPerson?: { name: string; role: string; whatsapp: string };
   urgentClosing?: boolean;
   status?: string;
@@ -69,7 +64,6 @@ const defaultCatalogue: Activity[] = [
     description: 'Program volunteer edukasi satu hari untuk menghadirkan ruang belajar yang menyenangkan, interaktif, dan penuh inspirasi.',
     quota: 40,
     quotaFilled: 18,
-    benefits: ['E-Sertifikat Relawan', 'Merchandise Pulangkesinii', 'Relasi Komunitas Positif', 'Makan Siang & Snack'],
     urgentClosing: true,
     status: 'open'
   },
@@ -88,7 +82,6 @@ const defaultCatalogue: Activity[] = [
     description: 'Perjalanan sosial 2 hari 1 malam yang menggabungkan aksi pelestarian lingkungan hidup dan interaksi hangat bersama warga.',
     quota: 30,
     quotaFilled: 14,
-    benefits: ['Transportasi Bersama (PP)', 'Homestay Bersama Warga', 'Sertifikat Pengabdian', 'Dokumentasi Foto & Video'],
     urgentClosing: false,
     status: 'open'
   },
@@ -107,7 +100,6 @@ const defaultCatalogue: Activity[] = [
     description: 'Workshop intensif bersama para praktisi kreatif untuk membekali generasi muda dengan keterampilan storytelling sosial.',
     quota: 50,
     quotaFilled: 22,
-    benefits: ['Toolkit & Modul Digital', 'E-Certificate Eksklusif', 'Networking Sesi Mentoring', 'Snack & Coffee Break'],
     urgentClosing: false,
     status: 'open'
   },
@@ -132,6 +124,7 @@ export default function App(){
   const [legal,setLegal]=useState<'terms'|'privacy'|null>(null);
   const [galleryImage,setGalleryImage]=useState<string|null>(null);
   const [showRegistrationForm,setShowRegistrationForm]=useState(false);
+  const [detailTab,setDetailTab]=useState<'deskripsi'|'snk'>('deskripsi');
   const [isScrolled,setIsScrolled]=useState(false);
 
   useEffect(()=>{
@@ -182,14 +175,9 @@ export default function App(){
               address: item.address,
               mapUrl: item.mapUrl,
               endDate: humanizeDate(item.endDate),
-              registrationDeadline: humanizeDate(item.registrationDeadline),
               quota: item.quota,
               quotaFilled: item.quotaFilled,
-              benefits: Array.isArray(item.benefits) ? item.benefits : [],
               requirements: Array.isArray(item.requirements) ? item.requirements : [],
-              itemsToBring: Array.isArray(item.itemsToBring) ? item.itemsToBring : [],
-              rundown: Array.isArray(item.rundown) ? item.rundown : [],
-              gallery: Array.isArray(item.gallery) ? item.gallery : [],
               contactPerson: item.contactPerson,
               urgentClosing: Boolean(item.urgentClosing),
               status: item.status || 'open',
@@ -321,6 +309,8 @@ export default function App(){
   const filtered=useMemo(()=>catalogue.filter(i=>(place==='Semua'||i.city===place)&&(category==='Semua'||i.category===category)&&(!query.trim()||`${i.category} ${i.city} ${i.title || ''}`.toLowerCase().includes(query.toLowerCase()))),[catalogue,query,place,category]);
 
   useEffect(()=>{document.body.style.overflow=selected||legal||galleryImage||showRegistrationForm?'hidden':'';return()=>{document.body.style.overflow=''}},[selected,legal,galleryImage,showRegistrationForm]);
+
+  useEffect(()=>{setDetailTab('deskripsi')},[selected]);
   
   useEffect(()=>{
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1018,74 +1008,64 @@ export default function App(){
               </div>
             )}
 
-            <div className="detail-split">
-              <div className="detail-split-col">
-                <h3>Deskripsi Acara</h3>
-                <p>{selected.description || 'Deskripsi lengkap, rundown kegiatan, dan benefit akan ditampilkan setelah data resmi tersedia.'}</p>
+            <div className="detail-tabs">
+              <div className="detail-tab-list" role="tablist" aria-label="Detail kegiatan">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === 'deskripsi'}
+                  className={`detail-tab ${detailTab === 'deskripsi' ? 'active' : ''}`}
+                  onClick={() => setDetailTab('deskripsi')}
+                >
+                  Deskripsi
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={detailTab === 'snk'}
+                  className={`detail-tab ${detailTab === 'snk' ? 'active' : ''}`}
+                  onClick={() => setDetailTab('snk')}
+                >
+                  Syarat & Ketentuan
+                </button>
               </div>
-              <div className="detail-split-col">
-                <h3>Syarat & Ketentuan</h3>
-                <p>Terbuka untuk umum, kuota terbatas tanpa seleksi, dan mematuhi tata tertib kegiatan.</p>
-                <a href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view" target="_blank" rel="noopener noreferrer">Kebijakan Biaya Kontribusi ↗</a>
-              </div>
+
+              {detailTab === 'deskripsi' ? (
+                <div className="detail-tab-panel" role="tabpanel">
+                  <p>{selected.description || selected.shortDescription || 'Deskripsi lengkap akan ditampilkan setelah data resmi tersedia.'}</p>
+                </div>
+              ) : (
+                <div className="detail-tab-panel" role="tabpanel">
+                  <p>Terbuka untuk umum, kuota terbatas tanpa seleksi, dan mematuhi tata tertib kegiatan.</p>
+                  {selected.requirements && selected.requirements.length > 0 && (
+                    <ul>
+                      {selected.requirements.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                    </ul>
+                  )}
+                  <a href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view" target="_blank" rel="noopener noreferrer">Kebijakan Biaya Kontribusi ↗</a>
+                </div>
+              )}
             </div>
 
-            <div className="detail-grid">
-              {selected.benefits && selected.benefits.length > 0 && (
-                <div className="detail-list">
-                  <h3>Benefit Volunteer</h3>
-                  <ul>{selected.benefits.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
+            {selected.contactPerson?.whatsapp && (
+              <div className="mt-4 flex items-center gap-3 rounded-xl border border-[#cdebea] bg-[#f2fbfb] p-3">
+                <MessageCircle className="h-5 w-5 flex-none text-[#0eadad]" />
+                <div className="min-w-0 flex-1">
+                  <small className="block text-[10px] font-semibold uppercase tracking-wide text-[#6b7e82]">Contact Person</small>
+                  <strong className="block truncate text-xs text-[#173f42]">
+                    {selected.contactPerson.name}{selected.contactPerson.role ? ` · ${selected.contactPerson.role}` : ''}
+                  </strong>
                 </div>
-              )}
-              {selected.requirements && selected.requirements.length > 0 && (
-                <div className="detail-list">
-                  <h3>Syarat Mengikuti</h3>
-                  <ul>{selected.requirements.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
-                </div>
-              )}
-              {selected.itemsToBring && selected.itemsToBring.length > 0 && (
-                <div className="detail-list">
-                  <h3><PackageCheck /> Yang Perlu Dibawa</h3>
-                  <ul>{selected.itemsToBring.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}</ul>
-                </div>
-              )}
-            </div>
-
-            {selected.rundown && selected.rundown.length > 0 && (
-              <div className="detail-section">
-                <h3>Rangkaian Kegiatan</h3>
-                <div className="detail-rundown">
-                  {selected.rundown.map((item, index) => (
-                    <div key={`${item.time}-${index}`}>
-                      <span><Clock />{item.time}</span>
-                      <p>{item.activity}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {selected.gallery && selected.gallery.length > 0 && (
-              <div className="detail-section">
-                <h3>Galeri Kegiatan</h3>
-                <div className="detail-gallery">
-                  {selected.gallery.map((image, index) => (
-                    <button key={`${image}-${index}`} onClick={() => setGalleryImage(image)}>
-                      <img src={image} alt={`Galeri ${selected.title} ${index + 1}`} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="detail-footer-info">
-              {selected.registrationDeadline && <span>Batas pendaftaran: <strong>{selected.registrationDeadline}</strong></span>}
-              {selected.contactPerson?.whatsapp && (
-                <a href={`https://wa.me/${selected.contactPerson.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer">
-                  <MessageCircle /> Hubungi {selected.contactPerson.name}
+                <a
+                  href={`https://wa.me/${selected.contactPerson.whatsapp.replace(/\D/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-lg bg-[#0eadad] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0b9393]"
+                >
+                  Chat WA
                 </a>
-              )}
-            </div>
+              </div>
+            )}
 
             <button
               type="button"

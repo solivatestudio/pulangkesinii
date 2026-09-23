@@ -40,26 +40,19 @@ interface ActivityItem {
   category: string;
   status: 'open' | 'closing_soon' | 'full' | 'completed';
   coverImage: string;
-  gallery: string[];
   locationName: string;
   city: string;
   address: string;
   mapUrl?: string;
   startDate: string;
   endDate: string;
-  registrationDeadline: string;
   price: number;
   priceLabel: string;
   quota: number;
   quotaFilled: number;
-  batchNumber: number;
-  benefits: string[];
   requirements: string[];
-  itemsToBring: string[];
-  rundown: { time: string; activity: string }[];
   contactPerson: { name: string; role: string; whatsapp: string };
   whatsappGroupUrl?: string;
-  featured?: boolean;
   urgentClosing?: boolean;
 }
 
@@ -83,23 +76,16 @@ export const ActivitiesTab: React.FC = () => {
     mapUrl: '',
     startDate: '',
     endDate: '',
-    registrationDeadline: '',
     price: 0,
     priceLabel: 'Gratis',
     quota: 50,
     quotaFilled: 0,
-    batchNumber: 1,
     shortDescription: '',
     description: '',
     coverImage: '/assets/decor-1.png',
-    gallery: [],
-    benefits: ['E-Sertifikat Resmi', 'Relasi Komunitas', 'Konsumsi & Snack'],
     requirements: ['Usia 17 - 30 tahun', 'Komitmen hadir penuh'],
-    itemsToBring: ['Tumbler air minum', 'Pakaian bernuansa cerah/krem'],
-    rundown: [{ time: '13:00 - 15:00', activity: 'Sesi utama kegiatan' }],
     contactPerson: { name: 'Admin Humas', role: 'Event Coordinator', whatsapp: '6285779321681' },
     whatsappGroupUrl: '',
-    featured: false,
     urgentClosing: false,
   });
 
@@ -132,23 +118,16 @@ export const ActivitiesTab: React.FC = () => {
       mapUrl: 'https://maps.google.com',
       startDate: '2026-10-20',
       endDate: '2026-10-21',
-      registrationDeadline: '2026-10-15',
       price: 0,
       priceLabel: 'Gratis',
       quota: 50,
       quotaFilled: 0,
-      batchNumber: 44,
       shortDescription: 'Deskripsi singkat kegiatan volunteer...',
       description: 'Deskripsi lengkap kegiatan yang akan diselenggarakan oleh Pulangkesinii...',
       coverImage: '/images/web/activity-04.webp',
-      gallery: [],
-      benefits: ['E-Sertifikat Resmi', 'Teman & Relasi Baru', 'Dokumentasi & Snack'],
       requirements: ['Terbuka untuk umum (15-30 tahun)', 'Memiliki empati & senyum ramah'],
-      itemsToBring: ['Tumbler minum pribadi', 'Pakaian nyaman'],
-      rundown: [{ time: '13:00 - 16:00', activity: 'Sesi pengabdian dan keceriaan bersama' }],
       contactPerson: { name: 'Kak Humas', role: 'Event Coordinator', whatsapp: '6285779321681' },
       whatsappGroupUrl: '',
-      featured: false,
       urgentClosing: false,
     });
     setIsModalOpen(true);
@@ -156,7 +135,7 @@ export const ActivitiesTab: React.FC = () => {
 
   const openEditModal = (act: ActivityItem) => {
     setEditingActivity(act);
-    setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), registrationDeadline: toDateInput(act.registrationDeadline), whatsappGroupUrl: act.whatsappGroupUrl || '' });
+    setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), whatsappGroupUrl: act.whatsappGroupUrl || '' });
     setIsModalOpen(true);
   };
 
@@ -185,14 +164,13 @@ export const ActivitiesTab: React.FC = () => {
       const payload = {
         id: formData.id, slug: formData.slug, title: formData.title, shortDescription: formData.shortDescription,
         description: formData.description || '', category: formData.category, status: formData.status,
-        coverImage: formData.coverImage, gallery: formData.gallery || [], locationName: formData.locationName,
+        coverImage: formData.coverImage, locationName: formData.locationName,
         city: formData.city, address: formData.address || '', mapUrl: formData.mapUrl || '', startDate: formData.startDate,
-        endDate: formData.endDate || formData.startDate, registrationDeadline: formData.registrationDeadline,
+        endDate: formData.endDate || formData.startDate,
         price: formData.price || 0, priceLabel: formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`,
-        quota: formData.quota || 50, quotaFilled: formData.quotaFilled || 0, batchNumber: formData.batchNumber || 1,
-        benefits: (formData.benefits || []).map((item) => item.trim()).filter(Boolean), requirements: formData.requirements || [], itemsToBring: formData.itemsToBring || [],
-        rundown: formData.rundown || [], contactPerson: formData.contactPerson || null, whatsappGroupUrl: formData.whatsappGroupUrl || '',
-        featured: Boolean(formData.featured), urgentClosing: Boolean(formData.urgentClosing),
+        quota: formData.quota || 50, quotaFilled: formData.quotaFilled || 0,
+        requirements: formData.requirements || [], contactPerson: formData.contactPerson || null, whatsappGroupUrl: formData.whatsappGroupUrl || '',
+        urgentClosing: Boolean(formData.urgentClosing),
       };
       const res = await fetch(endpoint, {
         method,
@@ -232,7 +210,7 @@ export const ActivitiesTab: React.FC = () => {
         <div>
           <h2 className="admin-title text-2xl text-[#173F42]">Manajemen Kegiatan</h2>
           <p className="text-xs text-[#6B7E82] mt-1">
-            Kelola judul, tanggal, harga, foto cover, kuota, rundown, dan status kegiatan
+            Kelola judul, tanggal, harga, foto cover, kuota, dan status kegiatan
           </p>
         </div>
         <button
@@ -283,37 +261,43 @@ export const ActivitiesTab: React.FC = () => {
           Belum ada kegiatan yang cocok dengan pencarian.
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((act) => (
-            <div
-              key={act.id}
-              className="bg-white rounded-2xl border border-[#E0F2F1] overflow-hidden shadow-xs hover:shadow-md transition-all flex flex-col"
-            >
-              <div className="p-3 bg-[#eef8f7]"><PublicActivityCard item={{ id: act.id, category: act.category, city: act.city, photo: act.coverImage, title: act.title, startDate: formatDateId(act.startDate), priceLabel: act.priceLabel }} /></div>
-              <div className="p-4">
-                <div className="pt-2 flex items-center justify-between border-t border-[#F0F7F7]">
-                  <a
-                    href={`/`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-[11px] font-semibold text-[#6B7E82] hover:text-[#0EADAD] flex items-center gap-1"
+            <div key={act.id} className="flex flex-col gap-3">
+              <PublicActivityCard
+                item={{
+                  id: act.id,
+                  category: act.category,
+                  city: act.city,
+                  photo: act.coverImage,
+                  title: act.title,
+                  startDate: formatDateId(act.startDate),
+                  priceLabel: act.priceLabel,
+                  shortDescription: act.shortDescription,
+                }}
+              />
+              <div className="flex items-center justify-between px-1">
+                <a
+                  href={`/`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[11px] font-semibold text-[#6B7E82] hover:text-[#0EADAD] flex items-center gap-1"
+                >
+                  <Eye className="w-3.5 h-3.5" /> Lihat di web
+                </a>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => openEditModal(act)}
+                    className="h-8 px-2.5 bg-[#F0F7F7] hover:bg-[#E0F7F6] text-[#0EADAD] text-xs font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer"
                   >
-                    <Eye className="w-3.5 h-3.5" /> Lihat di web
-                  </a>
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={() => openEditModal(act)}
-                      className="h-8 px-2.5 bg-[#F0F7F7] hover:bg-[#E0F7F6] text-[#0EADAD] text-xs font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer"
-                    >
-                      <Edit3 className="w-3.5 h-3.5" /> Edit
-                    </button>
-                    <button
-                      onClick={() => handleDelete(act.id, act.title)}
-                      className="h-8 px-2.5 bg-[#FFF2F0] hover:bg-[#FFEBE8] text-[#CF1322] text-xs font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                    <Edit3 className="w-3.5 h-3.5" /> Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(act.id, act.title)}
+                    className="h-8 px-2.5 bg-[#FFF2F0] hover:bg-[#FFEBE8] text-[#CF1322] text-xs font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -404,7 +388,7 @@ export const ActivitiesTab: React.FC = () => {
               </div>
 
               {/* Tanggal & Biaya */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Tanggal Pelaksanaan *</label>
                   <input
@@ -427,18 +411,6 @@ export const ActivitiesTab: React.FC = () => {
                     required
                   />
                   {formData.endDate && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.endDate)}</p>}
-                </div>
-                <div>
-                  <label className="block font-bold text-[#26383C] mb-1">Batas Pendaftaran *</label>
-                  <input
-                    type="date"
-                    value={formData.registrationDeadline || ''}
-                    max={formData.startDate || undefined}
-                    onChange={(e) => setFormData({ ...formData, registrationDeadline: e.target.value })}
-                    className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                    required
-                  />
-                  {formData.registrationDeadline && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.registrationDeadline)}</p>}
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -465,8 +437,8 @@ export const ActivitiesTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Kuota & Batch */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* Kuota */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Kuota Maksimal *</label>
                   <input
@@ -483,15 +455,6 @@ export const ActivitiesTab: React.FC = () => {
                     type="number"
                     value={formData.quotaFilled ?? 0}
                     onChange={(e) => setFormData({ ...formData, quotaFilled: Number(e.target.value) })}
-                    className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-[#26383C] mb-1">Nomor Batch</label>
-                  <input
-                    type="number"
-                    value={formData.batchNumber ?? 1}
-                    onChange={(e) => setFormData({ ...formData, batchNumber: Number(e.target.value) })}
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                   />
                 </div>
@@ -577,85 +540,61 @@ export const ActivitiesTab: React.FC = () => {
                 </p>
               </div>
 
-              {/* Rangkaian Kegiatan (Rundown) */}
-              <div className="pt-2 border-t border-[#F0F7F7]">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="font-bold text-[#26383C]">Rangkaian Kegiatan (Rundown)</label>
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, rundown: [...(formData.rundown || []), { time: '', activity: '' }] })}
-                    className="text-[#0EADAD] font-bold flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> Tambah
-                  </button>
+              {/* Contact Person */}
+              <div className="rounded-2xl border border-[#DDEDEC] bg-[#F8FCFC] p-4 space-y-3">
+                <div>
+                  <h4 className="font-bold text-[#173F42]">Contact Person</h4>
+                  <p className="text-[11px] text-[#6B7E82]">Narahubung kegiatan yang bisa dihubungi peserta.</p>
                 </div>
-                <div className="space-y-2">
-                  {(formData.rundown || []).map((item, index) => (
-                    <div key={index} className="grid grid-cols-1 sm:grid-cols-[150px_1fr_auto] gap-2">
-                      <input
-                        value={item.time}
-                        onChange={(e) => {
-                          const rundown = [...(formData.rundown || [])];
-                          rundown[index] = { ...rundown[index], time: e.target.value };
-                          setFormData({ ...formData, rundown });
-                        }}
-                        placeholder="13:00 - 15:00"
-                        className="h-9 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                      />
-                      <input
-                        value={item.activity}
-                        onChange={(e) => {
-                          const rundown = [...(formData.rundown || [])];
-                          rundown[index] = { ...rundown[index], activity: e.target.value };
-                          setFormData({ ...formData, rundown });
-                        }}
-                        placeholder="Sesi utama kegiatan"
-                        className="h-9 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                      />
-                      <button
-                        type="button"
-                        aria-label={`Hapus rundown ${index + 1}`}
-                        onClick={() => setFormData({ ...formData, rundown: (formData.rundown || []).filter((_, i) => i !== index) })}
-                        className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block font-bold text-[#26383C] mb-1">Nama</label>
+                    <input
+                      type="text"
+                      value={formData.contactPerson?.name || ''}
+                      onChange={(e) => setFormData({ ...formData, contactPerson: { ...(formData.contactPerson || { name: '', role: '', whatsapp: '' }), name: e.target.value } })}
+                      placeholder="Nama narahubung"
+                      className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#26383C] mb-1">Role / Jabatan</label>
+                    <input
+                      type="text"
+                      value={formData.contactPerson?.role || ''}
+                      onChange={(e) => setFormData({ ...formData, contactPerson: { ...(formData.contactPerson || { name: '', role: '', whatsapp: '' }), role: e.target.value } })}
+                      placeholder="Contoh: Event Coordinator"
+                      className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-bold text-[#26383C] mb-1">Nomor WhatsApp</label>
+                    <input
+                      type="text"
+                      value={formData.contactPerson?.whatsapp || ''}
+                      onChange={(e) => setFormData({ ...formData, contactPerson: { ...(formData.contactPerson || { name: '', role: '', whatsapp: '' }), whatsapp: e.target.value } })}
+                      placeholder="Contoh: 6285xxxxxxx"
+                      className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                    />
+                  </div>
                 </div>
-                {(formData.rundown || []).length === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, rundown: [{ time: '', activity: '' }] })}
-                    className="w-full p-3 border border-dashed rounded-xl text-gray-500 mt-2"
-                  >
-                    + Tambahkan rundown
-                  </button>
-                )}
               </div>
 
-              {/* Benefit & Syarat */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#F0F7F7]">
-                <div>
-                  <div className="flex items-center justify-between mb-2"><label className="font-bold text-[#26383C]">Benefit Volunteer</label><button type="button" onClick={() => setFormData({ ...formData, benefits: [...(formData.benefits || []), ''] })} className="text-[#0EADAD] font-bold flex items-center gap-1"><Plus className="w-3.5 h-3.5" /> Tambah</button></div>
-                  <div className="space-y-2">{(formData.benefits || []).map((benefit, index) => <div key={index} className="flex gap-2"><input value={benefit} onChange={(e) => { const benefits = [...(formData.benefits || [])]; benefits[index] = e.target.value; setFormData({ ...formData, benefits }); }} placeholder={`Benefit ${index + 1}`} className="w-full h-9 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none" /><button type="button" aria-label={`Hapus benefit ${index + 1}`} onClick={() => setFormData({ ...formData, benefits: (formData.benefits || []).filter((_, itemIndex) => itemIndex !== index) })} className="w-9 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500"><Trash2 className="w-4 h-4" /></button></div>)}</div>
-                  {(formData.benefits || []).length === 0 && <button type="button" onClick={() => setFormData({ ...formData, benefits: [''] })} className="w-full p-3 border border-dashed rounded-xl text-gray-500">+ Tambahkan benefit</button>}
-                </div>
-                <div>
-                  <label className="block font-bold text-[#26383C] mb-1">Syarat Mengikuti (Pisahkan dengan koma)</label>
-                  <textarea
-                    rows={2}
-                    value={formData.requirements?.join(', ') || ''}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        requirements: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                      })
-                    }
-                    placeholder="Usia 15-30 tahun, Komitmen hadir"
-                    className="w-full p-2.5 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                  />
-                </div>
+              {/* Syarat Mengikuti */}
+              <div className="pt-2 border-t border-[#F0F7F7]">
+                <label className="block font-bold text-[#26383C] mb-1">Syarat Mengikuti (Pisahkan dengan koma)</label>
+                <textarea
+                  rows={2}
+                  value={formData.requirements?.join(', ') || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      requirements: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                    })
+                  }
+                  placeholder="Usia 15-30 tahun, Komitmen hadir"
+                  className="w-full p-2.5 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                />
               </div>
 
               <div className="pt-4 border-t border-[#F0F7F7] flex justify-end gap-2.5">
