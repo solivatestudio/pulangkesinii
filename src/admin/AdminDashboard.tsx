@@ -16,7 +16,8 @@ import {
   X,
   FileText,
   PanelLeftClose,
-  PanelLeftOpen
+  PanelLeftOpen,
+  HandHeart
 } from 'lucide-react';
 import { ActivitiesTab } from './tabs/ActivitiesTab';
 import { RegistrationsTab } from './tabs/RegistrationsTab';
@@ -24,6 +25,7 @@ import { FormBuilderTab } from './tabs/FormBuilderTab';
 import { GalleryTab } from './tabs/GalleryTab';
 import { FaqsTab } from './tabs/FaqsTab';
 import { SettingsTab } from './tabs/SettingsTab';
+import { DonationsTab } from './tabs/DonationsTab';
 
 interface AdminDashboardProps {
   user: any;
@@ -31,7 +33,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'activities' | 'registrations' | 'form_builder' | 'gallery' | 'faqs' | 'settings'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'registrations' | 'form_builder' | 'gallery' | 'faqs' | 'settings' | 'donations'>('activities');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stats, setStats] = useState({
@@ -41,6 +43,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     totalRegistrations: 0,
     totalPhotos: 0,
     totalFaqs: 0,
+    totalDonations: 0,
+    pendingDonations: 0,
   });
 
   const navigate = useNavigate();
@@ -49,11 +53,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     // Load summary stats
     const loadStats = async () => {
       try {
-        const [actRes, regRes, galRes, faqRes] = await Promise.all([
+        const [actRes, regRes, galRes, faqRes, donRes] = await Promise.all([
           fetch('/api/activities').then((r) => r.json()).catch(() => []),
           fetch('/api/registrations').then((r) => r.json()).catch(() => []),
           fetch('/api/gallery').then((r) => r.json()).catch(() => []),
           fetch('/api/faqs').then((r) => r.json()).catch(() => []),
+          fetch('/api/donations').then((r) => r.json()).catch(() => []),
         ]);
 
         setStats({
@@ -63,6 +68,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
           pendingRegistrations: Array.isArray(regRes) ? regRes.filter((r: any) => r.status === 'menunggu_verifikasi').length : 0,
           totalPhotos: Array.isArray(galRes) ? galRes.length : 0,
           totalFaqs: Array.isArray(faqRes) ? faqRes.length : 0,
+          totalDonations: Array.isArray(donRes) ? donRes.length : 0,
+          pendingDonations: Array.isArray(donRes) ? donRes.filter((d: any) => d.status === 'menunggu_verifikasi').length : 0,
         });
       } catch (err) {
         console.error('Failed to load stats', err);
@@ -84,6 +91,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const navItems = [
     { id: 'activities', label: 'Kegiatan & Cards', icon: Calendar, badge: stats.openActivities },
     { id: 'registrations', label: 'Pendaftaran Peserta', icon: Users, badge: stats.pendingRegistrations, badgeColor: 'bg-amber-500' },
+    { id: 'donations', label: 'Donasi', icon: HandHeart, badge: stats.pendingDonations, badgeColor: 'bg-amber-500' },
     { id: 'form_builder', label: 'Form Builder', icon: FileText },
     { id: 'gallery', label: 'Galeri Momen', icon: ImageIcon },
     { id: 'faqs', label: 'FAQ & Tanya Jawab', icon: HelpCircle },
@@ -329,6 +337,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         {/* Tab Content */}
         {activeTab === 'activities' && <ActivitiesTab />}
         {activeTab === 'registrations' && <RegistrationsTab />}
+        {activeTab === 'donations' && <DonationsTab />}
         {activeTab === 'form_builder' && <FormBuilderTab />}
         {activeTab === 'gallery' && <GalleryTab />}
         {activeTab === 'faqs' && <FaqsTab />}

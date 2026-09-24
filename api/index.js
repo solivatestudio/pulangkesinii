@@ -67,6 +67,7 @@ import * as dotenv2 from "dotenv";
 var schema_exports = {};
 __export(schema_exports, {
   activities: () => activities,
+  donations: () => donations,
   faqs: () => faqs,
   galleryPhotos: () => galleryPhotos,
   registrations: () => registrations,
@@ -99,26 +100,19 @@ var activities = pgTable("activities", {
   category: varchar("category", { length: 64 }).notNull().default("Volunteer"),
   status: varchar("status", { length: 32 }).notNull().default("open"),
   coverImage: text("cover_image").notNull(),
-  gallery: jsonb("gallery").$type().default([]),
   locationName: text("location_name").notNull(),
   city: varchar("city", { length: 64 }).notNull(),
   address: text("address").notNull().default(""),
   mapUrl: text("map_url").default(""),
   startDate: varchar("start_date", { length: 64 }).notNull(),
   endDate: varchar("end_date", { length: 64 }).notNull(),
-  registrationDeadline: varchar("registration_deadline", { length: 64 }).notNull(),
   price: integer("price").notNull().default(0),
   priceLabel: varchar("price_label", { length: 64 }).notNull().default("Gratis"),
   quota: integer("quota").notNull().default(50),
   quotaFilled: integer("quota_filled").notNull().default(0),
-  batchNumber: integer("batch_number").notNull().default(1),
-  benefits: jsonb("benefits").$type().default([]),
   requirements: jsonb("requirements").$type().default([]),
-  itemsToBring: jsonb("items_to_bring").$type().default([]),
-  rundown: jsonb("rundown").$type().default([]),
   contactPerson: jsonb("contact_person").$type(),
   whatsappGroupUrl: text("whatsapp_group_url").default(""),
-  featured: boolean("featured").default(false),
   urgentClosing: boolean("urgent_closing").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull()
@@ -144,6 +138,18 @@ var registrations = pgTable("registrations", {
   adminNotes: text("admin_notes").default(""),
   customAnswers: jsonb("custom_answers").$type().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull()
+});
+var donations = pgTable("donations", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  name: varchar("name", { length: 128 }).notNull(),
+  amount: varchar("amount", { length: 64 }).notNull().default(""),
+  donationType: varchar("donation_type", { length: 32 }).notNull().default("Uang"),
+  prayer: text("prayer").default(""),
+  paymentProofUrl: text("payment_proof_url").default(""),
+  status: varchar("status", { length: 32 }).notNull().default("menunggu_verifikasi"),
+  aamiinCount: integer("aamiin_count").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull()
 });
 var galleryPhotos = pgTable("gallery_photos", {
   id: varchar("id", { length: 64 }).primaryKey(),
@@ -196,6 +202,7 @@ app.use(cors({
 }));
 app.use("/api/auth/login", rateLimit({ windowMs: 15 * 6e4, limit: 10, standardHeaders: true, legacyHeaders: false }));
 app.use("/api/registrations", rateLimit({ windowMs: 15 * 6e4, limit: 30, standardHeaders: true, legacyHeaders: false }));
+app.use("/api/donations", rateLimit({ windowMs: 15 * 6e4, limit: 60, standardHeaders: true, legacyHeaders: false }));
 app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -254,30 +261,24 @@ var activityBody = z.object({
   category: z.string().max(64),
   status: z.enum(["open", "closing_soon", "full", "completed"]),
   coverImage: z.string().min(1).max(2e3),
-  gallery: z.array(z.string().max(2e3)).optional(),
   locationName: z.string().max(300),
   city: z.enum(["Jakarta", "Bekasi", "Depok", "Tangerang", "Bogor", "Bandung", "Jogja", "Solo", "Malang", "Surabaya"]),
   address: z.string().max(1e3).optional(),
   mapUrl: z.string().max(2e3).optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  registrationDeadline: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   price: z.coerce.number().int().min(0),
   priceLabel: z.string().max(64),
   quota: z.coerce.number().int().min(1),
   quotaFilled: z.coerce.number().int().min(0),
-  batchNumber: z.coerce.number().int().min(1),
-  benefits: z.array(z.string().max(500)).optional(),
   requirements: z.array(z.string().max(500)).optional(),
-  itemsToBring: z.array(z.string().max(500)).optional(),
-  rundown: z.array(z.object({ time: z.string().max(64), activity: z.string().max(500) })).optional(),
   contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(),
   whatsappGroupUrl: z.string().max(2e3).optional(),
-  featured: z.boolean().optional(),
   urgentClosing: z.boolean().optional()
 }).strict();
 var faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1e3), answer: z.string().min(1).max(1e4), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
 var galleryBody = z.object({ id: z.string().max(64).optional(), title: z.string().min(1).max(128), batchTag: z.string().max(64).optional(), category: z.string().max(64).optional(), imageUrl: z.string().url(), caption: z.string().max(5e3).optional(), location: z.string().max(128).optional(), date: z.string().max(64).optional(), tileClass: z.string().max(32).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
+var donationBody = z.object({ name: z.string().trim().min(1).max(128), amount: z.string().max(64).default(""), donationType: z.string().max(32).default("Uang"), prayer: z.string().max(280).default(""), paymentProofUrl: z.string().url().or(z.literal("")).default("") }).strict();
 app.post("/api/auth/login", async (req, res) => {
   try {
     if (!process.env.DATABASE_URL) {
@@ -397,12 +398,7 @@ app.post("/api/activities", requireAuth, validateBody(activityBody), async (req,
       price: Number(data.price || 0),
       quota: Number(data.quota || 50),
       quotaFilled: Number(data.quotaFilled || 0),
-      batchNumber: Number(data.batchNumber || 1),
-      benefits: Array.isArray(data.benefits) ? data.benefits : [],
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
-      itemsToBring: Array.isArray(data.itemsToBring) ? data.itemsToBring : [],
-      rundown: Array.isArray(data.rundown) ? data.rundown : [],
-      gallery: Array.isArray(data.gallery) ? data.gallery : [],
       contactPerson: data.contactPerson || { name: "Admin", role: "Event Coordinator", whatsapp: "6285779321681" },
       whatsappGroupUrl: data.whatsappGroupUrl || "",
       createdAt: /* @__PURE__ */ new Date(),
@@ -424,12 +420,7 @@ app.put("/api/activities/:id", requireAuth, validateBody(activityBody), async (r
       price: Number(data.price || 0),
       quota: Number(data.quota || 50),
       quotaFilled: Number(data.quotaFilled || 0),
-      batchNumber: Number(data.batchNumber || 1),
-      benefits: Array.isArray(data.benefits) ? data.benefits : [],
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
-      itemsToBring: Array.isArray(data.itemsToBring) ? data.itemsToBring : [],
-      rundown: Array.isArray(data.rundown) ? data.rundown : [],
-      gallery: Array.isArray(data.gallery) ? data.gallery : [],
       contactPerson: data.contactPerson,
       whatsappGroupUrl: data.whatsappGroupUrl || "",
       updatedAt: /* @__PURE__ */ new Date()
@@ -566,6 +557,72 @@ app.delete("/api/registrations/:id", requireAuth, async (req, res) => {
     await db.delete(registrations).where(eq(registrations.id, req.params.id));
     if (found[0]?.activityId) await db.update(activities).set({ quotaFilled: sql2`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, found[0].activityId));
     return res.json({ success: true, message: "Data pendaftar berhasil dihapus" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+app.post("/api/donations", async (req, res) => {
+  try {
+    const data = donationBody.parse(req.body);
+    const newDonation = {
+      id: crypto.randomUUID(),
+      name: data.name,
+      amount: data.amount || "",
+      donationType: data.donationType || "Uang",
+      prayer: data.prayer || "",
+      paymentProofUrl: data.paymentProofUrl || "",
+      status: "menunggu_verifikasi",
+      aamiinCount: 0,
+      createdAt: /* @__PURE__ */ new Date(),
+      updatedAt: /* @__PURE__ */ new Date()
+    };
+    await db.insert(donations).values(newDonation);
+    return res.status(201).json({ success: true, message: "Donasi berhasil dicatat", data: newDonation });
+  } catch (err) {
+    console.error("Donation error:", err);
+    if (err instanceof z.ZodError) return res.status(400).json({ error: "Data donasi tidak valid", details: err.issues });
+    return res.status(500).json({ error: "Gagal mengirim donasi" });
+  }
+});
+app.get("/api/donations/verified", async (_req, res) => {
+  try {
+    const list = await db.select().from(donations).where(eq(donations.status, "terverifikasi")).orderBy(desc(donations.createdAt));
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal memuat ucapan dan doa: " + err.message });
+  }
+});
+app.get("/api/donations", requireAuth, async (_req, res) => {
+  try {
+    const list = await db.select().from(donations).orderBy(desc(donations.createdAt));
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal memuat donasi: " + err.message });
+  }
+});
+app.patch("/api/donations/:id/status", requireAuth, validateBody(z.object({ status: z.enum(["menunggu_verifikasi", "terverifikasi", "ditolak"]).optional() }).strict()), async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    await db.update(donations).set({ ...status ? { status } : {}, updatedAt: /* @__PURE__ */ new Date() }).where(eq(donations.id, id));
+    return res.json({ success: true, message: "Status donasi berhasil diperbarui" });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+app.post("/api/donations/:id/aamiin", async (req, res) => {
+  try {
+    const updated = await db.update(donations).set({ aamiinCount: sql2`${donations.aamiinCount} + 1` }).where(eq(donations.id, req.params.id)).returning({ aamiinCount: donations.aamiinCount });
+    if (!updated.length) return res.status(404).json({ error: "Donasi tidak ditemukan" });
+    return res.json({ success: true, aamiinCount: updated[0].aamiinCount });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+app.delete("/api/donations/:id", requireAuth, async (req, res) => {
+  try {
+    await db.delete(donations).where(eq(donations.id, req.params.id));
+    return res.json({ success: true, message: "Data donasi berhasil dihapus" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

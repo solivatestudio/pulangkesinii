@@ -67,6 +67,19 @@ export const registrations = pgTable('registrations', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+export const donations = pgTable('donations', {
+  id: varchar('id', { length: 64 }).primaryKey(),
+  name: varchar('name', { length: 128 }).notNull(),
+  amount: varchar('amount', { length: 64 }).notNull().default(''),
+  donationType: varchar('donation_type', { length: 32 }).notNull().default('Uang'),
+  prayer: text('prayer').default(''),
+  paymentProofUrl: text('payment_proof_url').default(''),
+  status: varchar('status', { length: 32 }).notNull().default('menunggu_verifikasi'),
+  aamiinCount: integer('aamiin_count').notNull().default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 export const galleryPhotos = pgTable('gallery_photos', {
   id: varchar('id', { length: 64 }).primaryKey(),
   title: varchar('title', { length: 128 }).notNull(),

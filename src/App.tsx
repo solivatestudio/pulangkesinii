@@ -8,9 +8,10 @@ import { HouseIcon } from '@phosphor-icons/react/dist/csr/House';
 import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
-import { CalendarDays, Check, ChevronDown, ChevronRight, Download, HandHeart, Handshake, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronRight, Download, HandHeart, Handshake, Heart, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
 import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
+import { uploadFiles } from './utils/uploadthing';
 
 type Activity = { 
   id: number | string; 
@@ -38,6 +39,20 @@ type Activity = {
 const places = ['Semua', 'Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
 const categories = ['Semua', 'Volunteer', 'Voluntrip', 'Workshop'];
 const donationTypes = ['Uang', 'Peralatan Sekolah', 'Perabot Rumah', 'Paket Sembako', 'Lainnya'];
+
+type Prayer = { id: string; name: string; prayer: string; aamiinCount: number; createdAt: string };
+
+const timeAgo = (iso: string) => {
+  const diff = Math.max(0, Date.now() - new Date(iso).getTime());
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return 'baru saja';
+  if (minutes < 60) return `${minutes} menit yang lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam yang lalu`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} hari yang lalu`;
+  return `${Math.floor(days / 30)} bulan yang lalu`;
+};
 const humanizeDate = (value?: string) => value && /^\d{4}-\d{2}-\d{2}$/.test(value)
   ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
   : value;
@@ -151,6 +166,14 @@ export default function App(){
   });
   const [qrisImageUrl, setQrisImageUrl] = useState('/images/web/qris.webp');
   const [donation, setDonation] = useState({ nama: '', jumlah: '', bentuk: 'Uang', ucapan: '' });
+  const [donationSubmitting, setDonationSubmitting] = useState(false);
+  const [donationSuccess, setDonationSuccess] = useState(false);
+  const [donationError, setDonationError] = useState('');
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
+  const [prayers, setPrayers] = useState<Prayer[]>([]);
+  const [showAllPrayers, setShowAllPrayers] = useState(false);
+  const [aamiinedIds, setAamiinedIds] = useState<string[]>([]);
 
   useEffect(() => {
     // 1. Fetch activities from DB
@@ -229,6 +252,23 @@ export default function App(){
         if (data?.value?.qrisImageUrl) {
           const url = (data.value.qrisImageUrl === '/assets/decor-1.png' || data.value.qrisImageUrl === '/images/web/qris.jpeg') ? '/images/web/qris.webp' : data.value.qrisImageUrl;
           setQrisImageUrl(url);
+        }
+      })
+      .catch(() => {});
+
+    // 6. Fetch verified prayers for "Ucapan dan Doa" section
+    fetch('/api/donations/verified')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPrayers(data.map((d: any) => ({
+            id: d.id,
+            name: d.name,
+            prayer: d.prayer || '',
+            aamiinCount: Number(d.aamiinCount) || 0,
+            createdAt: d.createdAt,
+          })));
+          setAamiinedIds(data.filter((d: any) => localStorage.getItem(`aamiin-${d.id}`)).map((d: any) => d.id));
         }
       })
       .catch(() => {});
@@ -334,11 +374,122 @@ export default function App(){
   
   const showSearchResults=()=>document.querySelector('#semua-kegiatan')?.scrollIntoView({behavior:'smooth',block:'start'});
 
-  const handleDonationSubmit = (e: React.FormEvent) => {
+  const handlePaymentProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setDonationError('Bukti pembayaran harus berupa gambar');
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setDonationError('Ukuran bukti pembayaran maksimal 4MB');
+      return;
+    }
+    setDonationError('');
+    setPaymentProofFile(file);
+    setPaymentProofPreview(URL.createObjectURL(file));
+  };
+
+  const handleRemoveProof = () => {
+    if (paymentProofPreview) URL.revokeObjectURL(paymentProofPreview);
+    setPaymentProofFile(null);
+    setPaymentProofPreview(null);
+  };
+
+  const handleDonationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (donation.bentuk === 'Uang') {
+      setDonationSuccess(false);
+      if (!donation.nama.trim()) { setDonationError('Nama wajib diisi'); return; }
+      if (!donation.jumlah.trim()) { setDonationError('Jumlah donasi wajib diisi'); return; }
+      if (!paymentProofFile) { setDonationError('Unggah bukti pembayaran terlebih dahulu'); return; }
+
+      setDonationSubmitting(true);
+      setDonationError('');
+      try {
+        let paymentProofUrl = '';
+        const uploadRes = await uploadFiles('proofUploader', { files: [paymentProofFile] });
+        if (uploadRes && uploadRes[0]) paymentProofUrl = uploadRes[0].ufsUrl || uploadRes[0].url;
+
+        const res = await fetch('/api/donations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: donation.nama.trim(),
+            amount: donation.jumlah.trim(),
+            donationType: 'Uang',
+            prayer: donation.ucapan.trim(),
+            paymentProofUrl,
+          }),
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Gagal mengirim donasi');
+        }
+
+        setDonationSuccess(true);
+        setDonation({ nama: '', jumlah: '', bentuk: 'Uang', ucapan: '' });
+        handleRemoveProof();
+      } catch (err: any) {
+        setDonationError(err.message || 'Terjadi kesalahan saat mengirim donasi');
+      } finally {
+        setDonationSubmitting(false);
+      }
+      return;
+    }
+
+    setDonationSuccess(false);
+    if (!donation.nama.trim()) { setDonationError('Nama wajib diisi'); return; }
+
     const wa = contactInfo.whatsappNumber.replace(/[^0-9]/g, '');
-    const text = `Halo Pulangkesinii, saya ingin berdonasi.\n\nNama: ${donation.nama}\nJumlah: ${donation.jumlah}\nBentuk Donasi: ${donation.bentuk}\nUcapan/Doa: ${donation.ucapan}`;
+    const text = `Halo Pulangkesinii, saya ingin berdonasi.\n\nNama: ${donation.nama}\nBentuk Donasi: ${donation.bentuk}\nUcapan/Doa: ${donation.ucapan}`;
+
+    setDonationSubmitting(true);
+    setDonationError('');
+    try {
+      const res = await fetch('/api/donations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: donation.nama.trim(),
+          amount: '',
+          donationType: donation.bentuk,
+          prayer: donation.ucapan.trim(),
+          paymentProofUrl: '',
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Gagal mengirim donasi');
+      }
+
+      setDonationSuccess(true);
+      setDonation((prev) => ({ ...prev, nama: '', jumlah: '', ucapan: '' }));
+    } catch (err: any) {
+      setDonationError(err.message || 'Terjadi kesalahan saat mengirim donasi');
+    } finally {
+      setDonationSubmitting(false);
+    }
+
     window.open(`https://wa.me/${wa}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleAamiin = async (id: string) => {
+    if (aamiinedIds.includes(id)) return;
+    const key = `aamiin-${id}`;
+    try {
+      const res = await fetch(`/api/donations/${id}/aamiin`, { method: 'POST' });
+      if (!res.ok) return;
+      const data = await res.json();
+      setPrayers((prev) => prev.map((p) => (p.id === id ? { ...p, aamiinCount: data.aamiinCount } : p)));
+      setAamiinedIds((prev) => [...prev, id]);
+      localStorage.setItem(key, '1');
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   return (
@@ -666,19 +817,21 @@ export default function App(){
                   <input type="text" value={donation.nama} onChange={(e) => setDonation({ ...donation, nama: e.target.value })} placeholder="Tulis Nama Kamuuu" />
                 </label>
 
-                <label className="donation-field">
-                  <span>Jumlah</span>
-                  <input type="text" inputMode="numeric" value={donation.jumlah} onChange={(e) => setDonation({ ...donation, jumlah: e.target.value })} placeholder="tuliskan jumlah" />
-                </label>
-
                 {donation.bentuk === 'Uang' && (
-                  <div className="quick-amounts">
-                    {['10000', '15000', '50000', '100000'].map((val) => (
-                      <button type="button" key={val} className={donation.jumlah === val ? 'active' : ''} onClick={() => setDonation({ ...donation, jumlah: val })}>
-                        Rp{Number(val).toLocaleString('id-ID')}
-                      </button>
-                    ))}
-                  </div>
+                  <>
+                    <label className="donation-field">
+                      <span>Jumlah</span>
+                      <input type="text" inputMode="numeric" value={donation.jumlah} onChange={(e) => setDonation({ ...donation, jumlah: e.target.value })} placeholder="tuliskan jumlah" />
+                    </label>
+
+                    <div className="quick-amounts">
+                      {['10000', '15000', '50000', '100000'].map((val) => (
+                        <button type="button" key={val} className={donation.jumlah === val ? 'active' : ''} onClick={() => setDonation({ ...donation, jumlah: val })}>
+                          Rp{Number(val).toLocaleString('id-ID')}
+                        </button>
+                      ))}
+                    </div>
+                  </>
                 )}
 
                 <label className="donation-field">
@@ -690,16 +843,90 @@ export default function App(){
 
                 <label className="donation-field">
                   <span>Ucapan / Doa</span>
-                  <textarea value={donation.ucapan} onChange={(e) => setDonation({ ...donation, ucapan: e.target.value })} placeholder="Berikan Doa atau Ucapan Anda" rows={3} />
+                  <textarea value={donation.ucapan} onChange={(e) => setDonation({ ...donation, ucapan: e.target.value })} placeholder="Berikan Doa atau Ucapan Anda" rows={3} maxLength={280} />
+                  <small className="donation-char-count">{donation.ucapan.length}/280 karakter</small>
                 </label>
 
-                <button type="submit" className="donation-submit">
-                  <MessageCircle size={16} /> Kirim via WhatsApp
+                {donation.bentuk === 'Uang' && (
+                  <div className="donation-field">
+                    <span className="donation-upload-heading">Upload Bukti Pembayaran Anda di sini</span>
+                    <label className="donation-upload-box">
+                      {paymentProofPreview ? (
+                        <div className="donation-upload-preview">
+                          <img src={paymentProofPreview} alt="Pratinjau bukti pembayaran" />
+                          <button type="button" className="donation-upload-remove" onClick={handleRemoveProof} aria-label="Hapus bukti pembayaran">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="donation-upload-placeholder">
+                          <Download size={20} />
+                          Klik untuk unggah bukti transfer (JPG/PNG, maks 4MB)
+                        </span>
+                      )}
+                      <input type="file" accept="image/*" onChange={handlePaymentProofChange} />
+                    </label>
+                  </div>
+                )}
+
+                {donationSuccess && <p className="donation-success"><Check size={14} /> Donasi berhasil dikirim. Terima kasih!</p>}
+                {donationError && <p className="donation-error">{donationError}</p>}
+
+                <button type="submit" className="donation-submit" disabled={donationSubmitting}>
+                  {donation.bentuk === 'Uang'
+                    ? (donationSubmitting ? 'Mengirim...' : 'Kirim Donasi')
+                    : <><MessageCircle size={16} /> Kirim via WhatsApp</>}
                 </button>
               </form>
             </div>
 
             <p className="donation-note">Titip Kebaikanmu Disini — sekecil apa pun, berarti besar bagi mereka yang membutuhkan.</p>
+          </div>
+        </section>
+
+        {/* PRAYERS / UCAPAN & DOA SECTION */}
+        <section className="prayers-section" id="ucapan-doa" aria-labelledby="ucapan-doa-title">
+          <div className="section-container">
+            <div className="simple-heading">
+              <span>Ucapan dan Doa</span>
+              <h2 id="ucapan-doa-title">Doa & Harapan Kebaikan</h2>
+            </div>
+            <p className="prayers-subtitle">Ucapan dan doa tulus dari para donatur yang telah terverifikasi.</p>
+
+            {prayers.length === 0 ? (
+              <p className="prayers-empty">Belum ada ucapan dan doa yang terverifikasi.</p>
+            ) : (
+              <>
+                <div className="prayers-list">
+                  {(showAllPrayers ? prayers : prayers.slice(0, 3)).map((p) => (
+                    <article key={p.id} className="prayer-card">
+                      <div className="prayer-header">
+                        <span className="prayer-name">{p.name}</span>
+                        <span className="prayer-time">{timeAgo(p.createdAt)}</span>
+                      </div>
+                      <p className="prayer-text">“{p.prayer}”</p>
+                      <div className="prayer-footer">
+                        <button
+                          type="button"
+                          className={`aamiin-btn ${aamiinedIds.includes(p.id) ? 'active' : ''}`}
+                          onClick={() => handleAamiin(p.id)}
+                          aria-label="Aminkan doa ini"
+                        >
+                          <Heart size={15} /> Aamiin
+                        </button>
+                        <span className="prayer-count">{p.aamiinCount} orang mengaminkan doa ini</span>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                {prayers.length > 3 && (
+                  <button className="more-button" onClick={() => setShowAllPrayers(!showAllPrayers)}>
+                    {showAllPrayers ? 'Tampilkan lebih sedikit' : 'Lihat lebih banyak'}
+                  </button>
+                )}
+              </>
+            )}
           </div>
         </section>
 

@@ -11,7 +11,7 @@ import * as dotenv from 'dotenv';
 import { eq, desc, asc, sql, and, lt } from 'drizzle-orm';
 import { createRouteHandler } from 'uploadthing/express';
 import { uploadRouter } from './uploadthing';
-import { db, users, activities, registrations, galleryPhotos, faqs, siteSettings } from './db';
+import { db, users, activities, registrations, galleryPhotos, faqs, siteSettings, donations } from './db';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
@@ -32,6 +32,7 @@ app.use(cors({
 }));
 app.use('/api/auth/login', rateLimit({ windowMs: 15 * 60_000, limit: 10, standardHeaders: true, legacyHeaders: false }));
 app.use('/api/registrations', rateLimit({ windowMs: 15 * 60_000, limit: 30, standardHeaders: true, legacyHeaders: false }));
+app.use('/api/donations', rateLimit({ windowMs: 15 * 60_000, limit: 60, standardHeaders: true, legacyHeaders: false }));
 app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -108,6 +109,7 @@ const activityBody = z.object({
 }).strict();
 const faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1000), answer: z.string().min(1).max(10000), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
 const galleryBody = z.object({ id: z.string().max(64).optional(), title: z.string().min(1).max(128), batchTag: z.string().max(64).optional(), category: z.string().max(64).optional(), imageUrl: z.string().url(), caption: z.string().max(5000).optional(), location: z.string().max(128).optional(), date: z.string().max(64).optional(), tileClass: z.string().max(32).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
+const donationBody = z.object({ name: z.string().trim().min(1).max(128), amount: z.string().max(64).default(''), donationType: z.string().max(32).default('Uang'), prayer: z.string().max(280).default(''), paymentProofUrl: z.string().url().or(z.literal('')).default('') }).strict();
 
 // ==================== AUTH ROUTES ====================
 app.post('/api/auth/login', async (req: Request, res: Response) => {
@@ -431,6 +433,87 @@ app.delete('/api/registrations/:id', requireAuth, async (req: Request, res: Resp
     await db.delete(registrations).where(eq(registrations.id, req.params.id));
     if (found[0]?.activityId) await db.update(activities).set({ quotaFilled: sql`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, found[0].activityId));
     return res.json({ success: true, message: 'Data pendaftar berhasil dihapus' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// ==================== DONATIONS ROUTES ====================
+app.post('/api/donations', async (req: Request, res: Response) => {
+  try {
+    const data = donationBody.parse(req.body);
+    const newDonation = {
+      id: crypto.randomUUID(),
+      name: data.name,
+      amount: data.amount || '',
+      donationType: data.donationType || 'Uang',
+      prayer: data.prayer || '',
+      paymentProofUrl: data.paymentProofUrl || '',
+      status: 'menunggu_verifikasi',
+      aamiinCount: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    await db.insert(donations).values(newDonation);
+    return res.status(201).json({ success: true, message: 'Donasi berhasil dicatat', data: newDonation });
+  } catch (err: any) {
+    console.error('Donation error:', err);
+    if (err instanceof z.ZodError) return res.status(400).json({ error: 'Data donasi tidak valid', details: err.issues });
+    return res.status(500).json({ error: 'Gagal mengirim donasi' });
+  }
+});
+
+app.get('/api/donations/verified', async (_req: Request, res: Response) => {
+  try {
+    const list = await db.select().from(donations).where(eq(donations.status, 'terverifikasi')).orderBy(desc(donations.createdAt));
+    return res.json(list);
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Gagal memuat ucapan dan doa: ' + err.message });
+  }
+});
+
+app.get('/api/donations', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    const list = await db.select().from(donations).orderBy(desc(donations.createdAt));
+    return res.json(list);
+  } catch (err: any) {
+    return res.status(500).json({ error: 'Gagal memuat donasi: ' + err.message });
+  }
+});
+
+app.patch('/api/donations/:id/status', requireAuth, validateBody(z.object({ status: z.enum(['menunggu_verifikasi', 'terverifikasi', 'ditolak']).optional() }).strict()), async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    await db.update(donations)
+      .set({ ...(status ? { status } : {}), updatedAt: new Date() })
+      .where(eq(donations.id, id));
+
+    return res.json({ success: true, message: 'Status donasi berhasil diperbarui' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/donations/:id/aamiin', async (req: Request, res: Response) => {
+  try {
+    const updated = await db.update(donations)
+      .set({ aamiinCount: sql`${donations.aamiinCount} + 1` })
+      .where(eq(donations.id, req.params.id))
+      .returning({ aamiinCount: donations.aamiinCount });
+    if (!updated.length) return res.status(404).json({ error: 'Donasi tidak ditemukan' });
+    return res.json({ success: true, aamiinCount: updated[0].aamiinCount });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/donations/:id', requireAuth, async (req: Request, res: Response) => {
+  try {
+    await db.delete(donations).where(eq(donations.id, req.params.id));
+    return res.json({ success: true, message: 'Data donasi berhasil dihapus' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
