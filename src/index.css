@@ -1600,12 +1600,12 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 /* Prayers / Ucapan & Doa */
 .prayers-section {
   background: #fff;
-  padding: 44px 0;
+  padding: 16px 0 44px;
 }
 
 @media (min-width: 768px) {
   .prayers-section {
-    padding: 64px 0;
+    padding: 24px 0 64px;
   }
 }
 
