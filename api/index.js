@@ -40,7 +40,7 @@ var requireAdminUpload = async ({ req }) => {
 var uploadRouter = {
   proofUploader: f({
     image: {
-      maxFileSize: "4MB",
+      maxFileSize: "1MB",
       maxFileCount: 1
     }
   }).onUploadComplete(async ({ file }) => {

@@ -381,8 +381,8 @@ export default function App(){
       setDonationError('Bukti pembayaran harus berupa gambar');
       return;
     }
-    if (file.size > 4 * 1024 * 1024) {
-      setDonationError('Ukuran bukti pembayaran maksimal 4MB');
+    if (file.size > 1 * 1024 * 1024) {
+      setDonationError('Ukuran bukti pembayaran maksimal 1MB');
       return;
     }
     setDonationError('');
@@ -861,7 +861,7 @@ export default function App(){
                       ) : (
                         <span className="donation-upload-placeholder">
                           <Download size={20} />
-                          Klik untuk unggah bukti transfer (JPG/PNG, maks 4MB)
+                          Klik untuk unggah bukti transfer (JPG/PNG, maks 1MB)
                         </span>
                       )}
                       <input type="file" accept="image/*" onChange={handlePaymentProofChange} />
