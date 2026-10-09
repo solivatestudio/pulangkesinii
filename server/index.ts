@@ -104,7 +104,7 @@ const activityBody = z.object({
   id: z.string().max(64).optional(), slug: z.string().max(128).optional(), title: z.string().trim().min(1).max(300),
   shortDescription: z.string().max(1000), description: z.string().max(20000), category: z.string().max(64), status: z.enum(['open', 'closing_soon', 'full', 'completed']),
   coverImage: z.string().min(1).max(2000), locationName: z.string().max(300), city: z.enum(['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya']), address: z.string().max(1000).optional(), mapUrl: z.string().max(2000).optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), price: z.coerce.number().int().min(0), priceLabel: z.string().max(64), quota: z.coerce.number().int().min(1), quotaFilled: z.coerce.number().int().min(0),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), activityTime: z.string().max(64).optional().default(''), price: z.coerce.number().int().min(0), priceLabel: z.string().max(64), quota: z.coerce.number().int().min(1), quotaFilled: z.coerce.number().int().min(0),
   requirements: z.array(z.string().max(500)).optional(), contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(), whatsappGroupUrl: z.string().max(2000).optional(), urgentClosing: z.boolean().optional(),
 }).strict();
 const faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1000), answer: z.string().min(1).max(10000), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
@@ -368,8 +368,6 @@ app.post('/api/registrations', async (req: Request, res: Response) => {
       contributionProofUrl: data.contributionProofUrl || '',
       tagFriendsProofUrl: data.tagFriendsProofUrl || '',
       repostStoryProofUrl: data.repostStoryProofUrl || '',
-      status: 'menunggu_verifikasi',
-      adminNotes: '',
       customAnswers: data.customAnswers,
       createdAt: new Date(),
     };
@@ -406,24 +404,6 @@ app.get('/api/registrations', requireAuth, async (_req: Request, res: Response) 
     return res.json(list);
   } catch (err: any) {
     return res.status(500).json({ error: 'Gagal memuat pendaftaran: ' + err.message });
-  }
-});
-
-app.patch('/api/registrations/:id/status', requireAuth, validateBody(z.object({ status: z.enum(['menunggu_verifikasi', 'terkonfirmasi', 'ditolak']).optional(), adminNotes: z.string().max(5000).optional() }).strict()), async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { status, adminNotes } = req.body;
-
-    await db.update(registrations)
-      .set({
-        ...(status ? { status } : {}),
-        ...(adminNotes !== undefined ? { adminNotes } : {}),
-      })
-      .where(eq(registrations.id, id));
-
-    return res.json({ success: true, message: 'Status pendaftar berhasil diperbarui' });
-  } catch (err: any) {
-    return res.status(500).json({ error: err.message });
   }
 });
 

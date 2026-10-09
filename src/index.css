@@ -765,6 +765,15 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   display: none;
 }
 
+.hide-horizontal-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-horizontal-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @media (min-width: 640px) {
   .urgent-rail {
     display: grid;
@@ -788,12 +797,10 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
 }
 
 .sheet-cover.photo-cover > img {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  display: block;
   width: 100%;
-  height: 100%;
-  object-fit: cover;
-  transition: transform 0.3s ease;
+  height: auto;
 }
 
 /* ==========================================================================
@@ -2712,6 +2719,7 @@ footer .section-container > p {
   align-items: flex-end;
   justify-content: center;
   padding: 0;
+  overflow-x: hidden;
 }
 
 @media (min-width: 640px) {
@@ -2725,6 +2733,7 @@ footer .section-container > p {
 .legal-sheet {
   width: 100%;
   max-height: 88dvh;
+  overflow-x: hidden;
   overflow-y: auto;
   background: #fff;
   border-radius: 20px 20px 0 0;
@@ -2791,10 +2800,11 @@ footer .section-container > p {
 }
 
 .sheet-cover {
-  height: 200px;
+  line-height: 0;
   border-radius: 14px;
   position: relative;
   overflow: hidden;
+  background: #eef6f6;
 }
 
 .sheet-cover span {
@@ -2802,6 +2812,7 @@ footer .section-container > p {
   left: 16px;
   bottom: 16px;
   font-size: 11px;
+  line-height: normal;
   font-weight: 800;
   color: #fff;
   z-index: 1;
@@ -2812,6 +2823,7 @@ footer .section-container > p {
   font-size: 22px;
   margin: 18px 0 12px;
   color: #172b32;
+  overflow-wrap: anywhere;
 }
 
 .detail-lead {
@@ -2819,16 +2831,19 @@ footer .section-container > p {
   color: #607579;
   font-size: 13.5px;
   line-height: 1.6;
+  overflow-wrap: anywhere;
 }
 
 .sheet-meta {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr;
   gap: 10px;
-  background: #f5fbfb;
+  background: #e5f5f5;
   padding: 14px;
+  border: 1px solid #cdebea;
   border-radius: 12px;
   margin-bottom: 14px;
+  overflow-x: hidden;
 }
 
 @media (min-width: 640px) {
@@ -2839,10 +2854,12 @@ footer .section-container > p {
 
 .sheet-meta span {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 8px;
   font-size: 11.5px;
   color: #536b6f;
+  overflow-wrap: anywhere;
 }
 
 .sheet-meta svg {
@@ -2875,6 +2892,12 @@ footer .section-container > p {
   margin: 3px 0;
   font-size: 12px;
   color: #556e72;
+  overflow-wrap: anywhere;
+}
+
+.detail-location > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .detail-location a {
@@ -2920,6 +2943,7 @@ footer .section-container > p {
   font-size: 13px;
   line-height: 1.65;
   color: #536b6f;
+  overflow-wrap: anywhere;
 }
 
 .detail-tab-panel p {
@@ -2930,7 +2954,8 @@ footer .section-container > p {
   display: grid;
   gap: 6px;
   margin: 0 0 10px;
-  padding-left: 18px;
+  padding-left: 0;
+  list-style-position: inside;
 }
 
 .detail-tab-panel a {

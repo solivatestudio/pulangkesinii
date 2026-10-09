@@ -39,7 +39,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const [stats, setStats] = useState({
     totalActivities: 0,
     openActivities: 0,
-    pendingRegistrations: 0,
     totalRegistrations: 0,
     totalPhotos: 0,
     totalFaqs: 0,
@@ -65,7 +64,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
           totalActivities: Array.isArray(actRes) ? actRes.length : 0,
           openActivities: Array.isArray(actRes) ? actRes.filter((a: any) => a.status === 'open' || a.status === 'closing_soon').length : 0,
           totalRegistrations: Array.isArray(regRes) ? regRes.length : 0,
-          pendingRegistrations: Array.isArray(regRes) ? regRes.filter((r: any) => r.status === 'menunggu_verifikasi').length : 0,
           totalPhotos: Array.isArray(galRes) ? galRes.length : 0,
           totalFaqs: Array.isArray(faqRes) ? faqRes.length : 0,
           totalDonations: Array.isArray(donRes) ? donRes.length : 0,
@@ -90,8 +88,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
 
   const navItems = [
     { id: 'activities', label: 'Kegiatan & Cards', icon: Calendar, badge: stats.openActivities },
-    { id: 'registrations', label: 'Pendaftaran Peserta', icon: Users, badge: stats.pendingRegistrations, badgeColor: 'bg-amber-500' },
-    // { id: 'donations', label: 'Donasi', icon: HandHeart, badge: stats.pendingDonations, badgeColor: 'bg-amber-500' },
+    { id: 'registrations', label: 'Pendaftaran Peserta', icon: Users },
+    { id: 'donations', label: 'Donasi', icon: HandHeart, badge: stats.pendingDonations, badgeColor: 'bg-amber-500' },
     { id: 'form_builder', label: 'Form Builder', icon: FileText },
     { id: 'gallery', label: 'Galeri Momen', icon: ImageIcon },
     { id: 'faqs', label: 'FAQ & Tanya Jawab', icon: HelpCircle },
@@ -294,10 +292,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
             </div>
             <div>
               <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalRegistrations}</span>
-              <span className="text-[10px] sm:text-[11px] text-[#D97706] font-medium mt-0.5 sm:mt-1 inline-flex items-center gap-1 sm:gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
-                <span className="truncate">{stats.pendingRegistrations} verifikasi</span>
-              </span>
             </div>
           </div>
 
@@ -337,7 +331,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         {/* Tab Content */}
         {activeTab === 'activities' && <ActivitiesTab />}
         {activeTab === 'registrations' && <RegistrationsTab />}
-        {/* {activeTab === 'donations' && <DonationsTab />} */}
+        {activeTab === 'donations' && <DonationsTab />}
         {activeTab === 'form_builder' && <FormBuilderTab />}
         {activeTab === 'gallery' && <GalleryTab />}
         {activeTab === 'faqs' && <FaqsTab />}

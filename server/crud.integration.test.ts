@@ -55,12 +55,11 @@ describe.sequential('API CRUD integration', () => {
     const config = await db.select().from(siteSettings).where(eq(siteSettings.key, 'registration_form_config')).limit(1);
     const customFields = ((config[0]?.value as { customFields?: Array<{ label: string }> })?.customFields || []);
     const customAnswers = Object.fromEntries(customFields.map((field) => [field.label, 'Integration answer']));
-    const created = await request(app).post('/api/registrations').send({ activityId: ids.activity, activityTitle: 'Updated', activityChoice: 'Updated', fullName: 'Integration User', birthDate: '2000-01-01', domicile: 'Jakarta', whatsapp: '081234567890', followedChannel: 'Ya', paymentMethod: 'Mandiri', reason: 'Integration test', contributionProofUrl: 'https://example.com/proof.jpg', tagFriendsProofUrl: 'https://example.com/tag.jpg', repostStoryProofUrl: 'https://example.com/story.jpg', customAnswers, submittedAt: new Date().toISOString() });
+    const created = await request(app).post('/api/registrations').send({ activityId: ids.activity, activityTitle: 'Updated', activityChoice: 'Updated', fullName: 'Integration User', email: 'integration@example.com', birthDate: '2000-01-01', domicile: 'Jakarta', whatsapp: '081234567890', followedChannel: 'Ya', paymentMethod: 'Mandiri', reason: 'Integration test', contributionProofUrl: 'https://example.com/proof.jpg', tagFriendsProofUrl: 'https://example.com/tag.jpg', repostStoryProofUrl: 'https://example.com/story.jpg', customAnswers, submittedAt: new Date().toISOString() });
     expect(created.status).toBe(201);
     ids.registration = created.body.data.id;
     const list = await request(app).get('/api/registrations').set('Authorization', auth);
     expect(list.body.some((item: { id: string }) => item.id === ids.registration)).toBe(true);
-    expect((await request(app).patch(`/api/registrations/${ids.registration}/status`).set('Authorization', auth).send({ status: 'terkonfirmasi' })).status).toBe(200);
     expect((await request(app).delete(`/api/registrations/${ids.registration}`).set('Authorization', auth)).status).toBe(200);
     ids.registration = '';
     expect((await request(app).get(`/api/activities/${ids.activity}`)).body.quotaFilled).toBe(0);

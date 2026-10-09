@@ -106,6 +106,7 @@ var activities = pgTable("activities", {
   mapUrl: text("map_url").default(""),
   startDate: varchar("start_date", { length: 64 }).notNull(),
   endDate: varchar("end_date", { length: 64 }).notNull(),
+  activityTime: varchar("activity_time", { length: 64 }).notNull().default(""),
   price: integer("price").notNull().default(0),
   priceLabel: varchar("price_label", { length: 64 }).notNull().default("Gratis"),
   quota: integer("quota").notNull().default(50),
@@ -134,8 +135,6 @@ var registrations = pgTable("registrations", {
   contributionProofUrl: text("contribution_proof_url").default(""),
   tagFriendsProofUrl: text("tag_friends_proof_url").default(""),
   repostStoryProofUrl: text("repost_story_proof_url").default(""),
-  status: varchar("status", { length: 32 }).notNull().default("menunggu_verifikasi"),
-  adminNotes: text("admin_notes").default(""),
   customAnswers: jsonb("custom_answers").$type().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull()
 });
@@ -267,6 +266,7 @@ var activityBody = z.object({
   mapUrl: z.string().max(2e3).optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  activityTime: z.string().max(64).optional().default(""),
   price: z.coerce.number().int().min(0),
   priceLabel: z.string().max(64),
   quota: z.coerce.number().int().min(1),
@@ -504,8 +504,6 @@ app.post("/api/registrations", async (req, res) => {
       contributionProofUrl: data.contributionProofUrl || "",
       tagFriendsProofUrl: data.tagFriendsProofUrl || "",
       repostStoryProofUrl: data.repostStoryProofUrl || "",
-      status: "menunggu_verifikasi",
-      adminNotes: "",
       customAnswers: data.customAnswers,
       createdAt: /* @__PURE__ */ new Date()
     };
@@ -536,19 +534,6 @@ app.get("/api/registrations", requireAuth, async (_req, res) => {
     return res.json(list);
   } catch (err) {
     return res.status(500).json({ error: "Gagal memuat pendaftaran: " + err.message });
-  }
-});
-app.patch("/api/registrations/:id/status", requireAuth, validateBody(z.object({ status: z.enum(["menunggu_verifikasi", "terkonfirmasi", "ditolak"]).optional(), adminNotes: z.string().max(5e3).optional() }).strict()), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, adminNotes } = req.body;
-    await db.update(registrations).set({
-      ...status ? { status } : {},
-      ...adminNotes !== void 0 ? { adminNotes } : {}
-    }).where(eq(registrations.id, id));
-    return res.json({ success: true, message: "Status pendaftar berhasil diperbarui" });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
   }
 });
 app.delete("/api/registrations/:id", requireAuth, async (req, res) => {

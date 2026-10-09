@@ -8,7 +8,7 @@ import { HouseIcon } from '@phosphor-icons/react/dist/csr/House';
 import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
-import { CalendarDays, Check, ChevronDown, ChevronRight, Download, HandHeart, Handshake, Heart, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
+import { CalendarDays, Check, ChevronDown, ChevronRight, Clock, Download, HandHeart, Handshake, Heart, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
 import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
 import { uploadFiles } from './utils/uploadthing';
@@ -28,6 +28,7 @@ type Activity = {
   address?: string;
   mapUrl?: string;
   endDate?: string;
+  activityTime?: string;
   quota?: number;
   quotaFilled?: number;
   requirements?: string[];
@@ -198,6 +199,7 @@ export default function App(){
               address: item.address,
               mapUrl: item.mapUrl,
               endDate: humanizeDate(item.endDate),
+              activityTime: item.activityTime,
               quota: item.quota,
               quotaFilled: item.quotaFilled,
               requirements: Array.isArray(item.requirements) ? item.requirements : [],
@@ -512,7 +514,7 @@ export default function App(){
               <a href="#momen">Galeri</a>
               <a href="#faq">FAQ</a>
               <a href="#kontak">Kontak</a>
-              {/* <a href="#donasi" className="nav-admin-btn">Donasi</a> */}
+              <a href="#donasi" className="nav-admin-btn">Donasi</a>
             </nav>
 
             {/* Mobile Hamburger Button */}
@@ -535,7 +537,7 @@ export default function App(){
                 <a href="#momen" onClick={() => setMenuOpen(false)}>Galeri</a>
                 <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
                 <a href="#kontak" onClick={() => setMenuOpen(false)}>Kontak</a>
-                {/* <a href="#donasi" onClick={() => setMenuOpen(false)}>Donasi</a> */}
+                <a href="#donasi" onClick={() => setMenuOpen(false)}>Donasi</a>
               </nav>
             )}
           </div>
@@ -769,10 +771,7 @@ export default function App(){
           </div>
         </section>
 
-        {/* ========================================================================= */}
-        {/* DONATION & PRAYERS SECTIONS (NONAKTIF SEMENTARA - DAPAT DIAKTIFKAN LAGI) */}
-        {/* ========================================================================= */}
-        {/*
+        {/* DONATION SECTION */}
         <section className="donation-section" id="donasi" aria-labelledby="donasi-title">
           <div className="section-container">
             <div className="donation-heading">
@@ -887,6 +886,7 @@ export default function App(){
           </div>
         </section>
 
+        {/* PRAYERS / UCAPAN & DOA SECTION */}
         <section className="prayers-section" id="ucapan-doa" aria-labelledby="ucapan-doa-title">
           <div className="section-container">
             <div className="simple-heading">
@@ -931,7 +931,6 @@ export default function App(){
             )}
           </div>
         </section>
-        */}
 
         {/* ABOUT SECTION */}
         <section className="about-section" id="tentang">
@@ -1183,8 +1182,8 @@ export default function App(){
               <button type="button" onClick={() => setLegal('terms')}>Syarat & Ketentuan</button>
               <span>|</span>
               <a href="#kontak">Pusat Bantuan</a>
-              {/* <span>|</span>
-              <a href="#donasi">Donasi</a> */}
+              <span>|</span>
+              <a href="#donasi">Donasi</a>
               <span>|</span>
               <Link to="/admin">Admin</Link>
             </nav>
@@ -1222,6 +1221,7 @@ export default function App(){
             
             <div className="sheet-meta">
               <span><CalendarDays />{selected.startDate}{selected.endDate && selected.endDate !== selected.startDate ? ` – ${selected.endDate}` : ''}</span>
+              {selected.activityTime && <span><Clock />{selected.activityTime}</span>}
               <span><MapPin />{meaningful(selected.locationName) || selected.city}</span>
               <span><Tag />{selected.priceLabel}</span>
               <span><Users />{selected.quotaFilled || 0}/{selected.quota || 0} peserta</span>
@@ -1266,7 +1266,6 @@ export default function App(){
                 </div>
               ) : (
                 <div className="detail-tab-panel" role="tabpanel">
-                  <p>Terbuka untuk umum, kuota terbatas tanpa seleksi, dan mematuhi tata tertib kegiatan.</p>
                   {selected.requirements && selected.requirements.length > 0 && (
                     <ul>
                       {selected.requirements.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}

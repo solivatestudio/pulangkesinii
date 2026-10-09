@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  CheckCircle2, 
-  XCircle, 
-  Clock, 
   Search, 
   ExternalLink, 
   Download, 
@@ -10,8 +7,6 @@ import {
   Trash2, 
   MessageCircle, 
   X,
-  FileCheck,
-  AlertCircle
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -33,8 +28,6 @@ interface RegistrationItem {
   contributionProofUrl?: string;
   tagFriendsProofUrl?: string;
   repostStoryProofUrl?: string;
-  status: 'menunggu_verifikasi' | 'terkonfirmasi' | 'ditolak';
-  adminNotes?: string;
   customAnswers?: Record<string, string>;
   createdAt: string;
 }
@@ -43,7 +36,6 @@ export const RegistrationsTab: React.FC = () => {
   const [registrations, setRegistrations] = useState<RegistrationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
   const [cityFilter, setCityFilter] = useState('all');
   const [activityCityById, setActivityCityById] = useState<Record<string, string>>({});
   const [selectedReg, setSelectedReg] = useState<RegistrationItem | null>(null);
@@ -80,30 +72,6 @@ export const RegistrationsTab: React.FC = () => {
       })
       .catch(() => {});
   }, []);
-
-  const updateStatus = async (id: string, newStatus: string, adminNotes?: string) => {
-    try {
-      const res = await fetch(`/api/registrations/${id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus, adminNotes }),
-      });
-
-      if (res.ok) {
-        setRegistrations((prev) =>
-          prev.map((r) => (r.id === id ? { ...r, status: newStatus as any, adminNotes } : r))
-        );
-        if (selectedReg && selectedReg.id === id) {
-          setSelectedReg((prev) => (prev ? { ...prev, status: newStatus as any, adminNotes } : null));
-        }
-      } else {
-        alert('Gagal memperbarui status');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Terjadi kesalahan jaringan');
-    }
-  };
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Hapus data pendaftaran atas nama "${name}"?`)) return;
@@ -152,7 +120,7 @@ export const RegistrationsTab: React.FC = () => {
       20
     );
 
-    const head = [['Kode Registrasi', 'Nama Lengkap', 'Email', 'WhatsApp', 'Domisili Peserta', 'Kegiatan', 'Pembayaran', 'Status', 'Tanggal Daftar']];
+    const head = [['Kode Registrasi', 'Nama Lengkap', 'Email', 'WhatsApp', 'Domisili Peserta', 'Kegiatan', 'Pembayaran', 'Tanggal Daftar']];
     let y = 26;
 
     Array.from(grouped.entries())
@@ -176,7 +144,6 @@ export const RegistrationsTab: React.FC = () => {
           r.domicile,
           r.activityChoice || r.activityTitle,
           r.paymentMethod,
-          r.status,
           new Date(r.createdAt).toLocaleString('id-ID', {
             day: '2-digit',
             month: 'short',
@@ -207,7 +174,6 @@ export const RegistrationsTab: React.FC = () => {
     (r.activityId && activityCityById[r.activityId]) || '-';
 
   const filtered = registrations.filter((r) => {
-    const matchStatus = statusFilter === 'all' || r.status === statusFilter;
     const matchCity = cityFilter === 'all' || activityCity(r) === cityFilter;
     const matchSearch =
       !search ||
@@ -215,7 +181,7 @@ export const RegistrationsTab: React.FC = () => {
       r.whatsapp.includes(search) ||
       (r.registrationCode && r.registrationCode.toLowerCase().includes(search.toLowerCase())) ||
       (r.activityChoice && r.activityChoice.toLowerCase().includes(search.toLowerCase()));
-    return matchStatus && matchCity && matchSearch;
+    return matchCity && matchSearch;
   });
 
   const cities = Array.from(new Set(Object.values(activityCityById))).sort();
@@ -227,7 +193,7 @@ export const RegistrationsTab: React.FC = () => {
         <div>
           <h2 className="admin-title text-2xl text-[#173F42]">Pendaftaran Volunteer</h2>
           <p className="text-xs text-[#6B7E82] mt-1">
-            Daftar formulir pendaftaran masuk dari website, verifikasi pembayaran, dan ekspor data
+            Daftar formulir pendaftaran masuk dari website dan ekspor data
           </p>
         </div>
         <button
@@ -251,7 +217,7 @@ export const RegistrationsTab: React.FC = () => {
             className="w-full h-10 pl-10 pr-4 text-xs rounded-xl bg-white border border-[#D5DFE0] focus:border-[#0EADAD] outline-none"
           />
         </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        <div className="hide-horizontal-scrollbar flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
           <select
             value={cityFilter}
             onChange={(e) => setCityFilter(e.target.value)}
@@ -262,24 +228,6 @@ export const RegistrationsTab: React.FC = () => {
               <option key={city} value={city}>{city}</option>
             ))}
           </select>
-          {[
-            { id: 'all', label: 'Semua Status' },
-            { id: 'menunggu_verifikasi', label: 'Menunggu' },
-            { id: 'terkonfirmasi', label: 'Terkonfirmasi' },
-            { id: 'ditolak', label: 'Ditolak' },
-          ].map((st) => (
-            <button
-              key={st.id}
-              onClick={() => setStatusFilter(st.id)}
-              className={`h-9 px-3.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                statusFilter === st.id
-                  ? 'bg-[#0EADAD] text-white'
-                  : 'bg-white text-[#4A5D61] border border-[#D5DFE0] hover:bg-[#F0F7F7]'
-              }`}
-            >
-              {st.label}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -294,7 +242,7 @@ export const RegistrationsTab: React.FC = () => {
             Belum ada data pendaftar yang cocok.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="hide-horizontal-scrollbar overflow-x-auto">
             <table className="w-full text-left text-xs text-[#4A5D61]">
               <thead className="bg-[#F8FAFB] border-b border-[#E0F2F1] text-[11px] font-bold text-[#173F42] uppercase tracking-wider">
                 <tr>
@@ -305,7 +253,6 @@ export const RegistrationsTab: React.FC = () => {
                   <th className="py-3.5 px-4">Kegiatan Pilihan</th>
                   <th className="py-3.5 px-4">Pembayaran</th>
                   <th className="py-3.5 px-4">Bukti</th>
-                  <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Aksi</th>
                 </tr>
               </thead>
@@ -353,31 +300,6 @@ export const RegistrationsTab: React.FC = () => {
                       ) : (
                         <span className="text-[11px] text-gray-400">Tidak ada</span>
                       )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
-                          r.status === 'terkonfirmasi'
-                            ? 'bg-[#E6FFFA] text-[#00A389]'
-                            : r.status === 'ditolak'
-                            ? 'bg-[#FEF2F2] text-[#DC2626]'
-                            : 'bg-[#FFFBEB] text-[#D97706]'
-                        }`}
-                      >
-                        {r.status === 'terkonfirmasi' ? (
-                          <>
-                            <CheckCircle2 className="w-3 h-3" /> Terkonfirmasi
-                          </>
-                        ) : r.status === 'ditolak' ? (
-                          <>
-                            <XCircle className="w-3 h-3" /> Ditolak
-                          </>
-                        ) : (
-                          <>
-                            <Clock className="w-3 h-3" /> Menunggu
-                          </>
-                        )}
-                      </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -509,34 +431,6 @@ export const RegistrationsTab: React.FC = () => {
                 )}
               </div>
 
-              {/* Verifikasi Status */}
-              <div className="pt-4 border-t border-[#F0F7F7] space-y-2">
-                <span className="font-bold text-[#173F42] block">Ubah Status Pendaftaran:</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => updateStatus(selectedReg.id, 'terkonfirmasi')}
-                    className={`h-10 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      selectedReg.status === 'terkonfirmasi'
-                        ? 'bg-[#00A389] text-white'
-                        : 'bg-[#E6FFFA] text-[#00A389] hover:bg-[#D1F2EB]'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>Terkonfirmasi</span>
-                  </button>
-                  <button
-                    onClick={() => updateStatus(selectedReg.id, 'ditolak')}
-                    className={`h-10 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                      selectedReg.status === 'ditolak'
-                        ? 'bg-[#DC2626] text-white'
-                        : 'bg-[#FEF2F2] text-[#DC2626] hover:bg-[#FEE2E2]'
-                    }`}
-                  >
-                    <XCircle className="w-4 h-4" />
-                    <span>Tolak</span>
-                  </button>
-                </div>
-              </div>
             </div>
           </div>
         </div>

@@ -100,7 +100,7 @@ export const FormBuilderTab: React.FC = () => {
         </button>
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1.5 -mx-1 px-1 scrollbar-none">
+      <div className="hide-horizontal-scrollbar flex gap-2 overflow-x-auto pb-1.5 -mx-1 px-1">
         {(
           [
             ['fields', 'Pengaturan & 12 Field'],

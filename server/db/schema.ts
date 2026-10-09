@@ -32,6 +32,7 @@ export const activities = pgTable('activities', {
   mapUrl: text('map_url').default(''),
   startDate: varchar('start_date', { length: 64 }).notNull(),
   endDate: varchar('end_date', { length: 64 }).notNull(),
+  activityTime: varchar('activity_time', { length: 64 }).notNull().default(''),
   price: integer('price').notNull().default(0),
   priceLabel: varchar('price_label', { length: 64 }).notNull().default('Gratis'),
   quota: integer('quota').notNull().default(50),
@@ -61,8 +62,6 @@ export const registrations = pgTable('registrations', {
   contributionProofUrl: text('contribution_proof_url').default(''),
   tagFriendsProofUrl: text('tag_friends_proof_url').default(''),
   repostStoryProofUrl: text('repost_story_proof_url').default(''),
-  status: varchar('status', { length: 32 }).notNull().default('menunggu_verifikasi'),
-  adminNotes: text('admin_notes').default(''),
   customAnswers: jsonb('custom_answers').$type<Record<string, string>>().default({}),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

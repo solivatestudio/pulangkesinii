@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Edit3, 
@@ -15,7 +15,7 @@ import {
   Search,
   Eye
 } from 'lucide-react';
-import { UploadButton } from '../../utils/uploadthing';
+import { uploadFiles } from '../../utils/uploadthing';
 import { PublicActivityCard } from '../../components/PublicActivityCard';
 
 const cities = ['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
@@ -46,6 +46,7 @@ interface ActivityItem {
   mapUrl?: string;
   startDate: string;
   endDate: string;
+  activityTime: string;
   price: number;
   priceLabel: string;
   quota: number;
@@ -64,6 +65,8 @@ export const ActivitiesTab: React.FC = () => {
   const [editingActivity, setEditingActivity] = useState<ActivityItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   // Form states
   const [formData, setFormData] = useState<Partial<ActivityItem>>({
@@ -76,6 +79,7 @@ export const ActivitiesTab: React.FC = () => {
     mapUrl: '',
     startDate: '',
     endDate: '',
+    activityTime: '',
     price: 0,
     priceLabel: 'Gratis',
     quota: 50,
@@ -118,6 +122,7 @@ export const ActivitiesTab: React.FC = () => {
       mapUrl: 'https://maps.google.com',
       startDate: '2026-10-20',
       endDate: '2026-10-21',
+      activityTime: '',
       price: 0,
       priceLabel: 'Gratis',
       quota: 50,
@@ -135,8 +140,28 @@ export const ActivitiesTab: React.FC = () => {
 
   const openEditModal = (act: ActivityItem) => {
     setEditingActivity(act);
-    setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), whatsappGroupUrl: act.whatsappGroupUrl || '' });
+    setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), activityTime: act.activityTime || '', whatsappGroupUrl: act.whatsappGroupUrl || '' });
     setIsModalOpen(true);
+  };
+
+  const handleCoverUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    try {
+      const result = await uploadFiles('mediaUploader', { files: [file] });
+      const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
+      if (!uploadedUrl) throw new Error('URL gambar tidak diterima');
+      setFormData((previous) => ({ ...previous, coverImage: uploadedUrl }));
+      alert('Gambar sampul berhasil diunggah.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Terjadi kesalahan';
+      alert(`Upload gagal: ${message}`);
+    } finally {
+      setUploadingCover(false);
+      event.target.value = '';
+    }
   };
 
   const handleDelete = async (id: string, title: string) => {
@@ -166,7 +191,8 @@ export const ActivitiesTab: React.FC = () => {
         description: formData.description || '', category: formData.category, status: formData.status,
         coverImage: formData.coverImage, locationName: formData.locationName,
         city: formData.city, address: formData.address || '', mapUrl: formData.mapUrl || '', startDate: formData.startDate,
-        endDate: formData.endDate || formData.startDate,
+        endDate: formData.startDate,
+        activityTime: formData.activityTime || '',
         price: formData.price || 0, priceLabel: formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`,
         quota: formData.quota || 50, quotaFilled: formData.quotaFilled || 0,
         requirements: formData.requirements || [], contactPerson: formData.contactPerson || null, whatsappGroupUrl: formData.whatsappGroupUrl || '',
@@ -234,7 +260,7 @@ export const ActivitiesTab: React.FC = () => {
             className="w-full h-10 pl-10 pr-4 text-xs rounded-xl bg-white border border-[#D5DFE0] focus:border-[#0EADAD] outline-none"
           />
         </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        <div className="hide-horizontal-scrollbar flex w-full items-center gap-1.5 overflow-x-auto sm:w-auto">
           {['Semua', 'Volunteer', 'Voluntrip', 'Fun Activity', 'Pendidikan', 'Social Care', 'Lingkungan'].map((cat) => (
             <button
               key={cat}
@@ -388,7 +414,7 @@ export const ActivitiesTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Tanggal & Biaya */}
+              {/* Tanggal & Jam */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Tanggal Pelaksanaan *</label>
@@ -402,16 +428,15 @@ export const ActivitiesTab: React.FC = () => {
                   {formData.startDate && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.startDate)}</p>}
                 </div>
                 <div>
-                  <label className="block font-bold text-[#26383C] mb-1">Tanggal Selesai *</label>
+                  <label className="block font-bold text-[#26383C] mb-1">Jam Kegiatan</label>
                   <input
-                    type="date"
-                    value={formData.endDate || ''}
-                    min={formData.startDate || undefined}
-                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                    type="text"
+                    value={formData.activityTime || ''}
+                    onChange={(e) => setFormData({ ...formData, activityTime: e.target.value })}
+                    placeholder="Contoh: 09.00–12.00 WIB"
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                    required
                   />
-                  {formData.endDate && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.endDate)}</p>}
+                  <p className="mt-1 text-[11px] text-[#6B7E82]">Opsional. Isi jam atau rentang waktu sesuai kebutuhan.</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -464,38 +489,40 @@ export const ActivitiesTab: React.FC = () => {
               {/* Foto cover */}
               <div>
                 <label className="block font-bold text-[#26383C] mb-1">Foto Cover Kegiatan *</label>
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-                  <div className="w-16 h-16 rounded-xl border border-[#D5DFE0] overflow-hidden flex-none bg-gray-50">
+                <div className="space-y-3">
+                  <div className="w-full aspect-video rounded-xl border border-[#D5DFE0] overflow-hidden bg-gray-50">
                     <img
                       src={formData.coverImage || '/assets/decor-1.png'}
                       alt="Preview"
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <div className="flex-1 w-full space-y-2">
-                    <input
-                      type="text"
-                      value={formData.coverImage || ''}
-                      onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
-                      placeholder="Masukkan URL foto atau unggah gambar"
-                      className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none text-xs"
-                      required
-                    />
+                  <div className="w-full space-y-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-gray-500">Atau upload gambar:</span>
-                      <UploadButton
-                        endpoint="mediaUploader"
-                        onClientUploadComplete={(res) => {
-                          if (res && res[0]) {
-                            const uploadedUrl = res[0].ufsUrl || res[0].url;
-                            setFormData((prev) => ({ ...prev, coverImage: uploadedUrl }));
-                            alert('Gambar sampul berhasil diunggah.');
-                          }
-                        }}
-                        onUploadError={(error: Error) => {
-                          alert(`Upload gagal: ${error.message}`);
-                        }}
+                      <input
+                        type="text"
+                        value={formData.coverImage || ''}
+                        onChange={(e) => setFormData({ ...formData, coverImage: e.target.value })}
+                        placeholder="Masukkan URL foto atau unggah gambar"
+                        className="min-w-0 flex-1 h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none text-xs"
+                        required
                       />
+                      <input
+                        ref={coverInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleCoverUpload}
+                        className="hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => coverInputRef.current?.click()}
+                        disabled={uploadingCover}
+                        className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-[#0EADAD] px-2.5 text-[11px] font-bold text-white shadow-sm transition-colors hover:bg-[#0C9696] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Upload className="h-3.5 w-3.5" />
+                        <span>{uploadingCover ? 'Mengunggah...' : 'Pilih Gambar'}</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -583,19 +610,20 @@ export const ActivitiesTab: React.FC = () => {
 
               {/* Syarat Mengikuti */}
               <div className="pt-2 border-t border-[#F0F7F7]">
-                <label className="block font-bold text-[#26383C] mb-1">Syarat Mengikuti (Pisahkan dengan koma)</label>
+                <label className="block font-bold text-[#26383C] mb-1">Syarat Mengikuti</label>
                 <textarea
-                  rows={2}
-                  value={formData.requirements?.join(', ') || ''}
+                  rows={3}
+                  value={formData.requirements?.join('\n') || ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      requirements: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
+                      requirements: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
                     })
                   }
-                  placeholder="Usia 15-30 tahun, Komitmen hadir"
+                  placeholder={'Terbuka untuk umum\nUsia 15–30 tahun\nBersedia hadir tepat waktu'}
                   className="w-full p-2.5 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                 />
+                <p className="mt-1 text-[11px] text-[#6B7E82]">Tulis satu syarat pada setiap baris.</p>
               </div>
 
               <div className="pt-4 border-t border-[#F0F7F7] flex justify-end gap-2.5">

@@ -124,7 +124,7 @@ export const DonationsTab: React.FC = () => {
             className="w-full h-10 pl-10 pr-4 text-xs rounded-xl bg-white border border-[#D5DFE0] focus:border-[#0EADAD] outline-none"
           />
         </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
+        <div className="hide-horizontal-scrollbar flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto pb-1 sm:pb-0">
           {[
             { id: 'all', label: 'Semua Status' },
             { id: 'menunggu_verifikasi', label: 'Menunggu' },
@@ -152,7 +152,7 @@ export const DonationsTab: React.FC = () => {
         ) : filtered.length === 0 ? (
           <div className="p-12 text-center text-xs text-[#6B7E82]">Belum ada data donasi yang cocok.</div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="hide-horizontal-scrollbar overflow-x-auto">
             <table className="w-full text-left text-xs text-[#4A5D61]">
               <thead className="bg-[#F8FAFB] border-b border-[#E0F2F1] text-[11px] font-bold text-[#173F42] uppercase tracking-wider">
                 <tr>

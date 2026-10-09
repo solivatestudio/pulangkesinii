@@ -73,7 +73,7 @@ export const PublicActivityCard: React.FC<{
     <article
       className={`group relative overflow-hidden rounded-lg bg-white shadow-sm transition-shadow duration-200 ${
         onOpen ? 'cursor-pointer hover:shadow-md' : ''
-      } ${compact ? 'w-[280px] shrink-0 snap-start sm:w-full' : 'w-full'}`}
+      } ${compact ? 'w-[280px] max-w-full shrink-0 snap-start sm:w-full' : 'w-full min-w-0 max-w-full'}`}
     >
       {onOpen && (
         <button
@@ -86,7 +86,7 @@ export const PublicActivityCard: React.FC<{
 
       <div className="relative">
         <img
-          className="aspect-video w-full object-cover"
+          className="aspect-video w-full bg-[#eef6f6] object-contain"
           src={item.photo || '/images/web/activity-04.webp'}
           alt={`Dokumentasi kegiatan ${item.category} Pulangkesinii`}
           loading="lazy"
@@ -102,14 +102,14 @@ export const PublicActivityCard: React.FC<{
           <span className="flex h-4 w-4 shrink-0 overflow-hidden rounded-full bg-white">
             <img className="h-full w-full object-cover" src="/assets/logo-palette.png" alt={`Logo ${item.category}`} />
           </span>
-          <span className="text-sm font-semibold text-white">{item.category}</span>
+          <span className="min-w-0 truncate text-sm font-semibold text-white">{item.category}</span>
         </div>
       </div>
 
-      <div className="p-3">
-        <div className="line-clamp-2 text-sm font-semibold leading-6 text-[#2B2B2B]">{displayTitle}</div>
+      <div className="min-w-0 p-3">
+        <div className="line-clamp-2 break-words text-sm font-semibold leading-6 text-[#2B2B2B]">{displayTitle}</div>
         {description && (
-          <div className="mt-1.5 line-clamp-1 text-xs font-normal leading-4 text-[#9B9B9B]">{description}</div>
+          <div className="mt-1.5 line-clamp-1 break-words text-xs font-normal leading-4 text-[#9B9B9B]">{description}</div>
         )}
         <div className="mt-2 flex w-full items-center gap-2 text-xs font-normal leading-4 text-[#20252B]">
           <MapPin size={12} color="#0EADAD" aria-hidden="true" className="shrink-0" />
@@ -121,7 +121,7 @@ export const PublicActivityCard: React.FC<{
         </div>
         <div className="mt-1.5 flex w-full items-center gap-2 text-xs font-normal leading-4 text-[#20252B]">
           <Tag size={12} color="#37499D" aria-hidden="true" className="shrink-0" />
-          <span className="font-semibold text-[#20252B]">{displayPrice}</span>
+          <span className="min-w-0 break-words font-semibold text-[#20252B]">{displayPrice}</span>
         </div>
       </div>
     </article>

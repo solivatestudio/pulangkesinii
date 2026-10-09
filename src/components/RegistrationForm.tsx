@@ -453,10 +453,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               Terima kasih, {formData.fullName || 'Kak'}! ❤️
             </h2>
             <p className="text-xs text-[#687479] mt-1.5 leading-relaxed">
-              Tanggapan kamu untuk <strong className="text-[#0eadad]">{formData.activityChoice || 'Pulangkesinii'}</strong> telah berhasil dicatat. Tim kami akan melakukan verifikasi berkas dan bukti pembayaran.
-            </p>
-            <p className="text-xs font-semibold text-[#173f42] mt-2 bg-[#fff9db] border border-[#ffe066]/50 rounded-lg px-3 py-2 inline-block">
-              Approval group maksimal H-4
+              Tanggapan kamu untuk <strong className="text-[#0eadad]">{formData.activityChoice || 'Pulangkesinii'}</strong> telah berhasil dicatat.
             </p>
           </div>
 
