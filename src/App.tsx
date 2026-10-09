@@ -403,11 +403,6 @@ export default function App(){
       setDonationSuccess(false);
       if (!donation.nama.trim()) { setDonationError('Nama wajib diisi'); return; }
       if (!donation.jumlah.trim()) { setDonationError('Jumlah donasi wajib diisi'); return; }
-      const numericAmount = Number(donation.jumlah.replace(/\D/g, ''));
-      if (isNaN(numericAmount) || numericAmount < 25000) {
-        setDonationError('Minimal nominal donasi adalah Rp25.000');
-        return;
-      }
       if (!paymentProofFile) { setDonationError('Unggah bukti pembayaran terlebih dahulu'); return; }
 
       setDonationSubmitting(true);
@@ -826,11 +821,11 @@ export default function App(){
                   <>
                     <label className="donation-field">
                       <span>Jumlah</span>
-                      <input type="text" inputMode="numeric" value={donation.jumlah} onChange={(e) => setDonation({ ...donation, jumlah: e.target.value })} placeholder="Contoh: 25000 (Min. Rp25.000)" />
+                      <input type="text" inputMode="numeric" value={donation.jumlah} onChange={(e) => setDonation({ ...donation, jumlah: e.target.value })} placeholder="tuliskan jumlah" />
                     </label>
 
                     <div className="quick-amounts">
-                      {['25000', '50000', '75000', '100000', '150000'].map((val) => (
+                      {['10000', '15000', '25000', '50000', '100000'].map((val) => (
                         <button type="button" key={val} className={donation.jumlah === val ? 'active' : ''} onClick={() => setDonation({ ...donation, jumlah: val })}>
                           Rp{Number(val).toLocaleString('id-ID')}
                         </button>
