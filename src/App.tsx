@@ -873,7 +873,7 @@ export default function App(){
                 <div className="section-label">Tentang Pulangkesinii</div>
                 <h2>Ruang untuk berbuat baik, bertemu, dan bertumbuh.</h2>
                 <p>
-                  Pulangkesinii adalah komunitas sosial yang menjadi ruang bagi anak muda untuk berbuat baik, bertemu orang-orang baru, bertumbuh, dan menciptakan dampak positif melalui kegiatan volunteer, voluntrip, serta kolaborasi sosial.
+                  Pulangkesinii merupakan gerakan sosial berbasis kerelawanan yang hadir sebagai ruang bagi generasi muda untuk terhubung, bertumbuh, dan menciptakan dampak positif melalui aksi nyata.
                 </p>
                 <blockquote>
                   “Pulang” bukan hanya kembali ke sebuah bangunan, tetapi kembali pada rasa nyaman, rasa memiliki, dan keyakinan bahwa kita tidak berjalan sendirian.
@@ -998,17 +998,17 @@ export default function App(){
               <div className="vision-card">
                 <CompassIcon className="brand-symbol" weight="duotone" aria-hidden="true" />
                 <span>Visi</span>
-                <p>Menjadi komunitas sosial yang menginspirasi generasi muda untuk bertumbuh, berbagi, dan menciptakan dampak positif melalui aksi nyata yang berkelanjutan.</p>
+                <p>Menjadi gerakan sosial yang menginspirasi dan memberdayakan generasi muda untuk bertumbuh, berkolaborasi, serta menciptakan perubahan positif yang inklusif dan berkelanjutan bagi masyarakat di seluruh Indonesia.</p>
               </div>
               <div className="mission-card">
                 <CompassIcon className="brand-symbol" weight="duotone" aria-hidden="true" />
                 <span>Misi</span>
                 <ul>
-                  <li>Menjadi ruang aman bagi anak muda untuk berkembang melalui kegiatan sosial.</li>
-                  <li>Mendorong budaya volunteer yang inklusif dan menyenangkan.</li>
-                  <li>Menghubungkan individu dan komunitas dalam kolaborasi sosial.</li>
-                  <li>Menghadirkan program sosial yang kreatif dan edukatif.</li>
-                  <li>Membangun kepedulian sosial sebagai bagian dari gaya hidup.</li>
+                  <li>Menyediakan ruang yang inklusif dan suportif bagi generasi muda untuk bertumbuh melalui pengalaman kerelawanan yang bermakna.</li>
+                  <li>Mendorong budaya kepedulian dan kerelawanan melalui kegiatan sosial yang kreatif, edukatif, dan berkelanjutan.</li>
+                  <li>Membangun kolaborasi strategis dengan masyarakat, komunitas, lembaga, dan berbagai pihak untuk memperluas jangkauan dampak sosial.</li>
+                  <li>Menghadirkan program sosial dan pemberdayaan yang memberikan manfaat nyata bagi masyarakat dan kelompok yang membutuhkan.</li>
+                  <li>Mengembangkan ekosistem kerelawanan yang profesional, transparan, dan berkelanjutan dengan mengedepankan nilai kemanusiaan serta kebersamaan.</li>
                 </ul>
               </div>
             </div>
