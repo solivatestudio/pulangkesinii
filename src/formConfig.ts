@@ -11,6 +11,7 @@ export interface CustomFormField {
 export interface FormConfig {
   formTitle: string;
   formDescription: string;
+  formBannerUrl?: string;
   contributionPolicyUrl: string;
   officialChannelName: string;
   officialChannelUrl: string;
@@ -52,6 +53,7 @@ export const defaultCoreFields: CoreFormField[] = [
 export const defaultFormConfig: FormConfig = {
   formTitle: 'Formulir Pendaftaran',
   formDescription: 'Ruang untuk berbuat baik & bertumbuh bersama',
+  formBannerUrl: 'https://placehold.co/704x176/0eadad/ffffff?text=Banner+Dummy+704x176',
   contributionPolicyUrl: 'https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view',
   officialChannelName: 'WhatsApp Pulangkesinii',
   officialChannelUrl: 'https://whatsapp.com/channel/0029Vb7x44LFXUuSeqigEW0B',
@@ -90,6 +92,7 @@ export const normalizeFormConfig = (value: unknown): FormConfig => {
   return {
     ...defaultFormConfig,
     ...config,
+    formBannerUrl: typeof config.formBannerUrl === 'string' ? config.formBannerUrl : defaultFormConfig.formBannerUrl,
     customFields: Array.isArray(config.customFields) ? config.customFields : [],
     fields,
     paymentMethods: Array.isArray(config.paymentMethods) && config.paymentMethods.length ? config.paymentMethods : defaultFormConfig.paymentMethods,

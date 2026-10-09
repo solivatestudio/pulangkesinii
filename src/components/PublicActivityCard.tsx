@@ -1,10 +1,11 @@
 import React from 'react';
-import { CalendarDays, Tag } from 'lucide-react';
+import { CalendarDays, MapPin, Tag } from 'lucide-react';
 
 export interface PublicActivityCardItem {
   id: string | number;
   category: string;
   city: string;
+  locationName?: string;
   photo: string;
   title?: string;
   startDate?: string;
@@ -52,6 +53,7 @@ export const PublicActivityCard: React.FC<{
   const isMeaningful = (val?: string) => Boolean(val && !val.trim().startsWith('[') && !val.trim().endsWith(']'));
   const isDummy = !isMeaningful(item.title);
   const displayTitle = item.title || '[Judul Kegiatan]';
+  const displayLocation = item.city || item.locationName || '[Lokasi]';
   const displayDate = humanizeDate(item.startDate) || '[Tanggal Pelaksanaan]';
   const displayPrice = item.priceLabel || '[Biaya/Gratis]';
   const description = isMeaningful(item.shortDescription) ? item.shortDescription : undefined;
@@ -109,12 +111,16 @@ export const PublicActivityCard: React.FC<{
         {description && (
           <div className="mt-1.5 line-clamp-1 text-xs font-normal leading-4 text-[#9B9B9B]">{description}</div>
         )}
+        <div className="mt-2 flex w-full items-center gap-2 text-xs font-normal leading-4 text-[#20252B]">
+          <MapPin size={12} color="#0EADAD" aria-hidden="true" className="shrink-0" />
+          <span className="truncate font-medium text-[#0EADAD]">{displayLocation}</span>
+        </div>
         <div className="mt-1.5 flex w-full items-center gap-2 text-xs font-normal leading-4 text-[#20252B]">
-          <CalendarDays size={12} color="#FF7614" aria-hidden="true" />
+          <CalendarDays size={12} color="#FF7614" aria-hidden="true" className="shrink-0" />
           <span className="truncate">{displayDate}</span>
         </div>
         <div className="mt-1.5 flex w-full items-center gap-2 text-xs font-normal leading-4 text-[#20252B]">
-          <Tag size={12} color="#37499D" aria-hidden="true" />
+          <Tag size={12} color="#37499D" aria-hidden="true" className="shrink-0" />
           <span className="font-semibold text-[#20252B]">{displayPrice}</span>
         </div>
       </div>

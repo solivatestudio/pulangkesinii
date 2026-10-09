@@ -564,6 +564,12 @@ app.delete("/api/registrations/:id", requireAuth, async (req, res) => {
 app.post("/api/donations", async (req, res) => {
   try {
     const data = donationBody.parse(req.body);
+    if (data.donationType === "Uang" || !data.donationType) {
+      const numAmount = Number((data.amount || "").replace(/\D/g, ""));
+      if (isNaN(numAmount) || numAmount < 25e3) {
+        return res.status(400).json({ error: "Minimal nominal donasi uang adalah Rp25.000" });
+      }
+    }
     const newDonation = {
       id: crypto.randomUUID(),
       name: data.name,

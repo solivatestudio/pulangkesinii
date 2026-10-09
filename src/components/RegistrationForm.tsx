@@ -528,8 +528,16 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       }}
       className="w-full pt-1 focus:outline-none"
     >
-      {/* Top Banner Header inside Modal */}
-      <div className="relative overflow-hidden rounded-2xl shadow-xs mb-3.5 min-h-[140px] sm:min-h-[176px] bg-cover bg-center" style={{ backgroundImage: "url('https://placehold.co/704x176/0eadad/ffffff?text=Banner+Dummy+704x176')" }} />
+      {/* Top Banner Header inside Modal (Rasio 4:1) */}
+      {formConfig.formBannerUrl && (
+        <div className="relative overflow-hidden rounded-2xl shadow-xs mb-3.5 w-full aspect-[4/1] bg-[#e0f7f6]">
+          <img
+            src={formConfig.formBannerUrl}
+            alt={formConfig.formTitle || 'Banner Formulir Pendaftaran'}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
 
       {/* 2-Step Progress Indicator */}
       <div className="bg-[#f0fbfb] p-2.5 rounded-xl border border-[#d2f0ef] mb-4 flex items-center justify-between text-xs">

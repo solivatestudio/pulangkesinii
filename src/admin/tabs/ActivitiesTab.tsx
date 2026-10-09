@@ -269,6 +269,7 @@ export const ActivitiesTab: React.FC = () => {
                   id: act.id,
                   category: act.category,
                   city: act.city,
+                  locationName: act.locationName,
                   photo: act.coverImage,
                   title: act.title,
                   startDate: formatDateId(act.startDate),
