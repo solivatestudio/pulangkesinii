@@ -64,71 +64,6 @@ const publicAddress = (address?: string) => {
   return places.slice(1).includes(value) ? undefined : value;
 };
 
-const defaultCatalogue: Activity[] = [
-  { 
-    id: 'act-01', 
-    category: 'Volunteer', 
-    city: 'Jakarta', 
-    color: 'cyan', 
-    photo: '/images/web/activity-04.webp', 
-    title: 'Volunteer Sahabat Mengajar & Cerita Anak', 
-    startDate: '2026-09-20', 
-    priceLabel: 'Gratis',
-    locationName: 'RPTRA Pulo Gebang',
-    address: 'Jl. Pulo Gebang Indah, Jakarta Timur',
-    shortDescription: 'Berbagi cerita, membaca buku, dan belajar kreativitas bersama anak-anak lingkungan.',
-    description: 'Program volunteer edukasi satu hari untuk menghadirkan ruang belajar yang menyenangkan, interaktif, dan penuh inspirasi.',
-    quota: 40,
-    quotaFilled: 18,
-    urgentClosing: true,
-    status: 'open'
-  },
-  { 
-    id: 'act-02', 
-    category: 'Voluntrip', 
-    city: 'Bandung', 
-    color: 'blue', 
-    photo: '/images/web/activity-09.webp', 
-    title: 'Voluntrip Konservasi Alam & Jelajah Budaya', 
-    startDate: '2026-10-05', 
-    priceLabel: 'Gratis',
-    locationName: 'Kawasan Wisata Lembang',
-    address: 'Desa Wisata Lembang, Bandung Barat',
-    shortDescription: 'Menanam pohon endemik, aksi bersih alam, dan berbaur bersama kearifan lokal.',
-    description: 'Perjalanan sosial 2 hari 1 malam yang menggabungkan aksi pelestarian lingkungan hidup dan interaksi hangat bersama warga.',
-    quota: 30,
-    quotaFilled: 14,
-    urgentClosing: false,
-    status: 'open'
-  },
-  { 
-    id: 'act-03', 
-    category: 'Workshop', 
-    city: 'Jogja', 
-    color: 'coral', 
-    photo: '/images/web/activity-14.webp', 
-    title: 'Workshop Pemberdayaan Digital Komunitas Muda', 
-    startDate: '2026-10-18', 
-    priceLabel: 'Gratis',
-    locationName: 'Ruang Kolaborasi Kreatif',
-    address: 'Jl. Malioboro No. 45, Yogyakarta',
-    shortDescription: 'Pelatihan pembuatan konten sosial, storytelling dampak, dan digital branding.',
-    description: 'Workshop intensif bersama para praktisi kreatif untuk membekali generasi muda dengan keterampilan storytelling sosial.',
-    quota: 50,
-    quotaFilled: 22,
-    urgentClosing: false,
-    status: 'open'
-  },
-];
-
-const defaultFaqItems = [
-  { question: 'Siapa saja yang boleh ikut kegiatan Pulangkesinii?', answer: 'Semua anak muda, pelajar, mahasiswa, pekerja, dan masyarakat umum yang memiliki semangat berbuat baik dan ingin bertumbuh bersama komunitas sosial.' },
-  { question: 'Bagaimana cara mendaftar kegiatan?', answer: 'Cukup pilih kegiatan yang kamu minati di katalog, klik tombol "Daftar Sekarang", isi formulir pendaftaran singkat, dan konfirmasikan keikutsertaanmu.' },
-  { question: 'Apakah kegiatan berbayar atau gratis?', answer: 'Sebagian besar kegiatan volunteer reguler adalah gratis. Untuk kegiatan khusus seperti Voluntrip, terdapat transparansi kontribusi akomodasi yang dijelaskan pada detail acara.' },
-  { question: 'Apakah peserta mendapatkan sertifikat?', answer: 'Ya! Setiap relawan yang berpartisipasi dan menyelesaikan kegiatan akan mendapatkan E-Sertifikat resmi dari Pulangkesinii sebagai apresiasi kontribusi.' },
-  { question: 'Bagaimana cara menjadi partner atau berkolaborasi?', answer: 'Komunitas, institusi, maupun perusahaan dapat menghubungi kami melalui email di pulangkesinii@gmail.com atau WhatsApp resmi kami untuk peluang kolaborasi sosial.' },
-];
-
 export default function App(){
   const [query,setQuery]=useState('');
   const [place,setPlace]=useState('Semua');
@@ -150,12 +85,9 @@ export default function App(){
     return ()=>window.removeEventListener('scroll',onScroll);
   },[]);
 
-  // Dynamic state populated directly from PostgreSQL database with fallback
-  const [catalogue, setCatalogue] = useState<Activity[]>(defaultCatalogue);
-  const [faqItems, setFaqItems] = useState<Array<{ question: string; answer: string }>>(defaultFaqItems);
-  const [galleryPhotos, setGalleryPhotos] = useState<string[]>(
-    Array.from({ length: 15 }, (_, index) => `/images/web/activity-${String(index + 1).padStart(2, '0')}.webp`)
-  );
+  const [catalogue, setCatalogue] = useState<Activity[]>([]);
+  const [faqItems, setFaqItems] = useState<Array<{ question: string; answer: string }>>([]);
+  const [galleryPhotos, setGalleryPhotos] = useState<string[]>([]);
   const [contactInfo, setContactInfo] = useState({
     whatsappNumber: '6285779321681',
     email: 'pulangkesinii@gmail.com',
@@ -181,7 +113,7 @@ export default function App(){
     fetch('/api/activities')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           const colors = ['cyan', 'blue', 'coral'];
           setCatalogue(
             data.map((item: any, idx: number) => ({
@@ -216,7 +148,7 @@ export default function App(){
     fetch('/api/faqs')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setFaqItems(
             data.map((f: any) => ({
               question: f.question,
@@ -231,7 +163,7 @@ export default function App(){
     fetch('/api/gallery')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (Array.isArray(data) && data.length > 0) {
+        if (Array.isArray(data)) {
           setGalleryPhotos(data.map((g: any) => g.imageUrl));
         }
       })
