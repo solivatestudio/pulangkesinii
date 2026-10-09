@@ -512,7 +512,7 @@ export default function App(){
               <a href="#momen">Galeri</a>
               <a href="#faq">FAQ</a>
               <a href="#kontak">Kontak</a>
-              <a href="#donasi" className="nav-admin-btn">Donasi</a>
+              {/* <a href="#donasi" className="nav-admin-btn">Donasi</a> */}
             </nav>
 
             {/* Mobile Hamburger Button */}
@@ -535,7 +535,7 @@ export default function App(){
                 <a href="#momen" onClick={() => setMenuOpen(false)}>Galeri</a>
                 <a href="#faq" onClick={() => setMenuOpen(false)}>FAQ</a>
                 <a href="#kontak" onClick={() => setMenuOpen(false)}>Kontak</a>
-                <a href="#donasi" onClick={() => setMenuOpen(false)}>Donasi</a>
+                {/* <a href="#donasi" onClick={() => setMenuOpen(false)}>Donasi</a> */}
               </nav>
             )}
           </div>
@@ -769,7 +769,10 @@ export default function App(){
           </div>
         </section>
 
-        {/* DONATION SECTION */}
+        {/* ========================================================================= */}
+        {/* DONATION & PRAYERS SECTIONS (NONAKTIF SEMENTARA - DAPAT DIAKTIFKAN LAGI) */}
+        {/* ========================================================================= */}
+        {/*
         <section className="donation-section" id="donasi" aria-labelledby="donasi-title">
           <div className="section-container">
             <div className="donation-heading">
@@ -884,7 +887,6 @@ export default function App(){
           </div>
         </section>
 
-        {/* PRAYERS / UCAPAN & DOA SECTION */}
         <section className="prayers-section" id="ucapan-doa" aria-labelledby="ucapan-doa-title">
           <div className="section-container">
             <div className="simple-heading">
@@ -929,6 +931,7 @@ export default function App(){
             )}
           </div>
         </section>
+        */}
 
         {/* ABOUT SECTION */}
         <section className="about-section" id="tentang">
@@ -1180,8 +1183,8 @@ export default function App(){
               <button type="button" onClick={() => setLegal('terms')}>Syarat & Ketentuan</button>
               <span>|</span>
               <a href="#kontak">Pusat Bantuan</a>
-              <span>|</span>
-              <a href="#donasi">Donasi</a>
+              {/* <span>|</span>
+              <a href="#donasi">Donasi</a> */}
               <span>|</span>
               <Link to="/admin">Admin</Link>
             </nav>

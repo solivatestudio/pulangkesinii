@@ -91,7 +91,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   const navItems = [
     { id: 'activities', label: 'Kegiatan & Cards', icon: Calendar, badge: stats.openActivities },
     { id: 'registrations', label: 'Pendaftaran Peserta', icon: Users, badge: stats.pendingRegistrations, badgeColor: 'bg-amber-500' },
-    { id: 'donations', label: 'Donasi', icon: HandHeart, badge: stats.pendingDonations, badgeColor: 'bg-amber-500' },
+    // { id: 'donations', label: 'Donasi', icon: HandHeart, badge: stats.pendingDonations, badgeColor: 'bg-amber-500' },
     { id: 'form_builder', label: 'Form Builder', icon: FileText },
     { id: 'gallery', label: 'Galeri Momen', icon: ImageIcon },
     { id: 'faqs', label: 'FAQ & Tanya Jawab', icon: HelpCircle },
@@ -266,69 +266,69 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
+      <main className="flex-1 min-w-0 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full overflow-y-auto">
         {/* Top Summary Banner */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mb-5 sm:mb-6">
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-[#6B7E82] font-semibold">Total Kegiatan</span>
-              <div className="w-8 h-8 rounded-xl bg-[#E0F7F6] text-[#087C7E] flex items-center justify-center">
-                <Calendar className="w-4 h-4" />
+              <span className="text-[10px] sm:text-[11px] text-[#6B7E82] font-semibold truncate">Total Kegiatan</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#E0F7F6] text-[#087C7E] flex items-center justify-center shrink-0">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalActivities}</span>
-              <span className="text-[11px] text-[#00A389] font-medium mt-1 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#00A389]" />
-                {stats.openActivities} aktif di web
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalActivities}</span>
+              <span className="text-[10px] sm:text-[11px] text-[#00A389] font-medium mt-0.5 sm:mt-1 inline-flex items-center gap-1 sm:gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#00A389] shrink-0" />
+                <span className="truncate">{stats.openActivities} aktif di web</span>
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-[#6B7E82] font-semibold">Pendaftaran</span>
-              <div className="w-8 h-8 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center">
-                <Users className="w-4 h-4" />
+              <span className="text-[10px] sm:text-[11px] text-[#6B7E82] font-semibold truncate">Pendaftaran</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#FEF3C7] text-[#D97706] flex items-center justify-center shrink-0">
+                <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalRegistrations}</span>
-              <span className="text-[11px] text-[#D97706] font-medium mt-1 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706]" />
-                {stats.pendingRegistrations} verifikasi
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalRegistrations}</span>
+              <span className="text-[10px] sm:text-[11px] text-[#D97706] font-medium mt-0.5 sm:mt-1 inline-flex items-center gap-1 sm:gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D97706] shrink-0" />
+                <span className="truncate">{stats.pendingRegistrations} verifikasi</span>
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-[#6B7E82] font-semibold">Foto Galeri</span>
-              <div className="w-8 h-8 rounded-xl bg-[#DDECFF] text-[#2563EB] flex items-center justify-center">
-                <ImageIcon className="w-4 h-4" />
+              <span className="text-[10px] sm:text-[11px] text-[#6B7E82] font-semibold truncate">Foto Galeri</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#DDECFF] text-[#2563EB] flex items-center justify-center shrink-0">
+                <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalPhotos}</span>
-              <span className="text-[11px] text-[#2563EB] font-medium mt-1 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB]" />
-                Momen kebaikan
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalPhotos}</span>
+              <span className="text-[10px] sm:text-[11px] text-[#2563EB] font-medium mt-0.5 sm:mt-1 inline-flex items-center gap-1 sm:gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#2563EB] shrink-0" />
+                <span className="truncate">Momen kebaikan</span>
               </span>
             </div>
           </div>
 
-          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#E0F2F1] shadow-xs flex flex-col justify-between">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] text-[#6B7E82] font-semibold">Tanya Jawab</span>
-              <div className="w-8 h-8 rounded-xl bg-[#FFE1D9] text-[#EA580C] flex items-center justify-center">
-                <HelpCircle className="w-4 h-4" />
+              <span className="text-[10px] sm:text-[11px] text-[#6B7E82] font-semibold truncate">Tanya Jawab</span>
+              <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-[#FFE1D9] text-[#EA580C] flex items-center justify-center shrink-0">
+                <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </div>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalFaqs}</span>
-              <span className="text-[11px] text-[#EA580C] font-medium mt-1 inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#EA580C]" />
-                FAQ aktif di beranda
+              <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-[#173F42] block tracking-tight">{stats.totalFaqs}</span>
+              <span className="text-[10px] sm:text-[11px] text-[#EA580C] font-medium mt-0.5 sm:mt-1 inline-flex items-center gap-1 sm:gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#EA580C] shrink-0" />
+                <span className="truncate">FAQ aktif</span>
               </span>
             </div>
           </div>
@@ -337,7 +337,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         {/* Tab Content */}
         {activeTab === 'activities' && <ActivitiesTab />}
         {activeTab === 'registrations' && <RegistrationsTab />}
-        {activeTab === 'donations' && <DonationsTab />}
+        {/* {activeTab === 'donations' && <DonationsTab />} */}
         {activeTab === 'form_builder' && <FormBuilderTab />}
         {activeTab === 'gallery' && <GalleryTab />}
         {activeTab === 'faqs' && <FaqsTab />}
