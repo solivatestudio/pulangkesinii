@@ -9,6 +9,7 @@ import {
   Heart,
   X
 } from 'lucide-react';
+import { notify } from '../../utils/notifications';
 
 interface DonationItem {
   id: string;
@@ -35,6 +36,17 @@ export const DonationsTab: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [selectedDonation, setSelectedDonation] = useState<DonationItem | null>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedDonation && !previewImage) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      if (previewImage) setPreviewImage(null);
+      else setSelectedDonation(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [selectedDonation, previewImage]);
 
   const fetchDonations = async () => {
     try {
@@ -69,11 +81,11 @@ export const DonationsTab: React.FC = () => {
           setSelectedDonation((prev) => (prev ? { ...prev, status: newStatus as any } : null));
         }
       } else {
-        alert('Gagal memperbarui status');
+        notify('Status donasi belum diperbarui. Coba lagi.', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan jaringan');
+      notify('Koneksi bermasalah. Periksa internet lalu coba lagi.', 'error');
     }
   };
 
@@ -85,11 +97,11 @@ export const DonationsTab: React.FC = () => {
         setDonations((prev) => prev.filter((d) => d.id !== id));
         if (selectedDonation?.id === id) setSelectedDonation(null);
       } else {
-        alert('Gagal menghapus data');
+        notify('Data donasi belum bisa dihapus. Coba lagi.', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan saat menghapus');
+      notify('Data donasi belum bisa dihapus. Coba lagi.', 'error');
     }
   };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, HelpCircle, Check, X } from 'lucide-react';
+import { notify } from '../../utils/notifications';
 
 interface FaqItem {
   id: string;
@@ -16,8 +17,17 @@ export const FaqsTab: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
-  const [category, setCategory] = useState('kegiatan');
+  const [category, setCategory] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isModalOpen]);
 
   const fetchFaqs = async () => {
     try {
@@ -40,7 +50,7 @@ export const FaqsTab: React.FC = () => {
     setEditingId(null);
     setQuestion('');
     setAnswer('');
-    setCategory('kegiatan');
+    setCategory('');
     setIsModalOpen(true);
   };
 
@@ -68,10 +78,11 @@ export const FaqsTab: React.FC = () => {
         setIsModalOpen(false);
         fetchFaqs();
       } else {
-        alert('Gagal menyimpan FAQ');
+        notify('FAQ belum tersimpan. Coba lagi.', 'error');
       }
     } catch (err) {
       console.error(err);
+      notify('Terjadi kendala saat menyimpan FAQ. Coba lagi.', 'error');
     } finally {
       setSaving(false);
     }
@@ -160,7 +171,9 @@ export const FaqsTab: React.FC = () => {
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="w-full h-10 px-2.5 border border-[#D5DFE0] rounded-xl outline-none"
+                  required
                 >
+                  <option value="" disabled>Pilih kategori</option>
                   <option value="kegiatan">Kegiatan</option>
                   <option value="pendaftaran">Pendaftaran</option>
                   <option value="komunitas">Komunitas</option>

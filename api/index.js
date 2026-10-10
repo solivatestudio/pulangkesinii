@@ -272,8 +272,8 @@ var activityBody = z.object({
   quota: z.coerce.number().int().min(1),
   quotaFilled: z.coerce.number().int().min(0),
   requirements: z.array(z.string().max(500)).optional(),
-  contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(),
-  whatsappGroupUrl: z.string().max(2e3).optional(),
+  contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string().regex(/^(?:628\d{7,12})?$/, "Nomor WhatsApp harus memakai format 628xxxxxxxxxx tanpa + atau spasi.") }).nullable().optional(),
+  whatsappGroupUrl: z.string().url().max(2e3),
   urgentClosing: z.boolean().optional()
 }).strict();
 var faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1e3), answer: z.string().min(1).max(1e4), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
@@ -400,7 +400,7 @@ app.post("/api/activities", requireAuth, validateBody(activityBody), async (req,
       quotaFilled: Number(data.quotaFilled || 0),
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
       contactPerson: data.contactPerson || { name: "Admin", role: "Event Coordinator", whatsapp: "6285779321681" },
-      whatsappGroupUrl: data.whatsappGroupUrl || "",
+      whatsappGroupUrl: data.whatsappGroupUrl,
       createdAt: /* @__PURE__ */ new Date(),
       updatedAt: /* @__PURE__ */ new Date()
     };
@@ -422,7 +422,7 @@ app.put("/api/activities/:id", requireAuth, validateBody(activityBody), async (r
       quotaFilled: Number(data.quotaFilled || 0),
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
       contactPerson: data.contactPerson,
-      whatsappGroupUrl: data.whatsappGroupUrl || "",
+      whatsappGroupUrl: data.whatsappGroupUrl,
       updatedAt: /* @__PURE__ */ new Date()
     };
     await db.update(activities).set(updateData).where(eq(activities.id, id));
@@ -447,7 +447,7 @@ var registrationSchema = z.object({
   email: z.string().trim().email().max(128).or(z.literal("")).default(""),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).default(""),
   domicile: z.string().trim().max(128).default(""),
-  whatsapp: z.string().trim().regex(/^\+?[0-9][0-9\s-]{7,20}$/).or(z.literal("")).default(""),
+  whatsapp: z.string().trim().regex(/^(?:628\d{7,12})?$/, "Nomor WhatsApp harus memakai format 628xxxxxxxxxx tanpa + atau spasi.").default(""),
   followedChannel: z.string().max(128).default(""),
   paymentMethod: z.string().max(64).default(""),
   reason: z.string().trim().max(5e3).default(""),
@@ -598,6 +598,15 @@ app.patch("/api/donations/:id/status", requireAuth, validateBody(z.object({ stat
 app.post("/api/donations/:id/aamiin", async (req, res) => {
   try {
     const updated = await db.update(donations).set({ aamiinCount: sql2`${donations.aamiinCount} + 1` }).where(eq(donations.id, req.params.id)).returning({ aamiinCount: donations.aamiinCount });
+    if (!updated.length) return res.status(404).json({ error: "Donasi tidak ditemukan" });
+    return res.json({ success: true, aamiinCount: updated[0].aamiinCount });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+app.delete("/api/donations/:id/aamiin", async (req, res) => {
+  try {
+    const updated = await db.update(donations).set({ aamiinCount: sql2`GREATEST(${donations.aamiinCount} - 1, 0)` }).where(eq(donations.id, req.params.id)).returning({ aamiinCount: donations.aamiinCount });
     if (!updated.length) return res.status(404).json({ error: "Donasi tidak ditemukan" });
     return res.json({ success: true, aamiinCount: updated[0].aamiinCount });
   } catch (err) {

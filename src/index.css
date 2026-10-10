@@ -1702,20 +1702,167 @@ button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visibl
   padding: 7px 12px;
   border-radius: 999px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 
-.aamiin-btn:hover,
+.aamiin-btn:hover:not(.active) {
+  background: #fff0f3;
+  border-color: #e47a8e;
+  color: #be3d58;
+  transform: translateY(-1px);
+}
+
 .aamiin-btn.active {
-  background: #d65f77;
-  border-color: #d65f77;
+  background: #bd3e5a;
+  border-color: #bd3e5a;
   color: #fff;
+  box-shadow: 0 5px 12px rgba(189, 62, 90, 0.28), inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+  animation: aamiin-pop 0.42s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+
+.aamiin-btn.active:hover {
+  background: #a9324d;
+  border-color: #a9324d;
+  transform: translateY(-1px);
+}
+
+.aamiin-btn.active svg {
+  animation: aamiin-heartbeat 0.65s ease-out;
+}
+
+@keyframes aamiin-pop {
+  0% { transform: scale(0.84); }
+  65% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes aamiin-heartbeat {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(1.32); }
+  60% { transform: scale(0.94); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aamiin-btn,
+  .aamiin-btn.active,
+  .aamiin-btn.active svg {
+    animation: none;
+    transition: none;
+  }
 }
 
 .prayer-count {
   font-size: 11px;
   color: #8fa3a6;
   text-align: right;
+}
+
+/* Daftar lengkap Harapan & Doa */
+.all-prayers-list {
+  display: grid;
+  gap: 14px;
+}
+
+.all-prayer-card {
+  background: #fafafa;
+  border: 1px solid #eeeeee;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(30, 45, 48, 0.06);
+  padding: 16px;
+}
+
+.all-prayer-header {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.all-prayer-avatar {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #e8efef;
+  color: #527175;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.all-prayer-name,
+.all-prayer-time,
+.all-prayer-text,
+.all-prayer-count {
+  margin: 0;
+}
+
+.all-prayer-name {
+  color: #253f42;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.all-prayer-time {
+  color: #8a989a;
+  font-size: 11px;
+  margin-top: 2px;
+}
+
+.all-prayer-text {
+  color: #3f5457;
+  font-size: 14px;
+  line-height: 1.65;
+  margin-top: 15px;
+  white-space: pre-line;
+}
+
+.all-prayer-count {
+  color: #758587;
+  font-size: 12px;
+  margin-top: 14px;
+}
+
+.all-prayer-count strong {
+  color: #506669;
+}
+
+.all-prayer-actions {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid #e8e8e8;
+  margin-top: 14px;
+  padding-top: 10px;
+}
+
+.all-aamiin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 4px;
+}
+
+.all-aamiin-btn {
+  color: #758587;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.all-aamiin-btn:hover,
+.all-aamiin-btn.active {
+  color: #bd3e5a;
+}
+
+.all-aamiin-btn.active svg {
+  animation: aamiin-heartbeat 0.65s ease-out;
+}
+
+.all-aamiin-btn:hover {
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
@@ -2848,7 +2995,39 @@ footer .section-container > p {
 
 @media (min-width: 640px) {
   .sheet-meta {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: 1.15fr 0.95fr 1.45fr 0.95fr 1.1fr;
+    gap: 0;
+    padding: 16px;
+  }
+
+  .detail-sheet .sheet-meta span {
+    min-height: 34px;
+    padding: 0 10px;
+    align-items: flex-start;
+  }
+
+  .sheet-meta span:first-child {
+    padding-left: 0;
+  }
+
+  .sheet-meta span + span {
+    border-left: 1px solid #c7e5e4;
+  }
+}
+
+@media (min-width: 768px) {
+  .detail-sheet {
+    width: min(860px, 92vw);
+  }
+
+  .sheet-meta {
+    grid-template-columns: 1.15fr 0.95fr 1.45fr 0.95fr 1.1fr;
+    gap: 0;
+    padding: 16px;
+  }
+
+  .detail-sheet .sheet-meta span {
+    padding: 0 14px;
   }
 }
 

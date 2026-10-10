@@ -26,6 +26,7 @@ import { GalleryTab } from './tabs/GalleryTab';
 import { FaqsTab } from './tabs/FaqsTab';
 import { SettingsTab } from './tabs/SettingsTab';
 import { DonationsTab } from './tabs/DonationsTab';
+import { NoticeViewport } from '../utils/notifications';
 
 interface AdminDashboardProps {
   user: any;
@@ -47,6 +48,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
   });
 
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     // Load summary stats
@@ -337,6 +347,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         {activeTab === 'faqs' && <FaqsTab />}
         {activeTab === 'settings' && <SettingsTab />}
       </main>
+      <NoticeViewport />
     </div>
   );
 };

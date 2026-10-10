@@ -1,6 +1,41 @@
 import React, { useState, useEffect } from 'react';
-import { Save, CreditCard, Phone, LockKeyhole } from 'lucide-react';
+import { Save, CreditCard, Phone, LockKeyhole, Plus, Trash2 } from 'lucide-react';
 import { UploadButton } from '../../utils/uploadthing';
+import { notify } from '../../utils/notifications';
+
+type PaymentAccount = {
+  bank: string;
+  accountNumber: string;
+  accountName: string;
+};
+
+const defaultAccounts: PaymentAccount[] = [];
+
+const normalizeAccounts = (value: unknown): PaymentAccount[] => {
+  if (!value || typeof value !== 'object') return defaultAccounts;
+  const settings = value as Record<string, unknown>;
+  if (Array.isArray(settings.accounts)) {
+    return settings.accounts
+      .filter((account): account is Record<string, unknown> => Boolean(account) && typeof account === 'object')
+      .map((account) => ({
+        bank: typeof account.bank === 'string' ? account.bank : '',
+        accountNumber: typeof account.accountNumber === 'string' ? account.accountNumber : '',
+        accountName: typeof account.accountName === 'string' ? account.accountName : '',
+      }));
+  }
+
+  // Data pengaturan lama menyimpan rekening sebagai bca, mandiri, seabank, dan gopay.
+  return ['bca', 'mandiri', 'seabank', 'gopay'].flatMap((key) => {
+    const account = settings[key];
+    if (!account || typeof account !== 'object') return [];
+    const legacy = account as Record<string, unknown>;
+    return [{
+      bank: typeof legacy.bank === 'string' ? legacy.bank : '',
+      accountNumber: typeof legacy.accountNumber === 'string' ? legacy.accountNumber : '',
+      accountName: typeof legacy.accountName === 'string' ? legacy.accountName : '',
+    }];
+  });
+};
 
 export const SettingsTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
@@ -8,24 +43,15 @@ export const SettingsTab: React.FC = () => {
   const [savingContact, setSavingContact] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState('');
+  const [accountErrors, setAccountErrors] = useState<Record<number, string>>({});
+  const [contactErrors, setContactErrors] = useState<Record<string, string>>({});
   const [passwords, setPasswords] = useState({ currentPassword: '', newPassword: '', confirmation: '' });
 
-  const [accounts, setAccounts] = useState({
-    bca: { bank: 'BCA', accountNumber: '1234567890', accountName: 'Pulangkesinii Komunitas' },
-    mandiri: { bank: 'Mandiri', accountNumber: '9876543210', accountName: 'Pulangkesinii Komunitas' },
-    seabank: { bank: 'SeaBank', accountNumber: '9012345678', accountName: 'Pulangkesinii Komunitas' },
-    gopay: { bank: 'GoPay / OVO', accountNumber: '085779321681', accountName: 'Pulangkesinii' },
-    qrisImageUrl: '/images/web/qris.webp',
-  });
+  const [accounts, setAccounts] = useState<PaymentAccount[]>(defaultAccounts);
+  const [qrisImageUrl, setQrisImageUrl] = useState('/images/web/qris.webp');
 
   const [contact, setContact] = useState({
-    whatsappNumber: '6285779321681',
-    whatsappFormatted: '+62 857-7932-1681',
-    email: 'pulangkesinii@gmail.com',
-    instagram: '@pulangkesinii',
-    tiktok: '@Pulangkesinii_',
-    basecamp: 'Jakarta Timur',
-    address: 'Jakarta Timur',
+    whatsappNumber: '', whatsappFormatted: '', email: '', instagram: '', tiktok: '', basecamp: '', address: '',
   });
 
   useEffect(() => {
@@ -35,11 +61,9 @@ export const SettingsTab: React.FC = () => {
         const res = await fetch('/api/settings');
         const data = await res.json();
         if (data.payment_accounts) {
-          const acc = { ...data.payment_accounts };
-          if (!acc.qrisImageUrl || acc.qrisImageUrl === '/assets/decor-1.png' || acc.qrisImageUrl === '/images/web/qris.jpeg') {
-            acc.qrisImageUrl = '/images/web/qris.webp';
-          }
-          setAccounts(acc);
+          const acc = data.payment_accounts;
+          setAccounts(normalizeAccounts(acc));
+          if (acc.qrisImageUrl) setQrisImageUrl(acc.qrisImageUrl);
         }
         if (data.contact_info) setContact((prev) => ({ ...prev, ...data.contact_info }));
       } catch (err) {
@@ -53,23 +77,51 @@ export const SettingsTab: React.FC = () => {
 
   const handleSaveAccounts = async (e: React.FormEvent) => {
     e.preventDefault();
+    const cleanAccounts = accounts.map((account) => ({
+      bank: account.bank.trim(),
+      accountNumber: account.accountNumber.trim(),
+      accountName: account.accountName.trim(),
+    }));
+    if (cleanAccounts.some((account) => !account.bank || !account.accountNumber || !account.accountName)) {
+      notify('Lengkapi nama bank/e-wallet, nomor rekening, dan atas nama pada setiap rekening.', 'error');
+      return;
+    }
+    const nextAccountErrors = Object.fromEntries(cleanAccounts.map((account, index) => [index, /^\d{8,20}$/.test(account.accountNumber) ? '' : 'Nomor rekening/e-wallet hanya boleh angka (8–20 digit).']));
+    setAccountErrors(nextAccountErrors);
+    if (Object.values(nextAccountErrors).some(Boolean)) return;
     setSavingAccounts(true);
     try {
       const res = await fetch('/api/settings/payment_accounts', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value: accounts }),
+        body: JSON.stringify({ value: { accounts: cleanAccounts, qrisImageUrl } }),
       });
-      if (res.ok) alert('Rekening pembayaran berhasil disimpan.');
+      if (res.ok) {
+        setAccounts(cleanAccounts);
+        notify('Rekening pembayaran berhasil disimpan.');
+      } else {
+        notify('Rekening belum tersimpan. Coba lagi.', 'error');
+      }
     } catch (err) {
       console.error(err);
+      notify('Koneksi bermasalah. Periksa internet lalu coba lagi.', 'error');
     } finally {
       setSavingAccounts(false);
     }
   };
 
+  const updateAccount = (index: number, field: keyof PaymentAccount, value: string) => {
+    setAccounts((current) => current.map((account, accountIndex) => accountIndex === index ? { ...account, [field]: value } : account));
+    if (field === 'accountNumber') setAccountErrors((current) => ({ ...current, [index]: value && !/^\d{8,20}$/.test(value) ? 'Nomor rekening/e-wallet hanya boleh angka (8–20 digit).' : '' }));
+  };
+
   const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
+    const nextContactErrors: Record<string, string> = {};
+    if (contact.whatsappNumber && !/^628\d{7,12}$/.test(contact.whatsappNumber)) nextContactErrors.whatsappNumber = 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.';
+    if (contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) nextContactErrors.email = 'Format email belum valid.';
+    setContactErrors(nextContactErrors);
+    if (Object.keys(nextContactErrors).length) return;
     setSavingContact(true);
     try {
       const res = await fetch('/api/settings/contact_info', {
@@ -77,9 +129,11 @@ export const SettingsTab: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ value: contact }),
       });
-      if (res.ok) alert('Informasi kontak berhasil disimpan.');
+      if (res.ok) notify('Informasi kontak berhasil disimpan.');
+      else notify('Informasi kontak belum tersimpan. Coba lagi.', 'error');
     } catch (err) {
       console.error(err);
+      notify('Koneksi bermasalah. Periksa internet lalu coba lagi.', 'error');
     } finally {
       setSavingContact(false);
     }
@@ -100,7 +154,7 @@ export const SettingsTab: React.FC = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal mengubah password');
-      alert(data.message);
+      notify(data.message);
       window.location.assign('/admin/login');
     } catch (error) {
       setPasswordError(error instanceof Error ? error.message : 'Gagal mengubah password');
@@ -135,78 +189,34 @@ export const SettingsTab: React.FC = () => {
 
         <form onSubmit={handleSaveAccounts} className="space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-              <span className="font-bold text-[#173F42] block">BCA</span>
-              <input
-                type="text"
-                value={accounts.bca.accountNumber}
-                onChange={(e) => setAccounts({ ...accounts, bca: { ...accounts.bca, accountNumber: e.target.value } })}
-                placeholder="Nomor Rekening"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-              <input
-                type="text"
-                value={accounts.bca.accountName}
-                onChange={(e) => setAccounts({ ...accounts, bca: { ...accounts.bca, accountName: e.target.value } })}
-                placeholder="Atas Nama"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-            </div>
-
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-              <span className="font-bold text-[#173F42] block">Mandiri</span>
-              <input
-                type="text"
-                value={accounts.mandiri.accountNumber}
-                onChange={(e) => setAccounts({ ...accounts, mandiri: { ...accounts.mandiri, accountNumber: e.target.value } })}
-                placeholder="Nomor Rekening"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-              <input
-                type="text"
-                value={accounts.mandiri.accountName}
-                onChange={(e) => setAccounts({ ...accounts, mandiri: { ...accounts.mandiri, accountName: e.target.value } })}
-                placeholder="Atas Nama"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-            </div>
-
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-              <span className="font-bold text-[#173F42] block">SeaBank</span>
-              <input
-                type="text"
-                value={accounts.seabank.accountNumber}
-                onChange={(e) => setAccounts({ ...accounts, seabank: { ...accounts.seabank, accountNumber: e.target.value } })}
-                placeholder="Nomor Rekening"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-              <input
-                type="text"
-                value={accounts.seabank.accountName}
-                onChange={(e) => setAccounts({ ...accounts, seabank: { ...accounts.seabank, accountName: e.target.value } })}
-                placeholder="Atas Nama"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-            </div>
-
-            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
-              <span className="font-bold text-[#173F42] block">GoPay / OVO</span>
-              <input
-                type="text"
-                value={accounts.gopay.accountNumber}
-                onChange={(e) => setAccounts({ ...accounts, gopay: { ...accounts.gopay, accountNumber: e.target.value } })}
-                placeholder="Nomor E-Wallet"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-              <input
-                type="text"
-                value={accounts.gopay.accountName}
-                onChange={(e) => setAccounts({ ...accounts, gopay: { ...accounts.gopay, accountName: e.target.value } })}
-                placeholder="Atas Nama"
-                className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none"
-              />
-            </div>
+            {accounts.map((account, index) => (
+              <div key={index} className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-bold text-[#173F42]">Rekening {index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAccounts((current) => current.filter((_, accountIndex) => accountIndex !== index))}
+                    className="text-red-600 hover:text-red-700 flex items-center gap-1 font-semibold cursor-pointer"
+                    aria-label={`Hapus rekening ${index + 1}`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5" /> Hapus
+                  </button>
+                </div>
+                <input type="text" value={account.bank} onChange={(e) => updateAccount(index, 'bank', e.target.value)} placeholder="Nama bank atau e-wallet" className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none" />
+                <div>
+                  <input type="text" inputMode="numeric" value={account.accountNumber} onChange={(e) => updateAccount(index, 'accountNumber', e.target.value)} placeholder="Nomor rekening / e-wallet" aria-invalid={Boolean(accountErrors[index])} className={`w-full h-9 px-3 bg-white border rounded-lg outline-none ${accountErrors[index] ? 'border-red-500' : 'border-gray-300'}`} />
+                  {accountErrors[index] && <p className="mt-1 text-[11px] text-red-600" role="alert">{accountErrors[index]}</p>}
+                </div>
+                <input type="text" value={account.accountName} onChange={(e) => updateAccount(index, 'accountName', e.target.value)} placeholder="Atas nama" className="w-full h-9 px-3 bg-white border border-gray-300 rounded-lg outline-none" />
+              </div>
+            ))}
           </div>
+
+          {accounts.length === 0 && <p className="text-gray-500">Belum ada rekening. Tambahkan rekening atau e-wallet yang ingin ditampilkan.</p>}
+
+          <button type="button" onClick={() => setAccounts((current) => [...current, { bank: '', accountNumber: '', accountName: '' }])} className="h-9 px-3 border border-dashed border-[#0EADAD] text-[#087c7e] hover:bg-[#f0fbfb] rounded-xl font-bold flex items-center gap-1.5 cursor-pointer">
+            <Plus className="w-4 h-4" /> Tambah Rekening
+          </button>
 
           <div className="flex justify-end pt-2">
             <button
@@ -237,11 +247,18 @@ export const SettingsTab: React.FC = () => {
               <label className="block font-bold text-[#26383C] mb-1">WhatsApp (Format 62...)</label>
               <input
                 type="text"
+                inputMode="numeric"
                 value={contact.whatsappNumber}
-                onChange={(e) => setContact({ ...contact, whatsappNumber: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setContact({ ...contact, whatsappNumber: value });
+                  setContactErrors((errors) => ({ ...errors, whatsappNumber: value && !/^628\d{7,12}$/.test(value) ? 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.' : '' }));
+                }}
                 placeholder="6285779321681"
-                className="w-full h-10 px-3 border border-gray-300 rounded-xl outline-none"
+                aria-invalid={Boolean(contactErrors.whatsappNumber)}
+                className={`w-full h-10 px-3 border rounded-xl outline-none ${contactErrors.whatsappNumber ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {contactErrors.whatsappNumber && <p className="mt-1 text-[11px] text-red-600" role="alert">{contactErrors.whatsappNumber}</p>}
             </div>
 
             <div>
@@ -249,10 +266,16 @@ export const SettingsTab: React.FC = () => {
               <input
                 type="email"
                 value={contact.email}
-                onChange={(e) => setContact({ ...contact, email: e.target.value })}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setContact({ ...contact, email: value });
+                  setContactErrors((errors) => ({ ...errors, email: value && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) ? 'Format email belum valid.' : '' }));
+                }}
                 placeholder="pulangkesinii@gmail.com"
-                className="w-full h-10 px-3 border border-gray-300 rounded-xl outline-none"
+                aria-invalid={Boolean(contactErrors.email)}
+                className={`w-full h-10 px-3 border rounded-xl outline-none ${contactErrors.email ? 'border-red-500' : 'border-gray-300'}`}
               />
+              {contactErrors.email && <p className="mt-1 text-[11px] text-red-600" role="alert">{contactErrors.email}</p>}
             </div>
 
             <div>

@@ -105,7 +105,7 @@ const activityBody = z.object({
   shortDescription: z.string().max(1000), description: z.string().max(20000), category: z.string().max(64), status: z.enum(['open', 'closing_soon', 'full', 'completed']),
   coverImage: z.string().min(1).max(2000), locationName: z.string().max(300), city: z.enum(['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya']), address: z.string().max(1000).optional(), mapUrl: z.string().max(2000).optional(),
   startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), activityTime: z.string().max(64).optional().default(''), price: z.coerce.number().int().min(0), priceLabel: z.string().max(64), quota: z.coerce.number().int().min(1), quotaFilled: z.coerce.number().int().min(0),
-  requirements: z.array(z.string().max(500)).optional(), contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string() }).nullable().optional(), whatsappGroupUrl: z.string().max(2000).optional(), urgentClosing: z.boolean().optional(),
+  requirements: z.array(z.string().max(500)).optional(), contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string().regex(/^(?:628\d{7,12})?$/, 'Nomor WhatsApp harus memakai format 628xxxxxxxxxx tanpa + atau spasi.') }).nullable().optional(), whatsappGroupUrl: z.string().url().max(2000), urgentClosing: z.boolean().optional(),
 }).strict();
 const faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1000), answer: z.string().min(1).max(10000), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
 const galleryBody = z.object({ id: z.string().max(64).optional(), title: z.string().min(1).max(128), batchTag: z.string().max(64).optional(), category: z.string().max(64).optional(), imageUrl: z.string().url(), caption: z.string().max(5000).optional(), location: z.string().max(128).optional(), date: z.string().max(64).optional(), tileClass: z.string().max(32).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
@@ -252,7 +252,7 @@ app.post('/api/activities', requireAuth, validateBody(activityBody), async (req:
       quotaFilled: Number(data.quotaFilled || 0),
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
       contactPerson: data.contactPerson || { name: 'Admin', role: 'Event Coordinator', whatsapp: '6285779321681' },
-      whatsappGroupUrl: data.whatsappGroupUrl || '',
+      whatsappGroupUrl: data.whatsappGroupUrl,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -277,7 +277,7 @@ app.put('/api/activities/:id', requireAuth, validateBody(activityBody), async (r
       quotaFilled: Number(data.quotaFilled || 0),
       requirements: Array.isArray(data.requirements) ? data.requirements : [],
       contactPerson: data.contactPerson,
-      whatsappGroupUrl: data.whatsappGroupUrl || '',
+      whatsappGroupUrl: data.whatsappGroupUrl,
       updatedAt: new Date(),
     };
 
@@ -306,7 +306,7 @@ const registrationSchema = z.object({
   email: z.string().trim().email().max(128).or(z.literal('')).default(''),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')).default(''),
   domicile: z.string().trim().max(128).default(''),
-  whatsapp: z.string().trim().regex(/^\+?[0-9][0-9\s-]{7,20}$/).or(z.literal('')).default(''),
+  whatsapp: z.string().trim().regex(/^(?:628\d{7,12})?$/, 'Nomor WhatsApp harus memakai format 628xxxxxxxxxx tanpa + atau spasi.').default(''),
   followedChannel: z.string().max(128).default(''),
   paymentMethod: z.string().max(64).default(''),
   reason: z.string().trim().max(5000).default(''),
@@ -481,6 +481,19 @@ app.post('/api/donations/:id/aamiin', async (req: Request, res: Response) => {
   try {
     const updated = await db.update(donations)
       .set({ aamiinCount: sql`${donations.aamiinCount} + 1` })
+      .where(eq(donations.id, req.params.id))
+      .returning({ aamiinCount: donations.aamiinCount });
+    if (!updated.length) return res.status(404).json({ error: 'Donasi tidak ditemukan' });
+    return res.json({ success: true, aamiinCount: updated[0].aamiinCount });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/donations/:id/aamiin', async (req: Request, res: Response) => {
+  try {
+    const updated = await db.update(donations)
+      .set({ aamiinCount: sql`GREATEST(${donations.aamiinCount} - 1, 0)` })
       .where(eq(donations.id, req.params.id))
       .returning({ aamiinCount: donations.aamiinCount });
     if (!updated.length) return res.status(404).json({ error: 'Donasi tidak ditemukan' });

@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { uploadFiles } from '../../utils/uploadthing';
 import { PublicActivityCard } from '../../components/PublicActivityCard';
+import { notify } from '../../utils/notifications';
 
 const cities = ['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
 const formatRupiah = (value: number) => new Intl.NumberFormat('id-ID').format(value || 0);
@@ -66,29 +67,41 @@ export const ActivitiesTab: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [contactWhatsappError, setContactWhatsappError] = useState('');
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const whatsappFormat = /^628\d{7,12}$/;
+  const whatsappFormatMessage = 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.';
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isModalOpen]);
 
   // Form states
   const [formData, setFormData] = useState<Partial<ActivityItem>>({
     title: '',
-    category: 'Volunteer',
-    status: 'open',
-    city: 'Jakarta',
+    category: '',
+    status: undefined,
+    city: '',
     locationName: '',
     address: '',
     mapUrl: '',
     startDate: '',
     endDate: '',
     activityTime: '',
-    price: 0,
-    priceLabel: 'Gratis',
-    quota: 50,
-    quotaFilled: 0,
+    price: undefined,
+    priceLabel: '',
+    quota: undefined,
+    quotaFilled: undefined,
     shortDescription: '',
     description: '',
-    coverImage: '/assets/decor-1.png',
-    requirements: ['Usia 17 - 30 tahun', 'Komitmen hadir penuh'],
-    contactPerson: { name: 'Admin Humas', role: 'Event Coordinator', whatsapp: '6285779321681' },
+    coverImage: '',
+    requirements: [],
+    contactPerson: { name: '', role: '', whatsapp: '' },
     whatsappGroupUrl: '',
     urgentClosing: false,
   });
@@ -112,26 +125,27 @@ export const ActivitiesTab: React.FC = () => {
 
   const openCreateModal = () => {
     setEditingActivity(null);
+    setContactWhatsappError('');
     setFormData({
       title: '',
-      category: 'Volunteer',
-      status: 'open',
-      city: 'Jakarta',
-      locationName: 'Panti / Ruang Belajar',
-      address: 'Jakarta',
-      mapUrl: 'https://maps.google.com',
-      startDate: '2026-10-20',
-      endDate: '2026-10-21',
+      category: '',
+      status: undefined,
+      city: '',
+      locationName: '',
+      address: '',
+      mapUrl: '',
+      startDate: '',
+      endDate: '',
       activityTime: '',
-      price: 0,
-      priceLabel: 'Gratis',
-      quota: 50,
-      quotaFilled: 0,
-      shortDescription: 'Deskripsi singkat kegiatan volunteer...',
-      description: 'Deskripsi lengkap kegiatan yang akan diselenggarakan oleh Pulangkesinii...',
-      coverImage: '/images/web/activity-04.webp',
-      requirements: ['Terbuka untuk umum (15-30 tahun)', 'Memiliki empati & senyum ramah'],
-      contactPerson: { name: 'Kak Humas', role: 'Event Coordinator', whatsapp: '6285779321681' },
+      price: undefined,
+      priceLabel: '',
+      quota: undefined,
+      quotaFilled: undefined,
+      shortDescription: '',
+      description: '',
+      coverImage: '',
+      requirements: [],
+      contactPerson: { name: '', role: '', whatsapp: '' },
       whatsappGroupUrl: '',
       urgentClosing: false,
     });
@@ -140,6 +154,7 @@ export const ActivitiesTab: React.FC = () => {
 
   const openEditModal = (act: ActivityItem) => {
     setEditingActivity(act);
+    setContactWhatsappError('');
     setFormData({ ...act, startDate: toDateInput(act.startDate), endDate: toDateInput(act.endDate), activityTime: act.activityTime || '', whatsappGroupUrl: act.whatsappGroupUrl || '' });
     setIsModalOpen(true);
   };
@@ -154,10 +169,10 @@ export const ActivitiesTab: React.FC = () => {
       const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
       if (!uploadedUrl) throw new Error('URL gambar tidak diterima');
       setFormData((previous) => ({ ...previous, coverImage: uploadedUrl }));
-      alert('Gambar sampul berhasil diunggah.');
+      notify('Gambar sampul berhasil diunggah.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Terjadi kesalahan';
-      alert(`Upload gagal: ${message}`);
+      notify(`Upload gagal: ${message}`, 'error');
     } finally {
       setUploadingCover(false);
       event.target.value = '';
@@ -171,16 +186,22 @@ export const ActivitiesTab: React.FC = () => {
       if (res.ok) {
         setActivities(activities.filter((a) => a.id !== id));
       } else {
-        alert('Gagal menghapus kegiatan');
+        notify('Kegiatan belum bisa dihapus. Coba lagi.', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan jaringan');
+      notify('Koneksi bermasalah. Periksa internet lalu coba lagi.', 'error');
     }
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const whatsapp = formData.contactPerson?.whatsapp.trim() || '';
+    if (whatsapp && !whatsappFormat.test(whatsapp)) {
+      setContactWhatsappError(whatsappFormatMessage);
+      return;
+    }
+    setContactWhatsappError('');
     setSaving(true);
     try {
       const method = editingActivity ? 'PUT' : 'POST';
@@ -195,7 +216,7 @@ export const ActivitiesTab: React.FC = () => {
         activityTime: formData.activityTime || '',
         price: formData.price || 0, priceLabel: formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`,
         quota: formData.quota || 50, quotaFilled: formData.quotaFilled || 0,
-        requirements: formData.requirements || [], contactPerson: formData.contactPerson || null, whatsappGroupUrl: formData.whatsappGroupUrl || '',
+        requirements: formData.requirements || [], contactPerson: formData.contactPerson ? { ...formData.contactPerson, whatsapp } : null, whatsappGroupUrl: formData.whatsappGroupUrl?.trim(),
         urgentClosing: Boolean(formData.urgentClosing),
       };
       const res = await fetch(endpoint, {
@@ -210,11 +231,11 @@ export const ActivitiesTab: React.FC = () => {
       } else {
         const data = await res.json();
         const detail = Array.isArray(data.details) ? data.details.map((item: { path?: Array<string | number>; message?: string }) => `${item.path?.join('.') || 'field'}: ${item.message}`).join('\n') : '';
-        alert(`Gagal menyimpan kegiatan: ${data.error || 'Terjadi kesalahan'}${detail ? `\n${detail}` : ''}`);
+        notify(`Kegiatan belum tersimpan: ${data.error || 'Terjadi kesalahan'}${detail ? ` (${detail})` : ''}`, 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan saat menyimpan');
+      notify('Kegiatan belum tersimpan. Coba lagi.', 'error');
     } finally {
       setSaving(false);
     }
@@ -365,10 +386,11 @@ export const ActivitiesTab: React.FC = () => {
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Kategori *</label>
                   <select
-                    value={formData.category || 'Volunteer'}
+                    value={formData.category || ''}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full h-10 px-2.5 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                  >
+                    required
+                  ><option value="" disabled>Pilih kategori</option>
                     <option value="Volunteer">Volunteer</option>
                     <option value="Voluntrip">Voluntrip</option>
                     <option value="Fun Activity">Fun Activity</option>
@@ -388,15 +410,16 @@ export const ActivitiesTab: React.FC = () => {
                     }}
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none bg-white"
                     required
-                  >{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select>
+                  ><option value="" disabled>Pilih kota / wilayah</option>{cities.map((city) => <option key={city} value={city}>{city}</option>)}</select>
                 </div>
                 <div>
                   <label className="block font-bold text-[#26383C] mb-1">Status Kegiatan</label>
                   <select
-                    value={formData.status || 'open'}
+                    value={formData.status || ''}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                     className="w-full h-10 px-2.5 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
-                  >
+                    required
+                  ><option value="" disabled>Pilih status</option>
                     <option value="open">Open (Terbuka)</option>
                     <option value="closing_soon">Closing Soon (Segera Berakhir)</option>
                     <option value="full">Full (Penuh)</option>
@@ -447,19 +470,20 @@ export const ActivitiesTab: React.FC = () => {
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={formatRupiah(formData.price || 0)}
+                      value={formData.price === undefined ? '' : formatRupiah(formData.price)}
                       onChange={(e) => {
-                        const price = Number(e.target.value.replace(/\D/g, '')) || 0;
+                        const digits = e.target.value.replace(/\D/g, '');
+                        const price = digits ? Number(digits) : undefined;
                         setFormData({
                           ...formData,
                           price,
-                          priceLabel: price === 0 ? 'Gratis' : `Rp ${price.toLocaleString('id-ID')}`,
+                          priceLabel: price === undefined ? '' : price === 0 ? 'Gratis' : `Rp ${price.toLocaleString('id-ID')}`,
                         });
                       }}
-                      className="w-full h-10 pl-9 pr-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none font-semibold"
+                      placeholder="0 untuk gratis" className="w-full h-10 pl-9 pr-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none font-semibold"
                     />
                   </div>
-                  <p className="mt-1 text-[11px] text-[#6B7E82]">{formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`}</p>
+                  {formData.price !== undefined && <p className="mt-1 text-[11px] text-[#6B7E82]">{formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price)}`}</p>}
                 </div>
               </div>
 
@@ -469,8 +493,9 @@ export const ActivitiesTab: React.FC = () => {
                   <label className="block font-bold text-[#26383C] mb-1">Kuota Maksimal *</label>
                   <input
                     type="number"
-                    value={formData.quota ?? 50}
-                    onChange={(e) => setFormData({ ...formData, quota: Number(e.target.value) })}
+                    value={formData.quota ?? ''}
+                    onChange={(e) => setFormData({ ...formData, quota: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="Contoh: 50"
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                     required
                   />
@@ -479,8 +504,9 @@ export const ActivitiesTab: React.FC = () => {
                   <label className="block font-bold text-[#26383C] mb-1">Kuota Terisi</label>
                   <input
                     type="number"
-                    value={formData.quotaFilled ?? 0}
-                    onChange={(e) => setFormData({ ...formData, quotaFilled: Number(e.target.value) })}
+                    value={formData.quotaFilled ?? ''}
+                    onChange={(e) => setFormData({ ...formData, quotaFilled: e.target.value ? Number(e.target.value) : undefined })}
+                    placeholder="Contoh: 0"
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                   />
                 </div>
@@ -554,7 +580,7 @@ export const ActivitiesTab: React.FC = () => {
 
               <div>
                 <label className="block font-bold text-[#26383C] mb-1">
-                  Tautan / Link Grup WhatsApp Kegiatan (Opsional)
+                  Tautan / Link Grup WhatsApp Kegiatan *
                 </label>
                 <input
                   type="url"
@@ -562,6 +588,7 @@ export const ActivitiesTab: React.FC = () => {
                   onChange={(e) => setFormData({ ...formData, whatsappGroupUrl: e.target.value })}
                   placeholder="Contoh: https://chat.whatsapp.com/..."
                   className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                  required
                 />
                 <p className="mt-1 text-[11px] text-[#6B7E82]">
                   Pendaftar kegiatan ini akan otomatis diarahkan ke grup WhatsApp ini setelah submit formulir.
@@ -599,11 +626,20 @@ export const ActivitiesTab: React.FC = () => {
                     <label className="block font-bold text-[#26383C] mb-1">Nomor WhatsApp</label>
                     <input
                       type="text"
+                      inputMode="numeric"
                       value={formData.contactPerson?.whatsapp || ''}
-                      onChange={(e) => setFormData({ ...formData, contactPerson: { ...(formData.contactPerson || { name: '', role: '', whatsapp: '' }), whatsapp: e.target.value } })}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setFormData({ ...formData, contactPerson: { ...(formData.contactPerson || { name: '', role: '', whatsapp: '' }), whatsapp: value } });
+                        setContactWhatsappError(value && !whatsappFormat.test(value) ? whatsappFormatMessage : '');
+                      }}
+                      onBlur={(e) => setContactWhatsappError(e.target.value && !whatsappFormat.test(e.target.value) ? whatsappFormatMessage : '')}
                       placeholder="Contoh: 6285xxxxxxx"
-                      className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                      aria-invalid={Boolean(contactWhatsappError)}
+                      aria-describedby={contactWhatsappError ? 'contact-whatsapp-error' : undefined}
+                      className={`w-full h-10 px-3 border rounded-xl outline-none ${contactWhatsappError ? 'border-red-500 focus:border-red-500' : 'border-[#D5DFE0] focus:border-[#0EADAD]'}`}
                     />
+                    {contactWhatsappError && <p id="contact-whatsapp-error" className="mt-1 text-[11px] text-red-600" role="alert">{contactWhatsappError}</p>}
                   </div>
                 </div>
               </div>
@@ -613,17 +649,16 @@ export const ActivitiesTab: React.FC = () => {
                 <label className="block font-bold text-[#26383C] mb-1">Syarat Mengikuti</label>
                 <textarea
                   rows={3}
-                  value={formData.requirements?.join('\n') || ''}
+                  value={formData.requirements?.[0] || ''}
                   onChange={(e) =>
                     setFormData({
                       ...formData,
-                      requirements: e.target.value.split('\n').map((s) => s.trim()).filter(Boolean),
+                      requirements: e.target.value.trim() ? [e.target.value] : [],
                     })
                   }
-                  placeholder={'Terbuka untuk umum\nUsia 15–30 tahun\nBersedia hadir tepat waktu'}
+                  placeholder="Tulis syarat mengikuti kegiatan..."
                   className="w-full p-2.5 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
                 />
-                <p className="mt-1 text-[11px] text-[#6B7E82]">Tulis satu syarat pada setiap baris.</p>
               </div>
 
               <div className="pt-4 border-t border-[#F0F7F7] flex justify-end gap-2.5">

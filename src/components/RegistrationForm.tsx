@@ -17,6 +17,31 @@ import confetti from 'canvas-confetti';
 import { uploadFiles } from '../utils/uploadthing';
 import { defaultFormConfig, normalizeFormConfig, type CustomFormField, type FormConfig } from '../formConfig';
 
+type PaymentAccount = { bank: string; accountNumber: string; accountName: string };
+
+const fallbackPaymentAccounts: PaymentAccount[] = [
+  { bank: 'Mandiri', accountNumber: '60012878900', accountName: 'Ilham Nur Sidik' },
+  { bank: 'Seabank', accountNumber: '901468640854', accountName: 'Ilham Nur Sidik' },
+  { bank: 'Gopay', accountNumber: '088976190966', accountName: 'Ilham Nur Sidik' },
+];
+
+const normalizePaymentAccounts = (value: unknown): PaymentAccount[] => {
+  if (!value || typeof value !== 'object') return fallbackPaymentAccounts;
+  const settings = value as Record<string, unknown>;
+  const items = Array.isArray(settings.accounts)
+    ? settings.accounts
+    : ['bca', 'mandiri', 'seabank', 'gopay'].map((key) => settings[key]).filter(Boolean);
+  const accounts = items.flatMap((item) => {
+    if (!item || typeof item !== 'object') return [];
+    const account = item as Record<string, unknown>;
+    const bank = typeof account.bank === 'string' ? account.bank.trim() : '';
+    const accountNumber = typeof account.accountNumber === 'string' ? account.accountNumber.trim() : '';
+    const accountName = typeof account.accountName === 'string' ? account.accountName.trim() : '';
+    return bank && accountNumber ? [{ bank, accountNumber, accountName }] : [];
+  });
+  return accounts.length ? accounts : fallbackPaymentAccounts;
+};
+
 export interface RegistrationFormData {
   fullName: string;
   email: string;
@@ -51,7 +76,7 @@ export interface RegistrationFormData {
 interface RegistrationFormProps {
   onClose?: () => void;
   onSubmitSuccess?: (data: RegistrationFormData) => void;
-  activity?: { id: number | string; title?: string; quota?: number; quotaFilled?: number; status?: string } | null;
+  activity?: { id: number | string; title?: string; quota?: number; quotaFilled?: number; status?: string; priceLabel?: string } | null;
 }
 
 export const RegistrationForm: React.FC<RegistrationFormProps> = ({
@@ -81,8 +106,9 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [copiedAccount, setCopiedAccount] = useState<string | null>(null);
   const [formConfig, setFormConfig] = useState<FormConfig>(defaultFormConfig);
+  const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>(fallbackPaymentAccounts);
   const [submitError, setSubmitError] = useState('');
-  const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number; whatsappGroupUrl?: string }>>([]);
+  const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number; whatsappGroupUrl?: string; priceLabel?: string }>>([]);
   const [selectedActivityId, setSelectedActivityId] = useState('');
   const core = (id: import('../formConfig').CoreFieldId) => formConfig.fields.find((field) => field.id === id) || defaultFormConfig.fields.find((field) => field.id === id)!;
 
@@ -90,6 +116,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const selectedQuotaFilled = typeof activity?.quotaFilled === 'number' ? activity.quotaFilled : undefined;
   const isSelectedActivityFull = selectedQuota !== undefined && selectedQuotaFilled !== undefined && selectedQuotaFilled >= selectedQuota;
   const isSelectedActivityClosed = isSelectedActivityFull || activity?.status === 'full' || activity?.status === 'completed';
+  const selectedContributionActivity = activity || availableActivities.find((item) => item.id === selectedActivityId || item.title === formData.activityChoice);
+  const contributionFee = selectedContributionActivity?.priceLabel || 'Belum ditentukan';
 
   useEffect(() => {
     fetch('/api/settings/registration_form_config')
@@ -97,6 +125,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
       .then((data) => {
         setFormConfig(normalizeFormConfig(data?.value));
       })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/settings/payment_accounts')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => setPaymentAccounts(normalizePaymentAccounts(data?.value)))
       .catch(() => {});
   }, []);
 
@@ -220,6 +255,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     }
     if (core('whatsapp').enabled && core('whatsapp').required && !formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Nomor WhatsApp wajib diisi';
+    } else if (core('whatsapp').enabled && formData.whatsapp.trim() && !/^628\d{7,12}$/.test(formData.whatsapp.trim())) {
+      newErrors.whatsapp = 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol';
     }
     for (const field of formConfig.customFields.filter((item) => item.step === 1 && item.required)) {
       if (!formData.customAnswers[field.id]?.trim()) newErrors[field.id] = `${field.label} wajib diisi`;
@@ -485,28 +522,11 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               className="w-full h-11 bg-[#25D366] hover:bg-[#20ba59] active:scale-[0.99] text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
             >
               <MessageCircle className="w-4 h-4 fill-white text-[#25D366]" />
-              <span>Gabung Grup WhatsApp Kegiatan</span>
+              <span>WAJIB! Gabung Grup WhatsApp Kegiatan</span>
             </a>
-
-            {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="w-full h-11 bg-[#0eadad] hover:bg-[#0c9696] text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Selesai & Tutup</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => {
-                setIsSubmitted(false);
-                setCurrentStep(1);
-              }}
-              className="w-full h-10 bg-white hover:bg-slate-50 border border-[#d9dde1] text-[#173f42] font-semibold text-xs rounded-xl transition-all cursor-pointer"
-            >
-              Kirim tanggapan lain
-            </button>
+            <p className="text-[11px] leading-relaxed text-[#687479] px-2">
+              Permintaan bergabung ke grup akan disetujui maksimal H-4 sebelum kegiatan berlangsung.
+            </p>
           </div>
         </div>
       </div>
@@ -772,12 +792,17 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             </label>
             <input
               type="tel"
+              inputMode="numeric"
               value={formData.whatsapp}
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, whatsapp: e.target.value }));
-                if (errors.whatsapp) setErrors(prev => ({ ...prev, whatsapp: '' }));
+                if (errors.whatsapp) setErrors(prev => ({ ...prev, whatsapp: /^628\d{7,12}$/.test(e.target.value) ? '' : prev.whatsapp }));
               }}
-              placeholder="Jawaban Anda"
+              onBlur={(e) => {
+                const value = e.target.value.trim();
+                if (value && !/^628\d{7,12}$/.test(value)) setErrors(prev => ({ ...prev, whatsapp: 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol' }));
+              }}
+              placeholder={core('whatsapp').placeholder || '628xxxxxxxxxx'}
               className="w-full h-11 px-3.5 bg-[#fbfcfc] border border-[#cbd5e1] focus:border-[#0eadad] focus:bg-white rounded-xl text-sm outline-none transition-all focus:ring-3 focus:ring-[#0eadad]/15 text-[#173f42]"
             />
             {errors.whatsapp && (
@@ -838,47 +863,25 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               
               <div className="bg-[#f0fbfb] p-3 rounded-xl border border-[#d2f0ef] text-xs text-[#173f42] space-y-1">
                 <p className="font-semibold text-[#087c7e]">Biaya Kontribusi:</p>
-                <p>• Rp. 80.000 rupiah</p>
-                <p>• Rp. 90.000 rupiah (Khusus Jakarta 1)</p>
+                <p>• {contributionFee}</p>
               </div>
 
               <div className="bg-[#fff9db] p-3 rounded-xl border border-[#ffe066]/50 text-xs text-[#2D3748] space-y-1.5">
                 <p className="font-bold text-[#92400e]">Pembayaran melalui :</p>
                 <div className="space-y-1 font-medium">
-                  <div className="flex items-center justify-between">
-                    <span>1. Mandiri = <strong className="font-bold">60012878900</strong></span>
-                    <button 
-                      type="button" 
-                      onClick={() => handleCopy('60012878900', 'Mandiri')}
-                      className="text-[10px] bg-white border border-[#d9dde1] px-2 py-0.5 rounded text-[#173f42] font-semibold flex items-center gap-1 hover:bg-slate-50 cursor-pointer"
-                    >
-                      <Copy className="w-2.5 h-2.5" />
-                      <span>{copiedAccount === 'Mandiri' ? 'Tersalin' : 'Salin'}</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>2. Seabank = <strong className="font-bold">901468640854</strong></span>
-                    <button 
-                      type="button" 
-                      onClick={() => handleCopy('901468640854', 'Seabank')}
-                      className="text-[10px] bg-white border border-[#d9dde1] px-2 py-0.5 rounded text-[#173f42] font-semibold flex items-center gap-1 hover:bg-slate-50 cursor-pointer"
-                    >
-                      <Copy className="w-2.5 h-2.5" />
-                      <span>{copiedAccount === 'Seabank' ? 'Tersalin' : 'Salin'}</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>3. Gopay = <strong className="font-bold">088976190966</strong></span>
-                    <button 
-                      type="button" 
-                      onClick={() => handleCopy('088976190966', 'Gopay')}
-                      className="text-[10px] bg-white border border-[#d9dde1] px-2 py-0.5 rounded text-[#173f42] font-semibold flex items-center gap-1 hover:bg-slate-50 cursor-pointer"
-                    >
-                      <Copy className="w-2.5 h-2.5" />
-                      <span>{copiedAccount === 'Gopay' ? 'Tersalin' : 'Salin'}</span>
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-[#78350f] pt-0.5 font-bold">A/N Ilham Nur Sidik</p>
+                  {paymentAccounts.map((account, index) => (
+                    <div key={`${account.bank}-${account.accountNumber}`} className="flex items-center justify-between gap-3">
+                      <span>{index + 1}. {account.bank} = <strong className="font-bold">{account.accountNumber}</strong>{account.accountName && <small className="block text-[10px] text-[#78350f]">A/N {account.accountName}</small>}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(account.accountNumber, account.bank)}
+                        className="text-[10px] bg-white border border-[#d9dde1] px-2 py-0.5 rounded text-[#173f42] font-semibold flex items-center gap-1 hover:bg-slate-50 cursor-pointer shrink-0"
+                      >
+                        <Copy className="w-2.5 h-2.5" />
+                        <span>{copiedAccount === account.bank ? 'Tersalin' : 'Salin'}</span>
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -988,7 +991,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             </label>
 
             <div className="space-y-2">
-              {formConfig.paymentMethods.map((method) => (
+              {(paymentAccounts.length ? paymentAccounts.map((account) => account.bank) : formConfig.paymentMethods).map((method) => (
                 <label 
                   key={method}
                   onClick={() => {
@@ -1209,7 +1212,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
           </div>
 
           {formConfig.customFields.filter((field) => field.step === 2).map(renderCustomField)}
-          {submitError && <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">{submitError}</div>}
+          {submitError && <div role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700 flex items-start gap-2"><AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />{submitError}</div>}
 
           {/* Action Buttons Step 2 */}
           <div className="pt-2 space-y-3">

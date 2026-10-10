@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, Image as ImageIcon, Check, X } from 'lucide-react';
 import { UploadButton } from '../../utils/uploadthing';
+import { notify } from '../../utils/notifications';
 
 interface GalleryPhoto {
   id: string;
@@ -20,12 +21,21 @@ export const GalleryTab: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newTitle, setNewTitle] = useState('');
-  const [newBatchTag, setNewBatchTag] = useState('Batch 39');
+  const [newBatchTag, setNewBatchTag] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [newCaption, setNewCaption] = useState('');
-  const [newLocation, setNewLocation] = useState('Jakarta');
+  const [newLocation, setNewLocation] = useState('');
   const [newTileClass, setNewTileClass] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [isModalOpen]);
 
   const fetchPhotos = async () => {
     try {
@@ -47,7 +57,7 @@ export const GalleryTab: React.FC = () => {
   const handleAddPhoto = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newImageUrl) {
-      alert('Masukkan URL foto atau unggah gambar terlebih dahulu.');
+      notify('Masukkan URL foto atau unggah gambar terlebih dahulu.', 'error');
       return;
     }
 
@@ -58,11 +68,11 @@ export const GalleryTab: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newTitle || 'Momen Kegiatan',
-          batchTag: newBatchTag,
+          batchTag: newBatchTag || 'Tanpa batch',
           category: 'Volunteer',
           imageUrl: newImageUrl,
           caption: newCaption || 'Potret kebersamaan volunteer Pulangkesinii',
-          location: newLocation,
+          location: newLocation || 'Lokasi belum diisi',
           date: 'Agustus 2026',
           tileClass: newTileClass,
           orderIndex: photos.length + 1,
@@ -76,11 +86,11 @@ export const GalleryTab: React.FC = () => {
         setNewCaption('');
         fetchPhotos();
       } else {
-        alert('Gagal menambah foto');
+        notify('Foto belum berhasil ditambahkan. Coba lagi.', 'error');
       }
     } catch (err) {
       console.error(err);
-      alert('Terjadi kesalahan');
+      notify('Terjadi kendala saat menambahkan foto. Coba lagi.', 'error');
     } finally {
       setSaving(false);
     }
@@ -166,10 +176,10 @@ export const GalleryTab: React.FC = () => {
                       if (res && res[0]) {
                         const url = res[0].ufsUrl || res[0].url;
                         setNewImageUrl(url);
-                        alert('Gambar berhasil diunggah.');
+                        notify('Gambar berhasil diunggah.');
                       }
                     }}
-                    onUploadError={(err: Error) => alert(`Upload gagal: ${err.message}`)}
+                    onUploadError={(err: Error) => notify(`Upload gagal: ${err.message}`, 'error')}
                   />
                 </div>
               </div>
@@ -215,7 +225,8 @@ export const GalleryTab: React.FC = () => {
                     onChange={(e) => setNewTileClass(e.target.value)}
                     className="w-full h-10 px-2 border border-[#D5DFE0] rounded-xl outline-none"
                   >
-                    <option value="">Normal (1x1)</option>
+                    <option value="" disabled>Pilih layout</option>
+                    <option value="normal">Normal (1x1)</option>
                     <option value="featured">Featured (2x2 Besar)</option>
                     <option value="wide">Wide (2x1 Lebar)</option>
                     <option value="tall">Tall (1x2 Tinggi)</option>

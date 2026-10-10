@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { Eye, GripVertical, Image, Plus, Save, Trash2, Upload } from 'lucide-react';
 import { defaultFormConfig, normalizeFormConfig, type CustomFormField, type FormConfig } from '../../formConfig';
 import { uploadFiles } from '../../utils/uploadthing';
+import { notify } from '../../utils/notifications';
 
 export const FormBuilderTab: React.FC = () => {
   const [config, setConfig] = useState<FormConfig>(defaultFormConfig);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [urlErrors, setUrlErrors] = useState<Record<string, string>>({});
   const [uploadingBanner, setUploadingBanner] = useState(false);
   const [tab, setTab] = useState<'fields' | 'custom' | 'preview'>('fields');
   const [draft, setDraft] = useState({ label: '', type: 'text' as CustomFormField['type'], options: '', required: false, step: 1 as 1 | 2 });
@@ -28,10 +30,10 @@ export const FormBuilderTab: React.FC = () => {
       if (res && res[0]) {
         const url = res[0].ufsUrl || res[0].url;
         setConfig((prev) => ({ ...prev, formBannerUrl: url }));
-        alert('Banner berhasil diunggah! Klik "Simpan & Terapkan" untuk menyimpan ke database.');
+        notify('Banner berhasil diunggah. Klik Simpan & Terapkan agar perubahan dipublikasikan.');
       }
     } catch (err: any) {
-      alert(`Gagal mengunggah banner: ${err.message || 'Terjadi kesalahan'}`);
+      notify(`Banner belum terunggah: ${err.message || 'Terjadi kesalahan'}`, 'error');
     } finally {
       setUploadingBanner(false);
       if (e.target) e.target.value = '';
@@ -39,6 +41,23 @@ export const FormBuilderTab: React.FC = () => {
   };
 
   const save = async () => {
+    const urlValues: Array<[keyof FormConfig, string | undefined]> = [
+      ['formBannerUrl', config.formBannerUrl],
+      ['officialChannelUrl', config.officialChannelUrl],
+      ['whatsappGroupUrl', config.whatsappGroupUrl],
+      ['contributionPolicyUrl', config.contributionPolicyUrl],
+    ];
+    const nextUrlErrors = Object.fromEntries(urlValues.flatMap(([field, value]) => {
+      if (!value?.trim()) return [];
+      try {
+        const parsed = new URL(value);
+        return ['http:', 'https:'].includes(parsed.protocol) ? [] : [[field, 'Gunakan URL yang diawali http:// atau https://.']];
+      } catch {
+        return [[field, 'Format URL belum valid.']];
+      }
+    }));
+    setUrlErrors(nextUrlErrors);
+    if (Object.keys(nextUrlErrors).length) return;
     setSaving(true);
     try {
       const res = await fetch('/api/settings/registration_form_config', {
@@ -48,9 +67,9 @@ export const FormBuilderTab: React.FC = () => {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan konfigurasi');
-      alert('Form pendaftaran publik berhasil diperbarui.');
+      notify('Form pendaftaran publik berhasil diperbarui.');
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'Gagal menyimpan konfigurasi');
+      notify(error instanceof Error ? error.message : 'Konfigurasi belum tersimpan. Coba lagi.', 'error');
     } finally {
       setSaving(false);
     }
@@ -185,12 +204,14 @@ export const FormBuilderTab: React.FC = () => {
                 Atau Masukkan URL Gambar Banner Langsung
               </label>
               <input
-                type="text"
+                type="url"
                 value={config.formBannerUrl || ''}
-                onChange={(e) => setConfig({ ...config, formBannerUrl: e.target.value })}
+                onChange={(e) => { setConfig({ ...config, formBannerUrl: e.target.value }); setUrlErrors((errors) => ({ ...errors, formBannerUrl: '' })); }}
                 placeholder="https://..."
-                className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl outline-none focus:border-[#0EADAD] text-xs sm:text-sm bg-white"
+                aria-invalid={Boolean(urlErrors.formBannerUrl)}
+                className={`w-full h-10 px-3 border rounded-xl outline-none text-xs sm:text-sm bg-white ${urlErrors.formBannerUrl ? 'border-red-500' : 'border-[#D5DFE0] focus:border-[#0EADAD]'}`}
               />
+              {urlErrors.formBannerUrl && <p className="mt-1 text-[11px] text-red-600" role="alert">{urlErrors.formBannerUrl}</p>}
             </div>
           </div>
 
@@ -224,28 +245,34 @@ export const FormBuilderTab: React.FC = () => {
               <input
                 type="url"
                 value={config.officialChannelUrl}
-                onChange={(e) => setConfig({ ...config, officialChannelUrl: e.target.value })}
-                className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl outline-none focus:border-[#0EADAD] text-xs sm:text-sm bg-white"
+                onChange={(e) => { setConfig({ ...config, officialChannelUrl: e.target.value }); setUrlErrors((errors) => ({ ...errors, officialChannelUrl: '' })); }}
+                aria-invalid={Boolean(urlErrors.officialChannelUrl)}
+                className={`w-full h-10 px-3 border rounded-xl outline-none text-xs sm:text-sm bg-white ${urlErrors.officialChannelUrl ? 'border-red-500' : 'border-[#D5DFE0] focus:border-[#0EADAD]'}`}
               />
+              {urlErrors.officialChannelUrl && <p className="text-[11px] text-red-600" role="alert">{urlErrors.officialChannelUrl}</p>}
             </label>
             <label className="block space-y-1">
               <span className="font-bold text-[#26383C]">URL Link Grup WhatsApp (Tombol Sukses)</span>
               <input
                 type="url"
                 value={config.whatsappGroupUrl || ''}
-                onChange={(e) => setConfig({ ...config, whatsappGroupUrl: e.target.value })}
+                onChange={(e) => { setConfig({ ...config, whatsappGroupUrl: e.target.value }); setUrlErrors((errors) => ({ ...errors, whatsappGroupUrl: '' })); }}
                 placeholder="https://chat.whatsapp.com/..."
-                className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl outline-none focus:border-[#0EADAD] text-xs sm:text-sm bg-white"
+                aria-invalid={Boolean(urlErrors.whatsappGroupUrl)}
+                className={`w-full h-10 px-3 border rounded-xl outline-none text-xs sm:text-sm bg-white ${urlErrors.whatsappGroupUrl ? 'border-red-500' : 'border-[#D5DFE0] focus:border-[#0EADAD]'}`}
               />
+              {urlErrors.whatsappGroupUrl && <p className="text-[11px] text-red-600" role="alert">{urlErrors.whatsappGroupUrl}</p>}
             </label>
             <label className="block space-y-1">
               <span className="font-bold text-[#26383C]">URL Kebijakan Kontribusi</span>
               <input
                 type="url"
                 value={config.contributionPolicyUrl}
-                onChange={(e) => setConfig({ ...config, contributionPolicyUrl: e.target.value })}
-                className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl outline-none focus:border-[#0EADAD] text-xs sm:text-sm bg-white"
+                onChange={(e) => { setConfig({ ...config, contributionPolicyUrl: e.target.value }); setUrlErrors((errors) => ({ ...errors, contributionPolicyUrl: '' })); }}
+                aria-invalid={Boolean(urlErrors.contributionPolicyUrl)}
+                className={`w-full h-10 px-3 border rounded-xl outline-none text-xs sm:text-sm bg-white ${urlErrors.contributionPolicyUrl ? 'border-red-500' : 'border-[#D5DFE0] focus:border-[#0EADAD]'}`}
               />
+              {urlErrors.contributionPolicyUrl && <p className="text-[11px] text-red-600" role="alert">{urlErrors.contributionPolicyUrl}</p>}
             </label>
             <label className="block space-y-1 md:col-span-2">
               <span className="font-bold text-[#26383C]">Metode Pembayaran</span>

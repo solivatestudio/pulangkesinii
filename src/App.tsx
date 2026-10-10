@@ -8,7 +8,7 @@ import { HouseIcon } from '@phosphor-icons/react/dist/csr/House';
 import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
-import { CalendarDays, Check, ChevronDown, ChevronRight, Clock, Download, HandHeart, Handshake, Heart, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
+import { AlertCircle, CalendarDays, Check, ChevronDown, ChevronRight, Clock, Download, HandHeart, Handshake, Heart, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
 import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
 import { uploadFiles } from './utils/uploadthing';
@@ -98,14 +98,14 @@ export default function App(){
     address: 'Jakarta Timur',
   });
   const [qrisImageUrl, setQrisImageUrl] = useState('/images/web/qris.webp');
-  const [donation, setDonation] = useState({ nama: '', jumlah: '', bentuk: 'Uang', ucapan: '' });
+  const [donation, setDonation] = useState({ nama: '', jumlah: '', bentuk: '', ucapan: '' });
   const [donationSubmitting, setDonationSubmitting] = useState(false);
   const [donationSuccess, setDonationSuccess] = useState(false);
   const [donationError, setDonationError] = useState('');
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
   const [prayers, setPrayers] = useState<Prayer[]>([]);
-  const [showAllPrayers, setShowAllPrayers] = useState(false);
+  const [showPrayersPage, setShowPrayersPage] = useState(false);
   const [aamiinedIds, setAamiinedIds] = useState<string[]>([]);
 
   useEffect(() => {
@@ -282,7 +282,7 @@ export default function App(){
 
   const filtered=useMemo(()=>catalogue.filter(i=>(place==='Semua'||i.city===place)&&(category==='Semua'||i.category===category)&&(!query.trim()||`${i.category} ${i.city} ${i.title || ''}`.toLowerCase().includes(query.toLowerCase()))),[catalogue,query,place,category]);
 
-  useEffect(()=>{document.body.style.overflow=selected||legal||galleryImage||showRegistrationForm?'hidden':'';return()=>{document.body.style.overflow=''}},[selected,legal,galleryImage,showRegistrationForm]);
+  useEffect(()=>{document.body.style.overflow=selected||legal||galleryImage||showRegistrationForm||showPrayersPage?'hidden':'';return()=>{document.body.style.overflow=''}},[selected,legal,galleryImage,showRegistrationForm,showPrayersPage]);
 
   useEffect(()=>{setDetailTab('deskripsi')},[selected]);
   
@@ -291,12 +291,16 @@ export default function App(){
       if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27 || e.which === 27) {
         if (placeDropdownOpen) {
           setPlaceDropdownOpen(false);
+        } else if (menuOpen) {
+          setMenuOpen(false);
         } else if (showRegistrationForm) {
           setShowRegistrationForm(false);
         } else if (selected) {
           setSelected(null);
         } else if (galleryImage) {
           setGalleryImage(null);
+        } else if (showPrayersPage) {
+          setShowPrayersPage(false);
         } else if (legal) {
           setLegal(null);
         }
@@ -304,7 +308,7 @@ export default function App(){
     };
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, [placeDropdownOpen, showRegistrationForm, selected, galleryImage, legal]);
+  }, [placeDropdownOpen, menuOpen, showRegistrationForm, selected, galleryImage, showPrayersPage, legal]);
   
   const showSearchResults=()=>document.querySelector('#semua-kegiatan')?.scrollIntoView({behavior:'smooth',block:'start'});
 
@@ -332,6 +336,7 @@ export default function App(){
 
   const handleDonationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!donation.bentuk) { setDonationError('Pilih bentuk donasi terlebih dahulu'); return; }
 
     if (donation.bentuk === 'Uang') {
       setDonationSuccess(false);
@@ -364,7 +369,7 @@ export default function App(){
         }
 
         setDonationSuccess(true);
-        setDonation({ nama: '', jumlah: '', bentuk: 'Uang', ucapan: '' });
+        setDonation({ nama: '', jumlah: '', bentuk: '', ucapan: '' });
         handleRemoveProof();
       } catch (err: any) {
         setDonationError(err.message || 'Terjadi kesalahan saat mengirim donasi');
@@ -412,15 +417,16 @@ export default function App(){
   };
 
   const handleAamiin = async (id: string) => {
-    if (aamiinedIds.includes(id)) return;
     const key = `aamiin-${id}`;
+    const hasAamiined = aamiinedIds.includes(id);
     try {
-      const res = await fetch(`/api/donations/${id}/aamiin`, { method: 'POST' });
+      const res = await fetch(`/api/donations/${id}/aamiin`, { method: hasAamiined ? 'DELETE' : 'POST' });
       if (!res.ok) return;
       const data = await res.json();
       setPrayers((prev) => prev.map((p) => (p.id === id ? { ...p, aamiinCount: data.aamiinCount } : p)));
-      setAamiinedIds((prev) => [...prev, id]);
-      localStorage.setItem(key, '1');
+      setAamiinedIds((prev) => hasAamiined ? prev.filter((aamiinedId) => aamiinedId !== id) : [...prev, id]);
+      if (hasAamiined) localStorage.removeItem(key);
+      else localStorage.setItem(key, '1');
     } catch (err) {
       console.error(err);
     }
@@ -771,6 +777,7 @@ export default function App(){
                 <label className="donation-field">
                   <span>Bentuk Donasi</span>
                   <select value={donation.bentuk} onChange={(e) => setDonation({ ...donation, bentuk: e.target.value })}>
+                    <option value="" disabled>Pilih bentuk donasi</option>
                     {donationTypes.map((t) => <option key={t} value={t}>{t}</option>)}
                   </select>
                 </label>
@@ -803,8 +810,8 @@ export default function App(){
                   </div>
                 )}
 
-                {donationSuccess && <p className="donation-success"><Check size={14} /> Donasi berhasil dikirim. Terima kasih!</p>}
-                {donationError && <p className="donation-error">{donationError}</p>}
+                {donationSuccess && <p className="donation-success" role="status"><Check size={14} /> Donasi berhasil dikirim. Terima kasih!</p>}
+                {donationError && <p className="donation-error" role="alert"><AlertCircle size={14} /> {donationError}</p>}
 
                 <button type="submit" className="donation-submit" disabled={donationSubmitting}>
                   {donation.bentuk === 'Uang'
@@ -825,14 +832,14 @@ export default function App(){
               <span>Ucapan dan Doa</span>
               <h2 id="ucapan-doa-title">Doa & Harapan Kebaikan</h2>
             </div>
-            <p className="prayers-subtitle">Ucapan dan doa tulus dari para donatur yang telah terverifikasi.</p>
+            <p className="prayers-subtitle">Ucapan dan doa tulus dari para donatur.</p>
 
             {prayers.length === 0 ? (
               <p className="prayers-empty">Belum ada ucapan dan doa yang terverifikasi.</p>
             ) : (
               <>
                 <div className="prayers-list">
-                  {(showAllPrayers ? prayers : prayers.slice(0, 3)).map((p) => (
+                  {prayers.slice(0, 3).map((p) => (
                     <article key={p.id} className="prayer-card">
                       <div className="prayer-header">
                         <span className="prayer-name">{p.name}</span>
@@ -844,9 +851,11 @@ export default function App(){
                           type="button"
                           className={`aamiin-btn ${aamiinedIds.includes(p.id) ? 'active' : ''}`}
                           onClick={() => handleAamiin(p.id)}
-                          aria-label="Aminkan doa ini"
+                          aria-label={aamiinedIds.includes(p.id) ? 'Batalkan Aamiin untuk doa ini' : 'Aminkan doa ini'}
+                          aria-pressed={aamiinedIds.includes(p.id)}
                         >
-                          <Heart size={15} /> Aamiin
+                          <Heart size={15} fill={aamiinedIds.includes(p.id) ? 'currentColor' : 'none'} />
+                          Aamiin
                         </button>
                         <span className="prayer-count">{p.aamiinCount} orang mengaminkan doa ini</span>
                       </div>
@@ -855,9 +864,7 @@ export default function App(){
                 </div>
 
                 {prayers.length > 3 && (
-                  <button className="more-button" onClick={() => setShowAllPrayers(!showAllPrayers)}>
-                    {showAllPrayers ? 'Tampilkan lebih sedikit' : 'Lihat lebih banyak'}
-                  </button>
+                  <button className="more-button" onClick={() => setShowPrayersPage(true)}>Lihat lebih banyak</button>
                 )}
               </>
             )}
@@ -1200,7 +1207,7 @@ export default function App(){
                 <div className="detail-tab-panel" role="tabpanel">
                   {selected.requirements && selected.requirements.length > 0 && (
                     <ul>
-                      {selected.requirements.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                      {selected.requirements.map((item, index) => <li key={`${item}-${index}`} className="whitespace-pre-line">{item}</li>)}
                     </ul>
                   )}
                   <a href="https://drive.google.com/file/d/1jFwMZQ45khHNXf9myhwoadQEd3Gc3Myk/view" target="_blank" rel="noopener noreferrer">Kebijakan Biaya Kontribusi ↗</a>
@@ -1284,6 +1291,39 @@ export default function App(){
             </button>
             <img src={galleryImage} alt="Dokumentasi kegiatan Pulangkesinii dalam ukuran besar" />
             <p>Momen kebaikan bersama Pulangkesinii.</p>
+          </section>
+        </div>
+      )}
+
+      {showPrayersPage && (
+        <div className="modal-backdrop" onMouseDown={() => setShowPrayersPage(false)}>
+          <section className="detail-sheet w-full max-w-3xl max-h-[88vh] overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="all-prayers-title" onMouseDown={(e) => e.stopPropagation()}>
+            <button className="sheet-close" onClick={() => setShowPrayersPage(false)} aria-label="Tutup Harapan dan Doa"><X /></button>
+            <div className="simple-heading pr-10">
+              <span>Harapan dan Doa</span>
+              <h2 id="all-prayers-title">Doa & Harapan Kebaikan</h2>
+            </div>
+            <p className="prayers-subtitle mb-5">Seluruh ucapan dan doa dari para donatur.</p>
+            <div className="all-prayers-list">
+              {prayers.map((p) => (
+                <article key={p.id} className="all-prayer-card">
+                  <header className="all-prayer-header">
+                    <span className="all-prayer-avatar" aria-hidden="true">{p.name.trim().charAt(0).toUpperCase() || '?'}</span>
+                    <div>
+                      <p className="all-prayer-name">{p.name}</p>
+                      <p className="all-prayer-time">{timeAgo(p.createdAt)}</p>
+                    </div>
+                  </header>
+                  <p className="all-prayer-text">{p.prayer}</p>
+                  <p className="all-prayer-count"><strong>{p.aamiinCount} orang</strong> mengaminkan doa ini</p>
+                  <div className="all-prayer-actions">
+                    <button type="button" className={`all-aamiin-btn ${aamiinedIds.includes(p.id) ? 'active' : ''}`} onClick={() => handleAamiin(p.id)} aria-label={aamiinedIds.includes(p.id) ? 'Batalkan Aamiin untuk doa ini' : 'Aminkan doa ini'} aria-pressed={aamiinedIds.includes(p.id)}>
+                      <Heart size={18} fill={aamiinedIds.includes(p.id) ? 'currentColor' : 'none'} /> Aamiin
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
           </section>
         </div>
       )}

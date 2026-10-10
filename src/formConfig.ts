@@ -40,7 +40,7 @@ export const defaultCoreFields: CoreFormField[] = [
   { id: 'email', label: 'Alamat Email', helperText: 'Email harus aktif', placeholder: 'nama@email.com', enabled: true, required: true, step: 1, type: 'email' },
   { id: 'birthDate', label: 'Tanggal Lahir Kamu', helperText: 'Tanggal', enabled: true, required: true, step: 1, type: 'date' },
   { id: 'domicile', label: 'Kamu Tinggal Dimana Niehhh', placeholder: 'Jawaban Anda', enabled: true, required: true, step: 1, type: 'text' },
-  { id: 'whatsapp', label: 'Nomor WA kamu 08 berapaaa🫣', placeholder: 'Jawaban Anda', enabled: true, required: true, step: 1, type: 'tel' },
+  { id: 'whatsapp', label: 'Nomor WhatsApp', helperText: 'Gunakan format 628xxxxxxxxxx tanpa + atau spasi', placeholder: '628xxxxxxxxxx', enabled: true, required: true, step: 1, type: 'tel' },
   { id: 'followedChannel', label: 'Sebelum lanjut, yukk ikuti saluran resmi kita untuk mendapatkan info menarik lainnya! ❤️', enabled: true, required: true, step: 1, type: 'confirmation' },
   { id: 'activityChoice', label: 'Pilihan Kegiatan✨', enabled: true, required: true, step: 2, type: 'activity' },
   { id: 'contributionProof', label: 'Bukti pembayaran contribution fee', enabled: true, required: true, step: 2, type: 'file' },
