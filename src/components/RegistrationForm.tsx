@@ -207,8 +207,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   ) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (!file.type.startsWith('image/') || file.size > 4 * 1024 * 1024) {
-        setErrors((prev) => ({ ...prev, [field]: 'Gunakan gambar JPG/PNG/WebP maksimal 4 MB' }));
+      if (!file.type.startsWith('image/') || file.size > 1 * 1024 * 1024) {
+        setErrors((prev) => ({ ...prev, [field]: 'Gunakan gambar JPG/PNG/WebP maksimal 1 MB' }));
         e.target.value = '';
         return;
       }
@@ -348,16 +348,17 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     let repostStoryProofUrl = '';
 
     try {
-      const uploadProof = async (file: File | null) => {
-        if (!file) return '';
-        const [result] = await uploadFiles('proofUploader', { files: [file] });
-        return result?.ufsUrl || result?.url || '';
-      };
-      [contributionProofUrl, tagFriendsProofUrl, repostStoryProofUrl] = await Promise.all([
-        uploadProof(formData.contributionProof.file),
-        uploadProof(formData.tagFriendsProof.file),
-        uploadProof(formData.repostStoryProof.file),
-      ]);
+      const proofFields = [
+        ['contributionProof', formData.contributionProof.file],
+        ['tagFriendsProof', formData.tagFriendsProof.file],
+        ['repostStoryProof', formData.repostStoryProof.file],
+      ] as const;
+      const files = proofFields.flatMap(([field, file]) => file ? [{ field, file }] : []);
+      const uploaded = files.length ? await uploadFiles('proofUploader', { files: files.map(({ file }) => file) }) : [];
+      const urls = new Map(files.map(({ field }, index) => [field, uploaded[index]?.ufsUrl || uploaded[index]?.url || '']));
+      contributionProofUrl = urls.get('contributionProof') || '';
+      tagFriendsProofUrl = urls.get('tagFriendsProof') || '';
+      repostStoryProofUrl = urls.get('repostStoryProof') || '';
     } catch (uploadErr) {
       setSubmitError('Upload bukti gagal. Periksa tipe/ukuran file dan coba lagi.');
       setIsSubmitting(false);
@@ -918,7 +919,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                       <span>Tambahkan file</span>
                     </span>
                     <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                      Gambar JPG/PNG/WebP, maksimal 4 MB.
+                      Gambar JPG/PNG/WebP, maksimal 1 MB.
                     </p>
                   </div>
                 </div>
@@ -1044,7 +1045,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Gambar JPG/PNG/WebP, maksimal 4 MB.
+                    Gambar JPG/PNG/WebP, maksimal 1 MB.
                   </p>
                 </div>
               </div>
@@ -1123,7 +1124,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Gambar JPG/PNG/WebP, maksimal 4 MB.
+                    Gambar JPG/PNG/WebP, maksimal 1 MB.
                   </p>
                 </div>
               </div>

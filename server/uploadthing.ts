@@ -25,7 +25,7 @@ export const uploadRouter = {
   proofUploader: f({
     image: {
       maxFileSize: '1MB',
-      maxFileCount: 1,
+      maxFileCount: 3,
     },
   }).onUploadComplete(async ({ file }) => {
     console.log('Proof upload complete:', file.ufsUrl || file.url);
