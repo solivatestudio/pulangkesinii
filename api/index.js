@@ -251,6 +251,11 @@ var validateBody = (schema) => (req, res, next) => {
   req.body = parsed.data;
   next();
 };
+var jakartaToday = () => {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(/* @__PURE__ */ new Date());
+  const value = (type) => parts.find((part) => part.type === type)?.value || "";
+  return `${value("year")}-${value("month")}-${value("day")}`;
+};
 var activityBody = z.object({
   id: z.string().max(64).optional(),
   slug: z.string().max(128).optional(),
@@ -264,10 +269,10 @@ var activityBody = z.object({
   city: z.enum(["Jakarta", "Bekasi", "Depok", "Tangerang", "Bogor", "Bandung", "Jogja", "Solo", "Malang", "Surabaya"]),
   address: z.string().max(1e3).optional(),
   mapUrl: z.string().max(2e3).optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal pelaksanaan wajib diisi dalam format yang benar.").refine((date) => date >= jakartaToday(), "Tanggal pelaksanaan tidak boleh sudah lewat."),
   endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  activityTime: z.string().max(64).optional().default(""),
-  price: z.coerce.number().int().min(0),
+  activityTime: z.string().trim().min(1, "Waktu kegiatan wajib diisi.").max(64),
+  price: z.coerce.number({ error: "Biaya wajib diisi. Masukkan 0 jika kegiatan gratis." }).int().min(0),
   priceLabel: z.string().max(64),
   quota: z.coerce.number().int().min(1),
   quotaFilled: z.coerce.number().int().min(0),

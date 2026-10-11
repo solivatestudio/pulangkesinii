@@ -100,11 +100,17 @@ const validateBody = (schema: z.ZodType) => (req: Request, res: Response, next: 
   next();
 };
 
+const jakartaToday = () => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || '';
+  return `${value('year')}-${value('month')}-${value('day')}`;
+};
+
 const activityBody = z.object({
   id: z.string().max(64).optional(), slug: z.string().max(128).optional(), title: z.string().trim().min(1).max(300),
   shortDescription: z.string().max(1000), description: z.string().max(20000), category: z.string().max(64), status: z.enum(['open', 'closing_soon', 'full', 'completed']),
   coverImage: z.string().min(1).max(2000), locationName: z.string().max(300), city: z.enum(['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya']), address: z.string().max(1000).optional(), mapUrl: z.string().max(2000).optional(),
-  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), activityTime: z.string().max(64).optional().default(''), price: z.coerce.number().int().min(0), priceLabel: z.string().max(64), quota: z.coerce.number().int().min(1), quotaFilled: z.coerce.number().int().min(0),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Tanggal pelaksanaan wajib diisi dalam format yang benar.').refine((date) => date >= jakartaToday(), 'Tanggal pelaksanaan tidak boleh sudah lewat.'), endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), activityTime: z.string().trim().min(1, 'Waktu kegiatan wajib diisi.').max(64), price: z.coerce.number({ error: 'Biaya wajib diisi. Masukkan 0 jika kegiatan gratis.' }).int().min(0), priceLabel: z.string().max(64), quota: z.coerce.number().int().min(1), quotaFilled: z.coerce.number().int().min(0),
   requirements: z.array(z.string().max(500)).optional(), contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string().regex(/^(?:628\d{7,12})?$/, 'Nomor WhatsApp harus memakai format 628xxxxxxxxxx tanpa + atau spasi.') }).nullable().optional(), whatsappGroupUrl: z.string().url().max(2000), urgentClosing: z.boolean().optional(),
 }).strict();
 const faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1000), answer: z.string().min(1).max(10000), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();

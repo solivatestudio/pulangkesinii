@@ -38,6 +38,12 @@ interface RegistrationItem {
   createdAt: string;
 }
 
+interface ActivityLocation {
+  id: string;
+  title: string;
+  city: string;
+}
+
 const exportColumns = [
   { id: 'registrationCode', label: 'Kode Registrasi', value: (r: RegistrationItem) => r.registrationCode },
   { id: 'fullName', label: 'Nama Lengkap', value: (r: RegistrationItem) => r.fullName },
@@ -55,6 +61,7 @@ const exportColumnsCookie = 'pulangkesinii_export_columns';
 
 export const RegistrationsTab: React.FC = () => {
   const [registrations, setRegistrations] = useState<RegistrationItem[]>([]);
+  const [activityLocations, setActivityLocations] = useState<ActivityLocation[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -83,9 +90,16 @@ export const RegistrationsTab: React.FC = () => {
   const fetchRegistrations = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/registrations');
-      const data = await res.json();
-      setRegistrations(Array.isArray(data) ? data : []);
+      const [registrationsResponse, activitiesResponse] = await Promise.all([
+        fetch('/api/registrations'),
+        fetch('/api/activities'),
+      ]);
+      const [registrationData, activityData] = await Promise.all([
+        registrationsResponse.json(),
+        activitiesResponse.ok ? activitiesResponse.json() : [],
+      ]);
+      setRegistrations(Array.isArray(registrationData) ? registrationData : []);
+      setActivityLocations(Array.isArray(activityData) ? activityData : []);
     } catch (err) {
       console.error('Failed to load registrations', err);
     } finally {
@@ -149,7 +163,7 @@ export const RegistrationsTab: React.FC = () => {
 
     const columns = exportColumns.filter((column) => selectedExportColumns.includes(column.id));
 
-    const cityOf = (r: RegistrationItem) => folderDomicile(r);
+    const cityOf = (r: RegistrationItem) => folderActivityCity(r);
 
     const grouped = new Map<string, RegistrationItem[]>();
     filtered.forEach((r) => {
@@ -239,7 +253,10 @@ export const RegistrationsTab: React.FC = () => {
       : [...selected, columnId]);
   };
 
-  const folderDomicile = (r: RegistrationItem) => r.domicile?.trim() || 'Domisili belum diisi';
+  const folderActivityCity = (r: RegistrationItem) => {
+    const activity = activityLocations.find((item) => item.id === r.activityId);
+    return activity?.city?.trim() || 'Wilayah kegiatan belum tersedia';
+  };
 
   const activityKey = (r: RegistrationItem) => r.activityId || r.activityChoice || r.activityTitle || 'Tanpa kegiatan';
   const activityName = (r: RegistrationItem) => r.activityChoice || r.activityTitle || 'Tanpa kegiatan';
@@ -253,17 +270,17 @@ export const RegistrationsTab: React.FC = () => {
   );
 
   const filtered = matchingRegistrations.filter((r) =>
-    (!selectedCity || folderDomicile(r) === selectedCity) &&
+    (!selectedCity || folderActivityCity(r) === selectedCity) &&
     (!selectedActivity || activityKey(r) === selectedActivity)
   );
 
-  const cityFolders = Array.from(new Set(matchingRegistrations.map(folderDomicile))).sort().map((city) => ({
+  const cityFolders = Array.from(new Set(matchingRegistrations.map(folderActivityCity))).sort().map((city) => ({
     city,
-    count: matchingRegistrations.filter((registration) => folderDomicile(registration) === city).length,
+    count: matchingRegistrations.filter((registration) => folderActivityCity(registration) === city).length,
   }));
   const activityFolders = selectedCity
-    ? Array.from(new Map<string, string>(matchingRegistrations.filter((registration) => folderDomicile(registration) === selectedCity).map((registration) => [activityKey(registration), activityName(registration)])).entries())
-      .map(([key, name]) => ({ key, name, count: matchingRegistrations.filter((registration) => folderDomicile(registration) === selectedCity && activityKey(registration) === key).length }))
+    ? Array.from(new Map<string, string>(matchingRegistrations.filter((registration) => folderActivityCity(registration) === selectedCity).map((registration) => [activityKey(registration), activityName(registration)])).entries())
+      .map(([key, name]) => ({ key, name, count: matchingRegistrations.filter((registration) => folderActivityCity(registration) === selectedCity && activityKey(registration) === key).length }))
       .sort((a, b) => a.name.localeCompare(b.name))
     : [];
 
@@ -335,7 +352,7 @@ export const RegistrationsTab: React.FC = () => {
 
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <nav aria-label="Lokasi daftar pendaftar" className="flex items-center gap-1.5 text-xs overflow-x-auto">
-          <button type="button" onClick={() => { setSelectedCity(null); setSelectedActivity(null); }} className={`font-bold whitespace-nowrap cursor-pointer ${!selectedCity ? 'text-[#087C7E]' : 'text-[#6B7E82] hover:text-[#087C7E]'}`}>Domisili</button>
+          <button type="button" onClick={() => { setSelectedCity(null); setSelectedActivity(null); }} className={`font-bold whitespace-nowrap cursor-pointer ${!selectedCity ? 'text-[#087C7E]' : 'text-[#6B7E82] hover:text-[#087C7E]'}`}>Wilayah kegiatan</button>
           {selectedCity && <><ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" /><button type="button" onClick={() => setSelectedActivity(null)} className={`font-bold whitespace-nowrap cursor-pointer ${!selectedActivity ? 'text-[#087C7E]' : 'text-[#6B7E82] hover:text-[#087C7E]'}`}>{selectedCity}</button></>}
           {selectedActivity && <><ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" /><span className="font-bold text-[#173F42] whitespace-nowrap">Daftar volunteer</span></>}
         </nav>
@@ -371,7 +388,7 @@ export const RegistrationsTab: React.FC = () => {
           )
         ) : !selectedActivity ? (
           <div className="p-4">
-            <button type="button" onClick={() => setSelectedCity(null)} className="mb-3 h-8 px-2.5 text-xs font-bold text-[#087C7E] hover:bg-[#E0F7F6] rounded-lg inline-flex items-center gap-1 cursor-pointer"><ArrowLeft className="w-3.5 h-3.5" /> Semua domisili</button>
+            <button type="button" onClick={() => setSelectedCity(null)} className="mb-3 h-8 px-2.5 text-xs font-bold text-[#087C7E] hover:bg-[#E0F7F6] rounded-lg inline-flex items-center gap-1 cursor-pointer"><ArrowLeft className="w-3.5 h-3.5" /> Semua wilayah kegiatan</button>
             <div className="divide-y divide-[#EEF4F4] border border-[#E0F2F1] rounded-2xl overflow-hidden">
               {activityFolders.map((folder) => (
                 <button key={folder.key} type="button" onClick={() => setSelectedActivity(folder.key)} className="w-full text-left flex items-center gap-3 px-5 py-4 hover:bg-[#F4FCFC] transition-colors cursor-pointer group">

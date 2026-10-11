@@ -348,30 +348,16 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     let repostStoryProofUrl = '';
 
     try {
-      if (formData.contributionProof.file) {
-        const res = await uploadFiles('proofUploader', {
-          files: [formData.contributionProof.file],
-        });
-        if (res && res[0]) {
-          contributionProofUrl = res[0].ufsUrl || res[0].url;
-        }
-      }
-      if (formData.tagFriendsProof.file) {
-        const res = await uploadFiles('proofUploader', {
-          files: [formData.tagFriendsProof.file],
-        });
-        if (res && res[0]) {
-          tagFriendsProofUrl = res[0].ufsUrl || res[0].url;
-        }
-      }
-      if (formData.repostStoryProof.file) {
-        const res = await uploadFiles('proofUploader', {
-          files: [formData.repostStoryProof.file],
-        });
-        if (res && res[0]) {
-          repostStoryProofUrl = res[0].ufsUrl || res[0].url;
-        }
-      }
+      const uploadProof = async (file: File | null) => {
+        if (!file) return '';
+        const [result] = await uploadFiles('proofUploader', { files: [file] });
+        return result?.ufsUrl || result?.url || '';
+      };
+      [contributionProofUrl, tagFriendsProofUrl, repostStoryProofUrl] = await Promise.all([
+        uploadProof(formData.contributionProof.file),
+        uploadProof(formData.tagFriendsProof.file),
+        uploadProof(formData.repostStoryProof.file),
+      ]);
     } catch (uploadErr) {
       setSubmitError('Upload bukti gagal. Periksa tipe/ukuran file dan coba lagi.');
       setIsSubmitting(false);
@@ -862,8 +848,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               </h3>
               
               <div className="bg-[#f0fbfb] p-3 rounded-xl border border-[#d2f0ef] text-xs text-[#173f42] space-y-1">
-                <p className="font-semibold text-[#087c7e]">Biaya Kontribusi:</p>
-                <p>• {contributionFee}</p>
+                <p className="font-bold text-sm text-[#087c7e]">Biaya Kontribusi:</p>
+                <p className="text-base font-bold">• {contributionFee}</p>
               </div>
 
               <div className="bg-[#fff9db] p-3 rounded-xl border border-[#ffe066]/50 text-xs text-[#2D3748] space-y-1.5">

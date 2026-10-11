@@ -21,6 +21,11 @@ import { notify } from '../../utils/notifications';
 
 const cities = ['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
 const formatRupiah = (value: number) => new Intl.NumberFormat('id-ID').format(value || 0);
+const todayInJakarta = () => {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jakarta', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const value = (type: Intl.DateTimeFormatPartTypes) => parts.find((part) => part.type === type)?.value || '';
+  return `${value('year')}-${value('month')}-${value('day')}`;
+};
 const formatDateId = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value)
   ? new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${value}T00:00:00Z`))
   : value;
@@ -196,9 +201,27 @@ export const ActivitiesTab: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const today = todayInJakarta();
+    if (!formData.startDate) {
+      notify('Tidak dapat menyimpan: tanggal pelaksanaan wajib diisi.', 'error');
+      return;
+    }
+    if (formData.startDate < today) {
+      notify('Tidak dapat menyimpan: tanggal pelaksanaan tidak boleh sudah lewat.', 'error');
+      return;
+    }
+    if (!formData.activityTime?.trim()) {
+      notify('Tidak dapat menyimpan: waktu kegiatan wajib diisi.', 'error');
+      return;
+    }
+    if (formData.price === undefined) {
+      notify('Tidak dapat menyimpan: biaya wajib diisi. Masukkan 0 jika kegiatan gratis.', 'error');
+      return;
+    }
     const whatsapp = formData.contactPerson?.whatsapp.trim() || '';
     if (whatsapp && !whatsappFormat.test(whatsapp)) {
       setContactWhatsappError(whatsappFormatMessage);
+      notify(`Tidak dapat menyimpan: ${whatsappFormatMessage}`, 'error');
       return;
     }
     setContactWhatsappError('');
@@ -213,8 +236,8 @@ export const ActivitiesTab: React.FC = () => {
         coverImage: formData.coverImage, locationName: formData.locationName,
         city: formData.city, address: formData.address || '', mapUrl: formData.mapUrl || '', startDate: formData.startDate,
         endDate: formData.startDate,
-        activityTime: formData.activityTime || '',
-        price: formData.price || 0, priceLabel: formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price || 0)}`,
+        activityTime: formData.activityTime.trim(),
+        price: formData.price, priceLabel: formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price)}`,
         quota: formData.quota || 50, quotaFilled: formData.quotaFilled || 0,
         requirements: formData.requirements || [], contactPerson: formData.contactPerson ? { ...formData.contactPerson, whatsapp } : null, whatsappGroupUrl: formData.whatsappGroupUrl?.trim(),
         urgentClosing: Boolean(formData.urgentClosing),
@@ -230,12 +253,12 @@ export const ActivitiesTab: React.FC = () => {
         fetchActivities();
       } else {
         const data = await res.json();
-        const detail = Array.isArray(data.details) ? data.details.map((item: { path?: Array<string | number>; message?: string }) => `${item.path?.join('.') || 'field'}: ${item.message}`).join('\n') : '';
-        notify(`Kegiatan belum tersimpan: ${data.error || 'Terjadi kesalahan'}${detail ? ` (${detail})` : ''}`, 'error');
+        const detail = Array.isArray(data.details) ? data.details[0]?.message : '';
+        notify(`Tidak dapat menyimpan: ${detail || data.error || 'terjadi kesalahan.'}`, 'error');
       }
     } catch (err) {
       console.error(err);
-      notify('Kegiatan belum tersimpan. Coba lagi.', 'error');
+      notify('Tidak dapat menyimpan: koneksi bermasalah. Periksa internet lalu coba lagi.', 'error');
     } finally {
       setSaving(false);
     }
@@ -369,7 +392,7 @@ export const ActivitiesTab: React.FC = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="p-6 overflow-y-auto space-y-4 text-xs flex-1">
+            <form noValidate onSubmit={handleSave} className="p-6 overflow-y-auto space-y-4 text-xs flex-1">
               <div>
                 <label className="block font-bold text-[#26383C] mb-1">Nama / Judul Kegiatan *</label>
                 <input
@@ -443,6 +466,7 @@ export const ActivitiesTab: React.FC = () => {
                   <label className="block font-bold text-[#26383C] mb-1">Tanggal Pelaksanaan *</label>
                   <input
                     type="date"
+                    min={todayInJakarta()}
                     value={formData.startDate || ''}
                     onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
@@ -451,15 +475,16 @@ export const ActivitiesTab: React.FC = () => {
                   {formData.startDate && <p className="mt-1 text-[11px] text-[#0EADAD] font-semibold">{formatDateId(formData.startDate)}</p>}
                 </div>
                 <div>
-                  <label className="block font-bold text-[#26383C] mb-1">Jam Kegiatan</label>
+                  <label className="block font-bold text-[#26383C] mb-1">Jam Kegiatan *</label>
                   <input
                     type="text"
                     value={formData.activityTime || ''}
                     onChange={(e) => setFormData({ ...formData, activityTime: e.target.value })}
                     placeholder="Contoh: 09.00–12.00 WIB"
                     className="w-full h-10 px-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none"
+                    required
                   />
-                  <p className="mt-1 text-[11px] text-[#6B7E82]">Opsional. Isi jam atau rentang waktu sesuai kebutuhan.</p>
+                  <p className="mt-1 text-[11px] text-[#6B7E82]">Isi jam atau rentang waktu kegiatan.</p>
                 </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -481,6 +506,7 @@ export const ActivitiesTab: React.FC = () => {
                         });
                       }}
                       placeholder="0 untuk gratis" className="w-full h-10 pl-9 pr-3 border border-[#D5DFE0] rounded-xl focus:border-[#0EADAD] outline-none font-semibold"
+                      required
                     />
                   </div>
                   {formData.price !== undefined && <p className="mt-1 text-[11px] text-[#6B7E82]">{formData.price === 0 ? 'Gratis' : `Rp ${formatRupiah(formData.price)}`}</p>}

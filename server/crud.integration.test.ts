@@ -44,7 +44,7 @@ describe.sequential('API CRUD integration', () => {
   });
 
   it('CRUD activities', async () => {
-    const payload = { id: ids.activity, slug: ids.activity, title: 'Integration Test', shortDescription: 'Test', description: 'Test', category: 'Volunteer', status: 'open', coverImage: 'https://example.com/image.jpg', locationName: 'Test', city: 'Jakarta', address: '', startDate: '2026-09-10', endDate: '2026-09-10', price: 0, priceLabel: 'Gratis', quota: 2, quotaFilled: 0 };
+    const payload = { id: ids.activity, slug: ids.activity, title: 'Integration Test', shortDescription: 'Test', description: 'Test', category: 'Volunteer', status: 'open', coverImage: 'https://example.com/image.jpg', locationName: 'Test', city: 'Jakarta', address: '', startDate: '2099-09-10', endDate: '2099-09-10', activityTime: '09.00 WIB', price: 0, priceLabel: 'Gratis', quota: 2, quotaFilled: 0, whatsappGroupUrl: 'https://chat.whatsapp.com/test' };
     expect((await request(app).post('/api/activities').set('Authorization', auth).send(payload)).status).toBe(201);
     expect((await request(app).get(`/api/activities/${ids.activity}`)).body.title).toBe('Integration Test');
     expect((await request(app).put(`/api/activities/${ids.activity}`).set('Authorization', auth).send({ ...payload, title: 'Updated' })).status).toBe(200);
@@ -55,7 +55,7 @@ describe.sequential('API CRUD integration', () => {
     const config = await db.select().from(siteSettings).where(eq(siteSettings.key, 'registration_form_config')).limit(1);
     const customFields = ((config[0]?.value as { customFields?: Array<{ label: string }> })?.customFields || []);
     const customAnswers = Object.fromEntries(customFields.map((field) => [field.label, 'Integration answer']));
-    const created = await request(app).post('/api/registrations').send({ activityId: ids.activity, activityTitle: 'Updated', activityChoice: 'Updated', fullName: 'Integration User', email: 'integration@example.com', birthDate: '2000-01-01', domicile: 'Jakarta', whatsapp: '081234567890', followedChannel: 'Ya', paymentMethod: 'Mandiri', reason: 'Integration test', contributionProofUrl: 'https://example.com/proof.jpg', tagFriendsProofUrl: 'https://example.com/tag.jpg', repostStoryProofUrl: 'https://example.com/story.jpg', customAnswers, submittedAt: new Date().toISOString() });
+    const created = await request(app).post('/api/registrations').send({ activityId: ids.activity, activityTitle: 'Updated', activityChoice: 'Updated', fullName: 'Integration User', email: 'integration@example.com', birthDate: '2000-01-01', domicile: 'Jakarta', whatsapp: '6281234567890', followedChannel: 'Ya', paymentMethod: 'Mandiri', reason: 'Integration test', contributionProofUrl: 'https://example.com/proof.jpg', tagFriendsProofUrl: 'https://example.com/tag.jpg', repostStoryProofUrl: 'https://example.com/story.jpg', customAnswers, submittedAt: new Date().toISOString() });
     expect(created.status).toBe(201);
     ids.registration = created.body.data.id;
     const list = await request(app).get('/api/registrations').set('Authorization', auth);
