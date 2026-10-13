@@ -649,7 +649,7 @@ export const ActivitiesTab: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="block font-bold text-[#26383C] mb-1">Nomor WhatsApp</label>
+                    <label className="block font-bold text-[#26383C] mb-1">Nomor WhatsApp <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       inputMode="numeric"
@@ -660,12 +660,15 @@ export const ActivitiesTab: React.FC = () => {
                         setContactWhatsappError(value && !whatsappFormat.test(value) ? whatsappFormatMessage : '');
                       }}
                       onBlur={(e) => setContactWhatsappError(e.target.value && !whatsappFormat.test(e.target.value) ? whatsappFormatMessage : '')}
-                      placeholder="Contoh: 6285xxxxxxx"
+                      placeholder="Contoh: 6285xxxxxxxx atau 085xxxxxxxx"
                       aria-invalid={Boolean(contactWhatsappError)}
-                      aria-describedby={contactWhatsappError ? 'contact-whatsapp-error' : undefined}
+                      aria-describedby={contactWhatsappError ? 'contact-whatsapp-error' : 'contact-whatsapp-hint'}
                       className={`w-full h-10 px-3 border rounded-xl outline-none ${contactWhatsappError ? 'border-red-500 focus:border-red-500' : 'border-[#D5DFE0] focus:border-[#0EADAD]'}`}
                     />
-                    {contactWhatsappError && <p id="contact-whatsapp-error" className="mt-1 text-[11px] text-red-600" role="alert">{contactWhatsappError}</p>}
+                    {contactWhatsappError
+                      ? <p id="contact-whatsapp-error" className="mt-1 text-[11px] text-red-600" role="alert">{contactWhatsappError}</p>
+                      : <p id="contact-whatsapp-hint" className="mt-1 text-[11px] text-[#6B7E82]">Wajib 62/08... — Gunakan format <strong>628xxxxxxxxxx</strong> tanpa +, spasi, atau simbol.</p>
+                    }
                   </div>
                 </div>
               </div>
