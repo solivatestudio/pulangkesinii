@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Eye, GripVertical, Image, Plus, Save, Trash2, Upload } from 'lucide-react';
 import { defaultFormConfig, normalizeFormConfig, type CustomFormField, type FormConfig } from '../../formConfig';
 import { uploadFiles } from '../../utils/uploadthing';
+import { optimizeImageToWebp } from '../../utils/imageOptimizer';
 import { notify } from '../../utils/notifications';
 
 export const FormBuilderTab: React.FC = () => {
@@ -26,11 +27,12 @@ export const FormBuilderTab: React.FC = () => {
     if (!file) return;
     try {
       setUploadingBanner(true);
-      const res = await uploadFiles('mediaUploader', { files: [file] });
+      const webpFile = await optimizeImageToWebp(file, { maxSizeMB: 4, quality: 0.85 });
+      const res = await uploadFiles('mediaUploader', { files: [webpFile] });
       if (res && res[0]) {
         const url = res[0].ufsUrl || res[0].url;
         setConfig((prev) => ({ ...prev, formBannerUrl: url }));
-        notify('Banner berhasil diunggah. Klik Simpan & Terapkan agar perubahan dipublikasikan.');
+        notify('Banner berhasil diunggah (teroptimasi ke WebP). Klik Simpan & Terapkan agar perubahan dipublikasikan.');
       }
     } catch (err: any) {
       notify(`Banner belum terunggah: ${err.message || 'Terjadi kesalahan'}`, 'error');
@@ -183,7 +185,7 @@ export const FormBuilderTab: React.FC = () => {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,.heic,.HEIC,.heif,.HEIF"
                   onChange={handleBannerUpload}
                   className="hidden"
                 />

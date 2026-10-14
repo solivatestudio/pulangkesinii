@@ -8,10 +8,11 @@ import { HouseIcon } from '@phosphor-icons/react/dist/csr/House';
 import { PlantIcon } from '@phosphor-icons/react/dist/csr/Plant';
 import { ShieldCheckIcon } from '@phosphor-icons/react/dist/csr/ShieldCheck';
 import { SparkleIcon } from '@phosphor-icons/react/dist/csr/Sparkle';
-import { AlertCircle, CalendarDays, Check, ChevronDown, ChevronRight, Clock, Download, HandHeart, Handshake, Heart, HelpCircle, Instagram, Linkedin, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
+import { AlertCircle, CalendarDays, Check, ChevronDown, ChevronRight, Clock, Download, HandHeart, Handshake, Heart, HelpCircle, Instagram, Linkedin, Loader2, Mail, MapPin, Menu, MessageCircle, Route, Search, Sparkles, Tag, Users, X } from 'lucide-react';
 import { RegistrationForm } from './components/RegistrationForm';
 import { PublicActivityCard as ActivityCard } from './components/PublicActivityCard';
 import { uploadFiles } from './utils/uploadthing';
+import { optimizeImageToWebp } from './utils/imageOptimizer';
 
 type Activity = { 
   id: number | string; 
@@ -104,6 +105,7 @@ export default function App(){
   const [donationError, setDonationError] = useState('');
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [paymentProofPreview, setPaymentProofPreview] = useState<string | null>(null);
+  const [optimizingProof, setOptimizingProof] = useState(false);
   const [prayers, setPrayers] = useState<Prayer[]>([]);
   const [showPrayersPage, setShowPrayersPage] = useState(false);
   const [aamiinedIds, setAamiinedIds] = useState<string[]>([]);
@@ -312,20 +314,23 @@ export default function App(){
   
   const showSearchResults=()=>document.querySelector('#semua-kegiatan')?.scrollIntoView({behavior:'smooth',block:'start'});
 
-  const handlePaymentProofChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePaymentProofChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      setDonationError('Bukti pembayaran harus berupa gambar');
-      return;
-    }
-    if (file.size > 1 * 1024 * 1024) {
-      setDonationError('Ukuran bukti pembayaran maksimal 1MB');
-      return;
-    }
+
+    setOptimizingProof(true);
     setDonationError('');
-    setPaymentProofFile(file);
-    setPaymentProofPreview(URL.createObjectURL(file));
+    try {
+      const webpFile = await optimizeImageToWebp(file, { maxSizeMB: 4, quality: 0.82 });
+      if (paymentProofPreview) URL.revokeObjectURL(paymentProofPreview);
+      setPaymentProofFile(webpFile);
+      setPaymentProofPreview(URL.createObjectURL(webpFile));
+    } catch (err: unknown) {
+      setDonationError(err instanceof Error ? err.message : 'Gagal memproses bukti pembayaran.');
+      e.target.value = '';
+    } finally {
+      setOptimizingProof(false);
+    }
   };
 
   const handleRemoveProof = () => {
@@ -382,7 +387,7 @@ export default function App(){
     setDonationSuccess(false);
     if (!donation.nama.trim()) { setDonationError('Nama wajib diisi'); return; }
 
-    const wa = contactInfo.whatsappNumber.replace(/[^0-9]/g, '');
+    const wa = contactInfo.whatsappNumber.replace(/[^0-9]/g, '').replace(/^08/, '628');
     const text = `Halo Pulangkesinii, saya ingin berdonasi.\n\nNama: ${donation.nama}\nBentuk Donasi: ${donation.bentuk}\nUcapan/Doa: ${donation.ucapan}`;
 
     setDonationSubmitting(true);
@@ -742,7 +747,7 @@ export default function App(){
                       <MessageCircle size={18} />
                       <div>
                         <small>WhatsApp yang bisa dihubungi</small>
-                        <a href={`https://wa.me/${contactInfo.whatsappNumber.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                        <a href={`https://wa.me/${contactInfo.whatsappNumber.replace(/[^0-9]/g, '').replace(/^08/, '628')}`} target="_blank" rel="noopener noreferrer">
                           {contactInfo.whatsappNumber}
                         </a>
                       </div>
@@ -799,13 +804,18 @@ export default function App(){
                             <X size={14} />
                           </button>
                         </div>
+                      ) : optimizingProof ? (
+                        <span className="donation-upload-placeholder">
+                          <Loader2 size={20} className="animate-spin text-[#0eadad]" />
+                          Mengompres dan mengonversi ke WebP...
+                        </span>
                       ) : (
                         <span className="donation-upload-placeholder">
                           <Download size={20} />
-                          Klik untuk unggah bukti transfer (JPG/PNG, maks 1MB)
+                          Klik untuk unggah bukti transfer (JPG, PNG, HEIC, WebP, maks. 4MB)
                         </span>
                       )}
-                      <input type="file" accept="image/*" onChange={handlePaymentProofChange} />
+                      <input type="file" accept="image/*,.heic,.HEIC,.heif,.HEIF" onChange={handlePaymentProofChange} />
                     </label>
                   </div>
                 )}
@@ -1072,7 +1082,7 @@ export default function App(){
                 <p>Tim Pulangkesinii akan membantu mengarahkanmu ke informasi yang tepat.</p>
                 <a 
                   className="wa-button" 
-                  href={`https://wa.me/${contactInfo.whatsappNumber.replace(/[^0-9]/g, '')}?text=Halo%20Pulangkesinii%2C%20saya%20ingin%20bertanya%20tentang%20kegiatan%20volunteer.`} 
+                  href={`https://wa.me/${contactInfo.whatsappNumber.replace(/[^0-9]/g, '').replace(/^08/, '628')}?text=Halo%20Pulangkesinii%2C%20saya%20ingin%20bertanya%20tentang%20kegiatan%20volunteer.`} 
                   target="_blank" 
                   rel="noreferrer"
                 >
@@ -1225,7 +1235,7 @@ export default function App(){
                   </strong>
                 </div>
                 <a
-                  href={`https://wa.me/${selected.contactPerson.whatsapp.replace(/\D/g, '')}`}
+                  href={`https://wa.me/${selected.contactPerson.whatsapp.replace(/\D/g, '').replace(/^08/, '628')}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="shrink-0 rounded-lg bg-[#0eadad] px-3 py-1.5 text-xs font-bold text-white hover:bg-[#0b9393]"

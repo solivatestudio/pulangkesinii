@@ -24,7 +24,7 @@ const requireAdminUpload = async ({ req }: { req: Request }) => {
 export const uploadRouter = {
   proofUploader: f({
     image: {
-      maxFileSize: '1MB',
+      maxFileSize: '4MB',
       maxFileCount: 3,
     },
   }).onUploadComplete(async ({ file }) => {

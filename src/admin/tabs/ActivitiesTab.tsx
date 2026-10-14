@@ -16,6 +16,7 @@ import {
   Eye
 } from 'lucide-react';
 import { uploadFiles } from '../../utils/uploadthing';
+import { optimizeImageToWebp } from '../../utils/imageOptimizer';
 import { PublicActivityCard } from '../../components/PublicActivityCard';
 import { notify } from '../../utils/notifications';
 
@@ -74,8 +75,8 @@ export const ActivitiesTab: React.FC = () => {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [contactWhatsappError, setContactWhatsappError] = useState('');
   const coverInputRef = useRef<HTMLInputElement>(null);
-  const whatsappFormat = /^628\d{7,12}$/;
-  const whatsappFormatMessage = 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.';
+  const whatsappFormat = /^(?:628|08)\d{7,12}$/;
+  const whatsappFormatMessage = 'Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.';
 
   useEffect(() => {
     if (!isModalOpen) return;
@@ -170,11 +171,12 @@ export const ActivitiesTab: React.FC = () => {
 
     setUploadingCover(true);
     try {
-      const result = await uploadFiles('mediaUploader', { files: [file] });
+      const webpFile = await optimizeImageToWebp(file, { maxSizeMB: 4, quality: 0.85 });
+      const result = await uploadFiles('mediaUploader', { files: [webpFile] });
       const uploadedUrl = result?.[0]?.ufsUrl || result?.[0]?.url;
       if (!uploadedUrl) throw new Error('URL gambar tidak diterima');
       setFormData((previous) => ({ ...previous, coverImage: uploadedUrl }));
-      notify('Gambar sampul berhasil diunggah.');
+      notify('Gambar sampul berhasil diunggah (teroptimasi ke WebP).');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Terjadi kesalahan';
       notify(`Upload gagal: ${message}`, 'error');
@@ -562,7 +564,7 @@ export const ActivitiesTab: React.FC = () => {
                       <input
                         ref={coverInputRef}
                         type="file"
-                        accept="image/*"
+                        accept="image/*,.heic,.HEIC,.heif,.HEIF"
                         onChange={handleCoverUpload}
                         className="hidden"
                       />
@@ -660,7 +662,7 @@ export const ActivitiesTab: React.FC = () => {
                         setContactWhatsappError(value && !whatsappFormat.test(value) ? whatsappFormatMessage : '');
                       }}
                       onBlur={(e) => setContactWhatsappError(e.target.value && !whatsappFormat.test(e.target.value) ? whatsappFormatMessage : '')}
-                      placeholder="Contoh: 6285xxxxxxx"
+                      placeholder="Contoh: 0857xxxxxxx atau 6285xxxxxxx"
                       aria-invalid={Boolean(contactWhatsappError)}
                       aria-describedby={contactWhatsappError ? 'contact-whatsapp-error' : undefined}
                       className={`w-full h-10 px-3 border rounded-xl outline-none ${contactWhatsappError ? 'border-red-500 focus:border-red-500' : 'border-[#D5DFE0] focus:border-[#0EADAD]'}`}

@@ -442,7 +442,7 @@ export const RegistrationsTab: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4">
                       <a
-                        href={`https://wa.me/${r.whatsapp.replace(/\D/g, '')}?text=Halo%20Kak%20${encodeURIComponent(r.fullName)}%2C%20kami%20dari%20tim%20Pulangkesinii%20mengenai%20pendaftaran%20${encodeURIComponent(r.activityChoice || r.activityTitle)}.`}
+                        href={`https://wa.me/${r.whatsapp.replace(/\D/g, '').replace(/^08/, '628')}?text=Halo%20Kak%20${encodeURIComponent(r.fullName)}%2C%20kami%20dari%20tim%20Pulangkesinii%20mengenai%20pendaftaran%20${encodeURIComponent(r.activityChoice || r.activityTitle)}.`}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[#E8F8F5] text-[#00A389] font-bold rounded-lg text-[11px] hover:bg-[#D1F2EB] transition-all"

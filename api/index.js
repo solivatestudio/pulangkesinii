@@ -40,7 +40,7 @@ var requireAdminUpload = async ({ req }) => {
 var uploadRouter = {
   proofUploader: f({
     image: {
-      maxFileSize: "1MB",
+      maxFileSize: "4MB",
       maxFileCount: 3
     }
   }).onUploadComplete(async ({ file }) => {
@@ -277,7 +277,7 @@ var activityBody = z.object({
   quota: z.coerce.number().int().min(1),
   quotaFilled: z.coerce.number().int().min(0),
   requirements: z.array(z.string().max(500)).optional(),
-  contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string().regex(/^(?:628\d{7,12})?$/, "Nomor WhatsApp harus memakai format 628xxxxxxxxxx tanpa + atau spasi.") }).nullable().optional(),
+  contactPerson: z.object({ name: z.string(), role: z.string(), whatsapp: z.string().regex(/^(?:(?:628|08)\d{7,12})?$/, "Nomor WhatsApp harus memakai format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.").transform((val) => val.startsWith("08") ? "628" + val.slice(2) : val) }).nullable().optional(),
   whatsappGroupUrl: z.string().url().max(2e3),
   urgentClosing: z.boolean().optional()
 }).strict();
@@ -452,7 +452,7 @@ var registrationSchema = z.object({
   email: z.string().trim().email().max(128).or(z.literal("")).default(""),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal("")).default(""),
   domicile: z.string().trim().max(128).default(""),
-  whatsapp: z.string().trim().regex(/^(?:628\d{7,12})?$/, "Nomor WhatsApp harus memakai format 628xxxxxxxxxx tanpa + atau spasi.").default(""),
+  whatsapp: z.string().trim().regex(/^(?:(?:628|08)\d{7,12})?$/, "Nomor WhatsApp harus memakai format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.").transform((val) => val.startsWith("08") ? "628" + val.slice(2) : val).default(""),
   followedChannel: z.string().max(128).default(""),
   paymentMethod: z.string().max(64).default(""),
   reason: z.string().trim().max(5e3).default(""),

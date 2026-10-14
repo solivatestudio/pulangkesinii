@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, Image as ImageIcon, Check, X } from 'lucide-react';
 import { UploadButton } from '../../utils/uploadthing';
+import { optimizeImageToWebp } from '../../utils/imageOptimizer';
 import { notify } from '../../utils/notifications';
 
 interface GalleryPhoto {
@@ -172,11 +173,16 @@ export const GalleryTab: React.FC = () => {
                   ) : null}
                   <UploadButton
                     endpoint="mediaUploader"
+                    onBeforeUploadBegin={async (files) => {
+                      return Promise.all(
+                        files.map((file) => optimizeImageToWebp(file, { maxSizeMB: 4, quality: 0.85 }))
+                      );
+                    }}
                     onClientUploadComplete={(res) => {
                       if (res && res[0]) {
                         const url = res[0].ufsUrl || res[0].url;
                         setNewImageUrl(url);
-                        notify('Gambar berhasil diunggah.');
+                        notify('Gambar berhasil diunggah (teroptimasi ke WebP).');
                       }
                     }}
                     onUploadError={(err: Error) => notify(`Upload gagal: ${err.message}`, 'error')}

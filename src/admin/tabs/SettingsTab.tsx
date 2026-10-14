@@ -118,7 +118,7 @@ export const SettingsTab: React.FC = () => {
   const handleSaveContact = async (e: React.FormEvent) => {
     e.preventDefault();
     const nextContactErrors: Record<string, string> = {};
-    if (contact.whatsappNumber && !/^628\d{7,12}$/.test(contact.whatsappNumber)) nextContactErrors.whatsappNumber = 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.';
+    if (contact.whatsappNumber && !/^(?:628|08)\d{7,12}$/.test(contact.whatsappNumber)) nextContactErrors.whatsappNumber = 'Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.';
     if (contact.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) nextContactErrors.email = 'Format email belum valid.';
     setContactErrors(nextContactErrors);
     if (Object.keys(nextContactErrors).length) return;
@@ -244,7 +244,7 @@ export const SettingsTab: React.FC = () => {
         <form onSubmit={handleSaveContact} className="space-y-4 text-xs">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-bold text-[#26383C] mb-1">WhatsApp (Format 62...)</label>
+              <label className="block font-bold text-[#26383C] mb-1">WhatsApp (Format 08... atau 628...)</label>
               <input
                 type="text"
                 inputMode="numeric"
@@ -252,9 +252,9 @@ export const SettingsTab: React.FC = () => {
                 onChange={(e) => {
                   const value = e.target.value;
                   setContact({ ...contact, whatsappNumber: value });
-                  setContactErrors((errors) => ({ ...errors, whatsappNumber: value && !/^628\d{7,12}$/.test(value) ? 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.' : '' }));
+                  setContactErrors((errors) => ({ ...errors, whatsappNumber: value && !/^(?:628|08)\d{7,12}$/.test(value) ? 'Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.' : '' }));
                 }}
-                placeholder="6285779321681"
+                placeholder="085779321681 atau 6285779321681"
                 aria-invalid={Boolean(contactErrors.whatsappNumber)}
                 className={`w-full h-10 px-3 border rounded-xl outline-none ${contactErrors.whatsappNumber ? 'border-red-500' : 'border-gray-300'}`}
               />

@@ -11,10 +11,12 @@ import {
   FileCheck,
   Send,
   Trash2,
-  MessageCircle
+  MessageCircle,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { uploadFiles } from '../utils/uploadthing';
+import { optimizeImageToWebp } from '../utils/imageOptimizer';
 import { defaultFormConfig, normalizeFormConfig, type CustomFormField, type FormConfig } from '../formConfig';
 
 type PaymentAccount = { bank: string; accountNumber: string; accountName: string };
@@ -108,6 +110,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [formConfig, setFormConfig] = useState<FormConfig>(defaultFormConfig);
   const [paymentAccounts, setPaymentAccounts] = useState<PaymentAccount[]>(fallbackPaymentAccounts);
   const [submitError, setSubmitError] = useState('');
+  const [optimizingField, setOptimizingField] = useState<string | null>(null);
   const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number; whatsappGroupUrl?: string; priceLabel?: string }>>([]);
   const [selectedActivityId, setSelectedActivityId] = useState('');
   const core = (id: import('../formConfig').CoreFieldId) => formConfig.fields.find((field) => field.id === id) || defaultFormConfig.fields.find((field) => field.id === id)!;
@@ -201,28 +204,42 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     setTimeout(() => setCopiedAccount(null), 2000);
   };
 
-  const handleFileChange = (
+  const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>,
     field: 'contributionProof' | 'tagFriendsProof' | 'repostStoryProof'
   ) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith('image/') || file.size > 1 * 1024 * 1024) {
-        setErrors((prev) => ({ ...prev, [field]: 'Gunakan gambar JPG/PNG/WebP maksimal 1 MB' }));
-        e.target.value = '';
-        return;
-      }
-      const previewUrl = file.type.startsWith('image/') ? URL.createObjectURL(file) : '';
-      setFormData(prev => ({
-        ...prev,
-        [field]: {
-          file,
-          fileName: file.name,
-          fileSize: file.size,
-          previewUrl
+    if (!file) return;
+
+    setOptimizingField(field);
+    setErrors((prev) => ({ ...prev, [field]: '' }));
+
+    try {
+      // Otomatis convert PNG/JPEG/HEIC ke WebP terkompresi (max 4MB raw)
+      const webpFile = await optimizeImageToWebp(file, { maxSizeMB: 4, quality: 0.82 });
+      const previewUrl = URL.createObjectURL(webpFile);
+
+      setFormData((prev) => {
+        if (prev[field].previewUrl) {
+          URL.revokeObjectURL(prev[field].previewUrl);
         }
-      }));
-      setErrors(prev => ({ ...prev, [field]: '' }));
+        return {
+          ...prev,
+          [field]: {
+            file: webpFile,
+            fileName: webpFile.name,
+            fileSize: webpFile.size,
+            previewUrl,
+          },
+        };
+      });
+      setErrors((prev) => ({ ...prev, [field]: '' }));
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Gagal memproses gambar.';
+      setErrors((prev) => ({ ...prev, [field]: message }));
+      e.target.value = '';
+    } finally {
+      setOptimizingField(null);
     }
   };
 
@@ -255,8 +272,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     }
     if (core('whatsapp').enabled && core('whatsapp').required && !formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Nomor WhatsApp wajib diisi';
-    } else if (core('whatsapp').enabled && formData.whatsapp.trim() && !/^628\d{7,12}$/.test(formData.whatsapp.trim())) {
-      newErrors.whatsapp = 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol';
+    } else if (core('whatsapp').enabled && formData.whatsapp.trim() && !/^(?:628|08)\d{7,12}$/.test(formData.whatsapp.trim())) {
+      newErrors.whatsapp = 'Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol';
     }
     for (const field of formConfig.customFields.filter((item) => item.step === 1 && item.required)) {
       if (!formData.customAnswers[field.id]?.trim()) newErrors[field.id] = `${field.label} wajib diisi`;
@@ -783,13 +800,13 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               value={formData.whatsapp}
               onChange={(e) => {
                 setFormData(prev => ({ ...prev, whatsapp: e.target.value }));
-                if (errors.whatsapp) setErrors(prev => ({ ...prev, whatsapp: /^628\d{7,12}$/.test(e.target.value) ? '' : prev.whatsapp }));
+                if (errors.whatsapp) setErrors(prev => ({ ...prev, whatsapp: /^(?:628|08)\d{7,12}$/.test(e.target.value) ? '' : prev.whatsapp }));
               }}
               onBlur={(e) => {
                 const value = e.target.value.trim();
-                if (value && !/^628\d{7,12}$/.test(value)) setErrors(prev => ({ ...prev, whatsapp: 'Gunakan format 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol' }));
+                if (value && !/^(?:628|08)\d{7,12}$/.test(value)) setErrors(prev => ({ ...prev, whatsapp: 'Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol' }));
               }}
-              placeholder={core('whatsapp').placeholder || '628xxxxxxxxxx'}
+              placeholder={core('whatsapp').placeholder || '08xxxxxxxxxx atau 628xxxxxxxxxx'}
               className="w-full h-11 px-3.5 bg-[#fbfcfc] border border-[#cbd5e1] focus:border-[#0eadad] focus:bg-white rounded-xl text-sm outline-none transition-all focus:ring-3 focus:ring-[#0eadad]/15 text-[#173f42]"
             />
             {errors.whatsapp && (
@@ -897,12 +914,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               <input
                 type="file"
                 ref={contributionInputRef}
-                accept="image/*"
+                accept="image/*,.heic,.HEIC,.heif,.HEIF"
                 onChange={(e) => handleFileChange(e, 'contributionProof')}
                 className="hidden"
               />
 
-              {!formData.contributionProof.file ? (
+              {optimizingField === 'contributionProof' ? (
+                <div className="border-2 border-dashed border-[#0eadad] bg-[#f0fbfb] rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2">
+                  <Loader2 className="w-6 h-6 text-[#0eadad] animate-spin" />
+                  <p className="text-xs font-bold text-[#173f42]">Mengoptimasi gambar ke WebP...</p>
+                  <p className="text-[10px] text-[#687479]">Sedang memproses dan mengompres ukuran file</p>
+                </div>
+              ) : !formData.contributionProof.file ? (
                 <div 
                   onClick={() => contributionInputRef.current?.click()}
                   className="border-2 border-dashed border-[#cbd5e1] hover:border-[#0eadad] hover:bg-[#f2fbfb] rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
@@ -919,7 +942,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                       <span>Tambahkan file</span>
                     </span>
                     <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                      Gambar JPG/PNG/WebP, maksimal 1 MB.
+                      Format JPG, PNG, HEIC, WebP (maks. 4 MB, otomatis dioptimasi ke WebP).
                     </p>
                   </div>
                 </div>
@@ -1026,12 +1049,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             <input
               type="file"
               ref={tagFriendsInputRef}
-              accept="image/*"
+              accept="image/*,.heic,.HEIC,.heif,.HEIF"
               onChange={(e) => handleFileChange(e, 'tagFriendsProof')}
               className="hidden"
             />
 
-            {!formData.tagFriendsProof.file ? (
+            {optimizingField === 'tagFriendsProof' ? (
+              <div className="border-2 border-dashed border-[#0eadad] bg-[#f0fbfb] rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 text-[#0eadad] animate-spin" />
+                <p className="text-xs font-bold text-[#173f42]">Mengoptimasi gambar ke WebP...</p>
+                <p className="text-[10px] text-[#687479]">Sedang memproses dan mengompres ukuran file</p>
+              </div>
+            ) : !formData.tagFriendsProof.file ? (
               <div 
                 onClick={() => tagFriendsInputRef.current?.click()}
                 className="border-2 border-dashed border-[#cbd5e1] hover:border-[#0eadad] hover:bg-[#f2fbfb] rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
@@ -1045,7 +1074,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Gambar JPG/PNG/WebP, maksimal 1 MB.
+                    Format JPG, PNG, HEIC, WebP (maks. 4 MB, otomatis dioptimasi ke WebP).
                   </p>
                 </div>
               </div>
@@ -1105,12 +1134,18 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
             <input
               type="file"
               ref={repostStoryInputRef}
-              accept="image/*"
+              accept="image/*,.heic,.HEIC,.heif,.HEIF"
               onChange={(e) => handleFileChange(e, 'repostStoryProof')}
               className="hidden"
             />
 
-            {!formData.repostStoryProof.file ? (
+            {optimizingField === 'repostStoryProof' ? (
+              <div className="border-2 border-dashed border-[#0eadad] bg-[#f0fbfb] rounded-2xl p-6 text-center flex flex-col items-center justify-center gap-2">
+                <Loader2 className="w-6 h-6 text-[#0eadad] animate-spin" />
+                <p className="text-xs font-bold text-[#173f42]">Mengoptimasi gambar ke WebP...</p>
+                <p className="text-[10px] text-[#687479]">Sedang memproses dan mengompres ukuran file</p>
+              </div>
+            ) : !formData.repostStoryProof.file ? (
               <div 
                 onClick={() => repostStoryInputRef.current?.click()}
                 className="border-2 border-dashed border-[#cbd5e1] hover:border-[#0eadad] hover:bg-[#f2fbfb] rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2"
@@ -1124,7 +1159,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Gambar JPG/PNG/WebP, maksimal 1 MB.
+                    Format JPG, PNG, HEIC, WebP (maks. 4 MB, otomatis dioptimasi ke WebP).
                   </p>
                 </div>
               </div>
