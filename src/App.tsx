@@ -1096,22 +1096,22 @@ export default function App(){
                     <Mail />
                     <span><small>Email</small>{contactInfo.email}</span>
                   </a>
-                  <div>
+                  <a href="https://www.instagram.com/pulangkesinii" target="_blank" rel="noreferrer">
                     <Instagram />
                     <span><small>Instagram</small>{contactInfo.instagram}</span>
-                  </div>
-                  <div>
+                  </a>
+                  <a href="https://www.tiktok.com/@pulangkesinii_" target="_blank" rel="noreferrer">
                     <span className="text-icon">Tt</span>
                     <span><small>TikTok</small>{contactInfo.tiktok}</span>
-                  </div>
-                  <div>
+                  </a>
+                  <a href="https://www.linkedin.com/company/pulangkesinii/posts/?viewAsMember=true" target="_blank" rel="noreferrer">
                     <Linkedin />
                     <span><small>LinkedIn</small>{contactInfo.linkedin}</span>
-                  </div>
-                  <div>
+                  </a>
+                  <a href="https://www.threads.com/@pulangkesinii" target="_blank" rel="noreferrer">
                     <span className="text-icon">@</span>
                     <span><small>Threads</small>@Pulangkesinii</span>
-                  </div>
+                  </a>
                   <div>
                     <MapPin />
                     <span><small>Basecamp</small>{contactInfo.basecamp}</span>
@@ -1137,8 +1137,8 @@ export default function App(){
               <Link to="/admin">Admin</Link>
             </nav>
             <div className="socials">
-              <span><Instagram /></span>
-              <span><Linkedin /></span>
+              <a href="https://www.instagram.com/pulangkesinii" target="_blank" rel="noreferrer"><Instagram /></a>
+              <a href="https://www.linkedin.com/company/pulangkesinii/posts/?viewAsMember=true" target="_blank" rel="noreferrer"><Linkedin /></a>
               <a href="mailto:pulangkesinii@gmail.com"><Mail /></a>
               <span><MapPin /></span>
             </div>
@@ -1211,7 +1211,7 @@ export default function App(){
 
               {detailTab === 'deskripsi' ? (
                 <div className="detail-tab-panel" role="tabpanel">
-                  <p>{selected.description || selected.shortDescription || 'Deskripsi lengkap akan ditampilkan setelah data resmi tersedia.'}</p>
+                  <p style={{ whiteSpace: 'pre-line', textAlign: 'justify' }}>{selected.description || selected.shortDescription || 'Deskripsi lengkap akan ditampilkan setelah data resmi tersedia.'}</p>
                 </div>
               ) : (
                 <div className="detail-tab-panel" role="tabpanel">
