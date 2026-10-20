@@ -284,6 +284,9 @@ var activityBody = z.object({
 var faqBody = z.object({ id: z.string().max(64).optional(), question: z.string().min(1).max(1e3), answer: z.string().min(1).max(1e4), category: z.string().max(64).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
 var galleryBody = z.object({ id: z.string().max(64).optional(), title: z.string().min(1).max(128), batchTag: z.string().max(64).optional(), category: z.string().max(64).optional(), imageUrl: z.string().url(), caption: z.string().max(5e3).optional(), location: z.string().max(128).optional(), date: z.string().max(64).optional(), tileClass: z.string().max(32).optional(), orderIndex: z.coerce.number().int().optional() }).strict();
 var donationBody = z.object({ name: z.string().trim().min(1).max(128), amount: z.string().max(64).default(""), donationType: z.string().max(32).default("Uang"), prayer: z.string().max(280).default(""), paymentProofUrl: z.string().url().or(z.literal("")).default("") }).strict();
+var cachePublicHomepage = (res) => {
+  res.set("Cache-Control", "public, max-age=0, s-maxage=30, stale-while-revalidate=300");
+};
 app.post("/api/auth/login", async (req, res) => {
   try {
     if (!process.env.DATABASE_URL) {
@@ -380,6 +383,29 @@ app.get("/api/activities", async (_req, res) => {
     return res.json(list);
   } catch (err) {
     return res.status(500).json({ error: "Gagal memuat kegiatan: " + err.message });
+  }
+});
+app.get("/api/public-home", async (_req, res) => {
+  try {
+    const [activityList, faqList, galleryList, contactSetting, paymentSetting, prayerList] = await Promise.all([
+      db.select().from(activities).orderBy(desc(activities.createdAt)),
+      db.select().from(faqs).orderBy(asc(faqs.orderIndex)),
+      db.select().from(galleryPhotos).orderBy(asc(galleryPhotos.orderIndex), desc(galleryPhotos.createdAt)),
+      db.select().from(siteSettings).where(eq(siteSettings.key, "contact_info")).limit(1),
+      db.select().from(siteSettings).where(eq(siteSettings.key, "payment_accounts")).limit(1),
+      db.select().from(donations).where(eq(donations.status, "terverifikasi")).orderBy(desc(donations.createdAt)).limit(20)
+    ]);
+    cachePublicHomepage(res);
+    return res.json({
+      activities: activityList,
+      faqs: faqList,
+      gallery: galleryList,
+      contactInfo: contactSetting[0]?.value ?? null,
+      paymentAccounts: paymentSetting[0]?.value ?? null,
+      prayers: prayerList
+    });
+  } catch (err) {
+    return res.status(500).json({ error: "Gagal memuat halaman: " + err.message });
   }
 });
 app.get("/api/activities/:id", async (req, res) => {

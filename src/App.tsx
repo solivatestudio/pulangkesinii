@@ -111,14 +111,16 @@ export default function App(){
   const [aamiinedIds, setAamiinedIds] = useState<string[]>([]);
 
   useEffect(() => {
-    // 1. Fetch activities from DB
-    fetch('/api/activities')
+    // Homepage data is bundled in one cached request so the activity catalogue
+    // is not held up by five separate serverless/database round trips.
+    fetch('/api/public-home')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (Array.isArray(data)) {
+        if (data && typeof data === 'object') {
           const colors = ['cyan', 'blue', 'coral'];
+          const activities = Array.isArray(data.activities) ? data.activities : [];
           setCatalogue(
-            data.map((item: any, idx: number) => ({
+            activities.map((item: any, idx: number) => ({
               id: item.id || idx + 1,
               category: item.category || 'Volunteer',
               city: item.city || 'Jakarta',
@@ -142,69 +144,35 @@ export default function App(){
               status: item.status || 'open',
             }))
           );
-        }
-      })
-      .catch(() => {});
 
-    // 2. Fetch FAQs from DB
-    fetch('/api/faqs')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setFaqItems(
-            data.map((f: any) => ({
-              question: f.question,
-              answer: f.answer,
-            }))
-          );
-        }
-      })
-      .catch(() => {});
-
-    // 3. Fetch Gallery Photos from DB
-    fetch('/api/gallery')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setGalleryPhotos(data.map((g: any) => g.imageUrl));
-        }
-      })
-      .catch(() => {});
-
-    // 4. Fetch Site Contact Settings from DB
-    fetch('/api/settings/contact_info')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.value) {
-          setContactInfo((prev) => ({ ...prev, ...data.value }));
-        }
-      })
-      .catch(() => {});
-
-    // 5. Fetch Payment Accounts (QRIS) from DB
-    fetch('/api/settings/payment_accounts')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.value?.qrisImageUrl) {
-          const url = (data.value.qrisImageUrl === '/assets/decor-1.png' || data.value.qrisImageUrl === '/images/web/qris.jpeg') ? '/images/web/qris.webp' : data.value.qrisImageUrl;
-          setQrisImageUrl(url);
-        }
-      })
-      .catch(() => {});
-
-    // 6. Fetch verified prayers for "Ucapan dan Doa" section
-    fetch('/api/donations/verified')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (Array.isArray(data)) {
-          setPrayers(data.map((d: any) => ({
-            id: d.id,
-            name: d.name,
-            prayer: d.prayer || '',
-            aamiinCount: Number(d.aamiinCount) || 0,
-            createdAt: d.createdAt,
-          })));
-          setAamiinedIds(data.filter((d: any) => localStorage.getItem(`aamiin-${d.id}`)).map((d: any) => d.id));
+          if (Array.isArray(data.faqs)) {
+            setFaqItems(
+              data.faqs.map((f: any) => ({
+                question: f.question,
+                answer: f.answer,
+              }))
+            );
+          }
+          if (Array.isArray(data.gallery)) {
+            setGalleryPhotos(data.gallery.map((g: any) => g.imageUrl));
+          }
+          if (data.contactInfo) {
+            setContactInfo((prev) => ({ ...prev, ...data.contactInfo }));
+          }
+          if (data.paymentAccounts?.qrisImageUrl) {
+            const url = (data.paymentAccounts.qrisImageUrl === '/assets/decor-1.png' || data.paymentAccounts.qrisImageUrl === '/images/web/qris.jpeg') ? '/images/web/qris.webp' : data.paymentAccounts.qrisImageUrl;
+            setQrisImageUrl(url);
+          }
+          if (Array.isArray(data.prayers)) {
+            setPrayers(data.prayers.map((d: any) => ({
+              id: d.id,
+              name: d.name,
+              prayer: d.prayer || '',
+              aamiinCount: Number(d.aamiinCount) || 0,
+              createdAt: d.createdAt,
+            })));
+            setAamiinedIds(data.prayers.filter((d: any) => localStorage.getItem(`aamiin-${d.id}`)).map((d: any) => d.id));
+          }
         }
       })
       .catch(() => {});
@@ -883,7 +851,7 @@ export default function App(){
 
         {/* ABOUT SECTION */}
         <section className="about-section" id="tentang">
-          <img className="about-stars" src="/assets/decor-2.png" alt="" />
+          <img className="about-stars" src="/assets/decor-2.png" alt="" loading="lazy" />
           <div className="section-container">
             <div className="about-grid">
               <div className="about-content">
@@ -897,7 +865,7 @@ export default function App(){
                 </blockquote>
               </div>
               <div className="about-visual">
-                <img className="about-mascot" src="/assets/star-yellow.png" alt="Maskot bintang kuning Pulangkesinii" />
+                <img className="about-mascot" src="/assets/star-yellow.png" alt="Maskot bintang kuning Pulangkesinii" loading="lazy" />
               </div>
             </div>
           </div>
@@ -905,7 +873,7 @@ export default function App(){
 
         {/* STORY SECTION */}
         <section className="story-section">
-          <img className="story-decor" src="/assets/decor-3.png" alt="" />
+          <img className="story-decor" src="/assets/decor-3.png" alt="" loading="lazy" />
           <div className="section-container">
             <div className="story-grid">
               <div className="story-content">
@@ -956,7 +924,7 @@ export default function App(){
 
         {/* PROGRAM PILLARS SECTION */}
         <section className="program-section" id="program">
-          <img className="program-decor" src="/assets/decor-4.png" alt="" />
+          <img className="program-decor" src="/assets/decor-4.png" alt="" loading="lazy" />
           <div className="section-container">
             <div className="simple-heading">
               <span>Yang bisa kamu ikuti</span>
@@ -1072,8 +1040,8 @@ export default function App(){
 
         {/* CONTACT SECTION */}
         <section className="contact-section" id="kontak">
-          <img className="contact-main" src="/assets/star-blue.png" alt="Maskot bintang biru Pulangkesinii" />
-          <img className="contact-decor" src="/assets/decor-1.png" alt="" />
+          <img className="contact-main" src="/assets/star-blue.png" alt="Maskot bintang biru Pulangkesinii" loading="lazy" />
+          <img className="contact-decor" src="/assets/decor-1.png" alt="" loading="lazy" />
           <div className="section-container">
             <div className="contact-grid">
               <div className="contact-cta-col">
