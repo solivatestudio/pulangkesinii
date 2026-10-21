@@ -78,3 +78,37 @@ export const getUploadthingDownloadUrl = async (key: string) => {
   if (!process.env.UPLOADTHING_TOKEN) throw new Error('UPLOADTHING_TOKEN belum diatur.');
   return new UTApi().generateSignedURL(key);
 };
+
+export const cleanOrphanStorageFiles = async (
+  activeUrls: string[],
+  olderThanHours = 24
+) => {
+  if (!process.env.UPLOADTHING_TOKEN) return { deletedCount: 0, checkedCount: 0 };
+  const api = new UTApi();
+  const fileList = await api.listFiles({ limit: 100 });
+  const activeKeys = new Set(
+    activeUrls
+      .map((url) => extractUploadthingKey(url))
+      .filter((k): k is string => Boolean(k))
+  );
+
+  const cutoff = Date.now() - olderThanHours * 60 * 60 * 1000;
+  const orphanKeys: string[] = [];
+
+  for (const item of fileList.files) {
+    const itemKey = item.key;
+    const createdAtTime = new Date(item.uploadedAt).getTime();
+    // Hanya bersihkan file yang sudah melewati masa tenggang dan tidak terhubung ke DB
+    if (createdAtTime < cutoff && !activeKeys.has(itemKey)) {
+      orphanKeys.push(itemKey);
+    }
+  }
+
+  if (orphanKeys.length > 0) {
+    const res = await deleteUploadthingFilesByKey(orphanKeys);
+    return { deletedCount: res.deletedCount, checkedCount: fileList.files.length };
+  }
+
+  return { deletedCount: 0, checkedCount: fileList.files.length };
+};
+

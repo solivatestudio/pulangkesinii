@@ -11,16 +11,18 @@ import * as dotenv from 'dotenv';
 import { eq, desc, asc, sql, and, lt } from 'drizzle-orm';
 import { createRouteHandler } from 'uploadthing/express';
 import { uploadRouter } from './uploadthing';
-import { db, users, activities, registrations, galleryPhotos, faqs, siteSettings, donations } from './db';
-import { deleteUploadthingFile, deleteUploadthingFiles, deleteUploadthingFilesByKey, getUploadthingDownloadUrl, getUploadthingFiles, streamUploadthingZip } from './storage';
+import { db, users, activities, registrations, galleryPhotos, faqs, siteSettings, donations, ensureRegistrationSchema } from './db';
+import { deleteUploadthingFile, deleteUploadthingFiles, deleteUploadthingFilesByKey, getUploadthingDownloadUrl, getUploadthingFiles, streamUploadthingZip, cleanOrphanStorageFiles } from './storage';
 import { getLatestStorageMonitoring, jsonMonitoringError, requireCronSecret, runStorageMonitoring } from './monitoring';
+import { reserveQuota, completeRegistration, cancelRegistration, deleteRegistration, cleanExpiredReservations, ReservationError } from './registrationService';
+
 
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || (process.env.NODE_ENV !== 'production' ? 'pulangkesinii_jwt_secret_key_2026_super_secure' : '');
 if (!JWT_SECRET || JWT_SECRET.length < 32) {
   throw new Error('JWT_SECRET wajib diisi dengan nilai acak minimal 32 karakter');
 }
@@ -73,6 +75,7 @@ app.get('/api/health', (req: Request, res: Response) => {
 app.get('/api/internal/storage-monitoring/run', async (req: Request, res: Response) => {
   if (!requireCronSecret(req.headers.authorization)) return res.status(401).json({ error: 'Unauthorized' });
   try {
+    await cleanExpiredReservations();
     return res.json(await runStorageMonitoring());
   } catch (error) {
     return jsonMonitoringError(res, error);
@@ -347,15 +350,42 @@ app.delete('/api/activities/:id', requireAuth, async (req: Request, res: Respons
 });
 
 // ==================== REGISTRATIONS ROUTES ====================
-const registrationSchema = z.object({
-  activityId: z.string().max(64).nullable().optional(),
+const reserveRegistrationSchema = z.object({
+  idempotencyKey: z.string().max(128).optional(),
+  activityId: z.string().trim().min(1, 'activityId tidak boleh kosong').max(64).nullable().optional(),
   activityTitle: z.string().max(300).optional(),
   activityChoice: z.string().max(300).default(''),
-  fullName: z.string().trim().max(128).default(''),
-  email: z.string().trim().email().max(128).or(z.literal('')).default(''),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).or(z.literal('')).default(''),
+  fullName: z.string().trim().min(1, 'Nama lengkap wajib diisi').max(128),
+  email: z.string().trim().email('Format email tidak valid').max(128).or(z.literal('')).default(''),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal lahir tidak valid').or(z.literal('')).default(''),
   domicile: z.string().trim().max(128).default(''),
-  whatsapp: z.string().trim().regex(/^(?:(?:628|08)\d{7,12})?$/, 'Nomor WhatsApp harus memakai format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol.').transform((val) => val.startsWith('08') ? '628' + val.slice(2) : val).default(''),
+  whatsapp: z.string().trim().regex(/^(?:628|08)\d{7,12}$/, 'Nomor WhatsApp harus memakai format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol (10-15 digit).').transform((val) => val.startsWith('08') ? '628' + val.slice(2) : val),
+  followedChannel: z.string().max(128).default(''),
+  paymentMethod: z.string().max(64).default(''),
+  reason: z.string().trim().max(5000).default(''),
+  customAnswers: z.record(z.string(), z.string().max(5000)).default({}),
+}).strict();
+
+const completeRegistrationSchema = z.object({
+  contributionProofUrl: z.string().url().or(z.literal('')).default(''),
+  tagFriendsProofUrl: z.string().url().or(z.literal('')).default(''),
+  repostStoryProofUrl: z.string().url().or(z.literal('')).default(''),
+  proofStatus: z.enum(['complete', 'proof_later']).default('complete'),
+  customAnswers: z.record(z.string(), z.string().max(5000)).optional(),
+  reason: z.string().trim().max(5000).optional(),
+  paymentMethod: z.string().max(64).optional(),
+}).strict();
+
+const registrationSchema = z.object({
+  idempotencyKey: z.string().max(128).optional(),
+  activityId: z.string().trim().min(1, 'activityId tidak boleh kosong').max(64).nullable().optional(),
+  activityTitle: z.string().max(300).optional(),
+  activityChoice: z.string().max(300).default(''),
+  fullName: z.string().trim().min(1, 'Nama lengkap wajib diisi').max(128),
+  email: z.string().trim().email('Format email tidak valid').max(128).or(z.literal('')).default(''),
+  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Format tanggal lahir tidak valid').or(z.literal('')).default(''),
+  domicile: z.string().trim().max(128).default(''),
+  whatsapp: z.string().trim().regex(/^(?:628|08)\d{7,12}$/, 'Nomor WhatsApp harus memakai format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol (10-15 digit).').transform((val) => val.startsWith('08') ? '628' + val.slice(2) : val),
   followedChannel: z.string().max(128).default(''),
   paymentMethod: z.string().max(64).default(''),
   reason: z.string().trim().max(5000).default(''),
@@ -363,92 +393,225 @@ const registrationSchema = z.object({
   tagFriendsProofUrl: z.string().url().or(z.literal('')).default(''),
   repostStoryProofUrl: z.string().url().or(z.literal('')).default(''),
   customAnswers: z.record(z.string(), z.string().max(5000)).default({}),
-  // Kept for compatibility with previously cached public-form bundles.
   submittedAt: z.string().datetime().optional(),
 }).strict();
 
-app.post('/api/registrations', async (req: Request, res: Response) => {
-  try {
-    const data = registrationSchema.parse(req.body);
-    const configRow = await db.select().from(siteSettings).where(eq(siteSettings.key, 'registration_form_config')).limit(1);
-    const formConfig = (configRow[0]?.value || {}) as Record<string, any>;
-    const configuredFields = Array.isArray(formConfig.fields) ? formConfig.fields : [];
-    const configured = (id: string, legacyEnabled: unknown, legacyRequired: unknown) => {
-      const field = configuredFields.find((item: any) => item?.id === id);
-      return { enabled: field?.enabled ?? legacyEnabled ?? true, required: field?.required ?? legacyRequired ?? true };
-    };
-    const contribution = configured('contributionProof', formConfig.enableContributionProof, formConfig.contributionProofRequired);
-    const tagFriends = configured('tagFriendsProof', formConfig.enableTagFriends, formConfig.tagFriendsRequired);
-    const repostStory = configured('repostStoryProof', formConfig.enableRepostStory, formConfig.repostStoryRequired);
-    const coreValues: Record<string, string> = { fullName: data.fullName, email: data.email, birthDate: data.birthDate, domicile: data.domicile, whatsapp: data.whatsapp, followedChannel: data.followedChannel, activityChoice: data.activityChoice, paymentMethod: data.paymentMethod, reason: data.reason };
-    const defaultRequiredCore = ['fullName', 'email', 'birthDate', 'domicile', 'whatsapp', 'followedChannel', 'activityChoice', 'paymentMethod', 'reason'];
-    const missingCore = defaultRequiredCore.some((id) => {
+// Validasi field wajib berdasarkan siteSettings registration_form_config
+const validateRegistrationConfig = async (data: any, isFinalSubmit = false) => {
+  const configRow = await db.select().from(siteSettings).where(eq(siteSettings.key, 'registration_form_config')).limit(1);
+  const formConfig = (configRow[0]?.value || {}) as Record<string, any>;
+  const configuredFields = Array.isArray(formConfig.fields) ? formConfig.fields : [];
+  const configured = (id: string, legacyEnabled: unknown, legacyRequired: unknown) => {
+    const field = configuredFields.find((item: any) => item?.id === id);
+    return { enabled: field?.enabled ?? legacyEnabled ?? true, required: field?.required ?? legacyRequired ?? true };
+  };
+
+  const coreValues: Record<string, string> = {
+    fullName: data.fullName,
+    email: data.email,
+    birthDate: data.birthDate,
+    domicile: data.domicile,
+    whatsapp: data.whatsapp,
+    followedChannel: data.followedChannel,
+    activityChoice: data.activityChoice,
+    paymentMethod: data.paymentMethod,
+    reason: data.reason,
+  };
+
+  // Field dasar yang dicek saat Step 1 / reserve
+  const step1RequiredCore = ['fullName', 'email', 'birthDate', 'domicile', 'whatsapp', 'followedChannel'];
+  const missingStep1 = step1RequiredCore.some((id) => {
+    const field = configuredFields.find((item: any) => item?.id === id);
+    return (field?.enabled ?? true) && (field?.required ?? true) && !coreValues[id]?.trim();
+  });
+  if (missingStep1) throw new ReservationError('Field wajib data diri belum lengkap', 400);
+
+  if (isFinalSubmit) {
+    const step2RequiredCore = ['paymentMethod', 'reason'];
+    const missingStep2 = step2RequiredCore.some((id) => {
       const field = configuredFields.find((item: any) => item?.id === id);
       return (field?.enabled ?? true) && (field?.required ?? true) && !coreValues[id]?.trim();
     });
-    if (missingCore) return res.status(400).json({ error: 'Field wajib belum lengkap' });
+    if (missingStep2) throw new ReservationError('Field wajib pendaftaran belum lengkap', 400);
+
+    const contribution = configured('contributionProof', formConfig.enableContributionProof, formConfig.contributionProofRequired);
+    const tagFriends = configured('tagFriendsProof', formConfig.enableTagFriends, formConfig.tagFriendsRequired);
+    const repostStory = configured('repostStoryProof', formConfig.enableRepostStory, formConfig.repostStoryRequired);
     const missingProof =
       (contribution.enabled && contribution.required && !data.contributionProofUrl) ||
       (tagFriends.enabled && tagFriends.required && !data.tagFriendsProofUrl) ||
       (repostStory.enabled && repostStory.required && !data.repostStoryProofUrl);
-    if (missingProof) return res.status(400).json({ error: 'Bukti wajib belum lengkap' });
-    const requiredCustomFields = Array.isArray(formConfig.customFields) ? formConfig.customFields.filter((field: any) => field?.required) : [];
-    if (requiredCustomFields.some((field: any) => !data.customAnswers[field.label]?.trim())) {
-      return res.status(400).json({ error: 'Pertanyaan wajib belum lengkap' });
-    }
-    const suffix = crypto.randomBytes(5).toString('hex').toUpperCase();
-    const regCode = `PLG-${new Date().getFullYear()}-${suffix}`;
-    const id = crypto.randomUUID();
+    if (missingProof) throw new ReservationError('Bukti pendaftaran wajib belum lengkap', 400);
+  }
 
-    const newReg = {
-      id,
-      registrationCode: regCode,
-      activityId: data.activityId || null,
-      activityTitle: data.activityTitle || data.activityChoice || 'Kegiatan Pulangkesinii',
+  const requiredCustomFields = Array.isArray(formConfig.customFields) ? formConfig.customFields.filter((field: any) => field?.required) : [];
+  if (requiredCustomFields.some((field: any) => !data.customAnswers?.[field.label]?.trim())) {
+    throw new ReservationError('Pertanyaan kustom wajib belum lengkap', 400);
+  }
+};
+
+// Endpoint Reservasi Kuota Sebelum Upload (Atomik + Idempotent + Timeout)
+app.post('/api/registrations/reserve', async (req: Request, res: Response) => {
+  try {
+    await ensureRegistrationSchema();
+    const data = reserveRegistrationSchema.parse(req.body);
+    await validateRegistrationConfig(data, false);
+
+    const result = await reserveQuota(data);
+    return res.status(result.alreadyReserved || result.alreadyConfirmed ? 200 : 201).json({
+      success: true,
+      message: result.alreadyConfirmed
+        ? 'Pendaftaran sudah selesai sebelumnya'
+        : result.alreadyReserved
+        ? 'Reservasi aktif ditemukan'
+        : 'Slot kuota berhasil direservasi',
+      data: result.registration,
+      alreadyReserved: result.alreadyReserved,
+      alreadyConfirmed: result.alreadyConfirmed,
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Data pendaftaran tidak valid', details: err.issues });
+    }
+    if (err instanceof ReservationError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    console.error('Reserve error:', err);
+    return res.status(500).json({ error: 'Gagal melakukan reservasi kuota' });
+  }
+});
+
+// Endpoint Penyelesaian Pendaftaran (Simpan Bukti Foto / Bukti Menyusul)
+app.post('/api/registrations/:id/complete', async (req: Request, res: Response) => {
+  try {
+    await ensureRegistrationSchema();
+    const data = completeRegistrationSchema.parse(req.body);
+    const result = await completeRegistration(req.params.id, data);
+
+    return res.status(200).json({
+      success: true,
+      message: result.status === 'pending_proof_submission'
+        ? 'Pendaftaran berhasil dicatat (bukti menyusul)'
+        : 'Pendaftaran berhasil dikonfirmasi',
+      data: result.registration,
+      alreadyCompleted: result.alreadyCompleted,
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Data bukti tidak valid', details: err.issues });
+    }
+    if (err instanceof ReservationError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    console.error('Complete registration error:', err);
+    return res.status(500).json({ error: 'Gagal menyelesaikan pendaftaran' });
+  }
+});
+
+// Endpoint Pembatalan Reservasi Sukarela oleh Peserta (Lepaskan kuota)
+app.post('/api/registrations/:id/cancel', async (req: Request, res: Response) => {
+  try {
+    await ensureRegistrationSchema();
+    const result = await cancelRegistration(req.params.id);
+    return res.json(result);
+  } catch (err: any) {
+    if (err instanceof ReservationError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    return res.status(500).json({ error: 'Gagal membatalkan pendaftaran' });
+  }
+});
+
+// Endpoint Legacy Direct POST /api/registrations (Mendukung pendaftaran langsung dengan atomic quota)
+app.post('/api/registrations', async (req: Request, res: Response) => {
+  try {
+    await ensureRegistrationSchema();
+    const data = registrationSchema.parse(req.body);
+    await validateRegistrationConfig(data, true);
+
+    // Gunakan alur reservasi atomik
+    const reserved = await reserveQuota({
+      idempotencyKey: data.idempotencyKey,
+      activityId: data.activityId,
+      activityTitle: data.activityTitle,
+      activityChoice: data.activityChoice,
       fullName: data.fullName,
-      email: data.email || '',
-      birthDate: data.birthDate || '',
-      domicile: data.domicile || '',
+      email: data.email,
+      birthDate: data.birthDate,
+      domicile: data.domicile,
       whatsapp: data.whatsapp,
-      followedChannel: data.followedChannel || '',
-      activityChoice: data.activityChoice || data.activityTitle || '',
-      paymentMethod: data.paymentMethod || 'Belum dipilih',
-      reason: data.reason || '',
-      contributionProofUrl: data.contributionProofUrl || '',
-      tagFriendsProofUrl: data.tagFriendsProofUrl || '',
-      repostStoryProofUrl: data.repostStoryProofUrl || '',
+      followedChannel: data.followedChannel,
+      paymentMethod: data.paymentMethod,
+      reason: data.reason,
       customAnswers: data.customAnswers,
-      createdAt: new Date(),
-    };
+    });
 
-    if (data.activityId) {
-      const updated = await db.update(activities)
-        .set({ quotaFilled: sql`${activities.quotaFilled} + 1` })
-        .where(and(eq(activities.id, data.activityId), lt(activities.quotaFilled, activities.quota)))
-        .returning({ id: activities.id });
-      if (!updated.length) return res.status(409).json({ error: 'Kegiatan tidak tersedia atau kuota sudah penuh' });
+    // Jika sudah confirmed sebelumnya melalui idempotency
+    if (reserved.alreadyConfirmed) {
+      return res.status(200).json({
+        success: true,
+        message: 'Pendaftaran sudah tercatat sebelumnya',
+        data: reserved.registration,
+      });
     }
-    try {
-      await db.insert(registrations).values(newReg);
-    } catch (error) {
-      if (data.activityId) await db.update(activities).set({ quotaFilled: sql`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, data.activityId));
-      throw error;
-    }
+
+    // Selesaikan langsung dengan bukti yang diberikan
+    const completed = await completeRegistration(reserved.registration.id, {
+      contributionProofUrl: data.contributionProofUrl,
+      tagFriendsProofUrl: data.tagFriendsProofUrl,
+      repostStoryProofUrl: data.repostStoryProofUrl,
+      proofStatus: 'complete',
+      customAnswers: data.customAnswers,
+      reason: data.reason,
+      paymentMethod: data.paymentMethod,
+    });
 
     return res.status(201).json({
       success: true,
       message: 'Pendaftaran berhasil dicatat',
-      data: newReg,
+      data: completed.registration,
     });
   } catch (err: any) {
     console.error('Registration error:', err);
-    if (err instanceof z.ZodError) return res.status(400).json({ error: 'Data pendaftaran tidak valid', details: err.issues });
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Data pendaftaran tidak valid', details: err.issues });
+    }
+    if (err instanceof ReservationError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
     return res.status(500).json({ error: 'Gagal mengirim pendaftaran' });
+  }
+});
+
+// Update Status Pendaftaran oleh Admin (misal: verifikasi bukti yang menyusul)
+app.patch('/api/registrations/:id/status', requireAuth, validateBody(z.object({
+  status: z.enum(['confirmed', 'pending_proof_submission', 'pending_proof', 'cancelled']).optional(),
+  adminNotes: z.string().max(5000).optional(),
+}).strict()), async (req: Request, res: Response) => {
+  try {
+    await ensureRegistrationSchema();
+    const { id } = req.params;
+    const { status, adminNotes } = req.body;
+
+    const found = await db.select().from(registrations).where(eq(registrations.id, id)).limit(1);
+    if (!found[0]) return res.status(404).json({ error: 'Pendaftaran tidak ditemukan' });
+
+    await db.update(registrations).set({
+      ...(status ? { status } : {}),
+      ...(adminNotes !== undefined ? { adminNotes } : {}),
+      updatedAt: new Date(),
+    }).where(eq(registrations.id, id));
+
+    return res.json({ success: true, message: 'Status pendaftaran berhasil diperbarui' });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
   }
 });
 
 app.get('/api/registrations', requireAuth, async (_req: Request, res: Response) => {
   try {
+    await ensureRegistrationSchema();
+    await cleanExpiredReservations();
     const list = await db.select().from(registrations).orderBy(desc(registrations.createdAt));
     return res.json(list);
   } catch (err: any) {
@@ -458,14 +621,53 @@ app.get('/api/registrations', requireAuth, async (_req: Request, res: Response) 
 
 app.delete('/api/registrations/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    const found = await db.select({ activityId: registrations.activityId, contributionProofUrl: registrations.contributionProofUrl, tagFriendsProofUrl: registrations.tagFriendsProofUrl, repostStoryProofUrl: registrations.repostStoryProofUrl }).from(registrations).where(eq(registrations.id, req.params.id)).limit(1);
-    if (!found[0]) return res.status(404).json({ error: 'Pendaftaran tidak ditemukan' });
-    await deleteUploadthingFiles([found[0].contributionProofUrl, found[0].tagFriendsProofUrl, found[0].repostStoryProofUrl]);
-    await db.delete(registrations).where(eq(registrations.id, req.params.id));
-    if (found[0]?.activityId) await db.update(activities).set({ quotaFilled: sql`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, found[0].activityId));
-    return res.json({ success: true, message: 'Data pendaftar berhasil dihapus' });
+    await ensureRegistrationSchema();
+    const result = await deleteRegistration(req.params.id);
+    return res.json(result);
+  } catch (err: any) {
+    if (err instanceof ReservationError) {
+      return res.status(err.statusCode).json({ error: err.message });
+    }
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+// Internal Cleanup Job untuk Reservasi Kedaluwarsa
+app.post('/api/internal/cleanup-reservations', async (req: Request, res: Response) => {
+  if (!requireCronSecret(req.headers.authorization)) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    const released = await cleanExpiredReservations();
+    return res.json({ success: true, releasedReservations: released });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin Storage Cleanup: Hapus file orphan (file yang tidak terhubung ke DB)
+app.post('/api/admin/storage/cleanup-orphans', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const [actList, galList, regList, donList] = await Promise.all([
+      db.select({ url: activities.coverImage }).from(activities),
+      db.select({ url: galleryPhotos.imageUrl }).from(galleryPhotos),
+      db.select({
+        cUrl: registrations.contributionProofUrl,
+        tUrl: registrations.tagFriendsProofUrl,
+        rUrl: registrations.repostStoryProofUrl,
+      }).from(registrations),
+      db.select({ url: donations.paymentProofUrl }).from(donations),
+    ]);
+
+    const activeUrls = [
+      ...actList.map((a) => a.url),
+      ...galList.map((g) => g.url),
+      ...donList.map((d) => d.url),
+      ...regList.flatMap((r) => [r.cUrl, r.tUrl, r.rUrl]),
+    ].filter((u): u is string => Boolean(u));
+
+    const result = await cleanOrphanStorageFiles(activeUrls, 24);
+    return res.json({ success: true, ...result });
+  } catch (error) {
+    return jsonMonitoringError(res, error);
   }
 });
 

@@ -114,6 +114,16 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
   const [optimizingField, setOptimizingField] = useState<string | null>(null);
   const [availableActivities, setAvailableActivities] = useState<Array<{ id: string; title: string; status: string; quota: number; quotaFilled: number; whatsappGroupUrl?: string; priceLabel?: string }>>([]);
   const [selectedActivityId, setSelectedActivityId] = useState('');
+  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const [activeReservation, setActiveReservation] = useState<{ id: string; registrationCode: string; expiresAt?: string } | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<Record<'contributionProof' | 'tagFriendsProof' | 'repostStoryProof', { status: 'idle' | 'uploading' | 'success' | 'failed'; url?: string; error?: string }>>({
+    contributionProof: { status: 'idle' },
+    tagFriendsProof: { status: 'idle' },
+    repostStoryProof: { status: 'idle' },
+  });
+  const [allowProofLater, setAllowProofLater] = useState(false);
+  const [registeredCode, setRegisteredCode] = useState('');
+  const [registeredStatus, setRegisteredStatus] = useState<'confirmed' | 'pending_proof_submission'>('confirmed');
   const core = (id: import('../formConfig').CoreFieldId) => formConfig.fields.find((field) => field.id === id) || defaultFormConfig.fields.find((field) => field.id === id)!;
 
   const selectedQuota = typeof activity?.quota === 'number' ? activity.quota : undefined;
@@ -248,10 +258,59 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     if (formData[field].previewUrl) {
       URL.revokeObjectURL(formData[field].previewUrl);
     }
+    if (field === 'contributionProof' && contributionInputRef.current) contributionInputRef.current.value = '';
+    if (field === 'tagFriendsProof' && tagFriendsInputRef.current) tagFriendsInputRef.current.value = '';
+    if (field === 'repostStoryProof' && repostStoryInputRef.current) repostStoryInputRef.current.value = '';
     setFormData(prev => ({
       ...prev,
       [field]: { file: null, fileName: '', fileSize: 0, previewUrl: '' }
     }));
+    setUploadProgress(prev => ({
+      ...prev,
+      [field]: { status: 'idle' }
+    }));
+    setErrors(prev => ({ ...prev, [field]: '' }));
+  };
+
+  const uploadSingleFile = async (
+    field: 'contributionProof' | 'tagFriendsProof' | 'repostStoryProof',
+    file: File
+  ): Promise<string> => {
+    setUploadProgress((prev) => ({
+      ...prev,
+      [field]: { status: 'uploading' },
+    }));
+
+    try {
+      const uploaded = await uploadFiles('proofUploader', { files: [file] });
+      const url = uploaded[0]?.ufsUrl || uploaded[0]?.url || '';
+      if (!url) throw new Error('Storage tidak mengembalikan URL file');
+
+      setUploadProgress((prev) => ({
+        ...prev,
+        [field]: { status: 'success', url },
+      }));
+      return url;
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Upload gagal';
+      setUploadProgress((prev) => ({
+        ...prev,
+        [field]: { status: 'failed', error: msg },
+      }));
+      throw err;
+    }
+  };
+
+  const retrySingleFileUpload = async (field: 'contributionProof' | 'tagFriendsProof' | 'repostStoryProof') => {
+    const file = formData[field].file;
+    if (!file) return;
+    setSubmitError('');
+    try {
+      await uploadSingleFile(field, file);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal mengunggah ulang file';
+      setSubmitError(`Gagal mengunggah file ${file.name}: ${msg}`);
+    }
   };
 
   const validateStep1 = (): boolean => {
@@ -274,7 +333,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     if (core('whatsapp').enabled && core('whatsapp').required && !formData.whatsapp.trim()) {
       newErrors.whatsapp = 'Nomor WhatsApp wajib diisi';
     } else if (core('whatsapp').enabled && formData.whatsapp.trim() && !/^(?:628|08)\d{7,12}$/.test(formData.whatsapp.trim())) {
-      newErrors.whatsapp = 'Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol';
+      newErrors.whatsapp = 'Gunakan format 08xxxxxxxxxx atau 628xxxxxxxxxx tanpa tanda +, spasi, atau simbol (10-15 digit)';
     }
     for (const field of formConfig.customFields.filter((item) => item.step === 1 && item.required)) {
       if (!formData.customAnswers[field.id]?.trim()) newErrors[field.id] = `${field.label} wajib diisi`;
@@ -361,76 +420,174 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     setIsSubmitting(true);
     setSubmitError('');
 
-    let contributionProofUrl = '';
-    let tagFriendsProofUrl = '';
-    let repostStoryProofUrl = '';
+    // Langkah 1: Reservasi Kuota Secara Atomik di Server Sebelum Upload
+    let reservation = activeReservation;
+    if (!reservation) {
+      try {
+        const reserveRes = await fetch('/api/registrations/reserve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idempotencyKey: idempotencyKeyRef.current,
+            activityId: selectedActivityId || undefined,
+            activityTitle: formData.activityChoice,
+            activityChoice: formData.activityChoice,
+            fullName: formData.fullName.trim(),
+            email: formData.email.trim(),
+            birthDate: formData.birthDate,
+            domicile: formData.domicile.trim(),
+            whatsapp: formData.whatsapp.trim(),
+            followedChannel: formData.followedChannel,
+            paymentMethod: formData.paymentMethod,
+            reason: formData.reason.trim(),
+            customAnswers: Object.fromEntries(
+              formConfig.customFields.map((f) => [f.label, formData.customAnswers[f.id] || ''])
+            ),
+          }),
+        });
 
-    try {
-      const proofFields = [
-        ['contributionProof', formData.contributionProof.file],
-        ['tagFriendsProof', formData.tagFriendsProof.file],
-        ['repostStoryProof', formData.repostStoryProof.file],
-      ] as const;
-      const files = proofFields.flatMap(([field, file]) => file ? [{ field, file }] : []);
-      const uploaded = files.length ? await uploadFiles('proofUploader', { files: files.map(({ file }) => file) }) : [];
-      const urls = new Map(files.map(({ field }, index) => [field, uploaded[index]?.ufsUrl || uploaded[index]?.url || '']));
-      contributionProofUrl = urls.get('contributionProof') || '';
-      tagFriendsProofUrl = urls.get('tagFriendsProof') || '';
-      repostStoryProofUrl = urls.get('repostStoryProof') || '';
-    } catch (uploadErr) {
-      setSubmitError('Upload bukti gagal. Periksa tipe/ukuran file dan coba lagi.');
-      setIsSubmitting(false);
-      return;
+        const reserveData = await reserveRes.json().catch(() => ({}));
+        if (!reserveRes.ok) {
+          throw new Error(reserveData.error || 'Gagal mereservasi kuota kegiatan.');
+        }
+
+        reservation = {
+          id: reserveData.data.id,
+          registrationCode: reserveData.data.registrationCode,
+          expiresAt: reserveData.data.expiresAt,
+        };
+        setActiveReservation(reservation);
+      } catch (err: unknown) {
+        setSubmitError(err instanceof Error ? err.message : 'Gagal mereservasi kuota.');
+        setIsSubmitting(false);
+        return;
+      }
     }
 
-    const payload = {
-      fullName: formData.fullName.trim(),
-      email: formData.email.trim(),
-      activityId: selectedActivityId || undefined,
-      activityTitle: formData.activityChoice,
-      birthDate: formData.birthDate,
-      domicile: formData.domicile.trim(),
-      whatsapp: formData.whatsapp.trim(),
-      followedChannel: formData.followedChannel,
-      activityChoice: formData.activityChoice,
-      paymentMethod: formData.paymentMethod,
-      reason: formData.reason.trim(),
-      customAnswers: Object.fromEntries(formConfig.customFields.map((field) => [field.label, formData.customAnswers[field.id] || ''])),
-      contributionProofUrl,
-      tagFriendsProofUrl,
-      repostStoryProofUrl
+    // Langkah 2: Upload File-File Bukti (Hanya yang belum sukses diunggah)
+    const proofItems: Array<{ field: 'contributionProof' | 'tagFriendsProof' | 'repostStoryProof'; file: File | null }> = [
+      { field: 'contributionProof', file: formData.contributionProof.file },
+      { field: 'tagFriendsProof', file: formData.tagFriendsProof.file },
+      { field: 'repostStoryProof', file: formData.repostStoryProof.file },
+    ];
+
+    let uploadFailed = false;
+    const finalUrls: Record<'contributionProof' | 'tagFriendsProof' | 'repostStoryProof', string> = {
+      contributionProof: uploadProgress.contributionProof.url || '',
+      tagFriendsProof: uploadProgress.tagFriendsProof.url || '',
+      repostStoryProof: uploadProgress.repostStoryProof.url || '',
     };
 
-    try {
-      const response = await fetch('/api/registrations', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.error || 'Pendaftaran gagal dikirim');
-    } catch (apiErr) {
-      setSubmitError(apiErr instanceof Error ? apiErr.message : 'Pendaftaran gagal dikirim');
+    for (const item of proofItems) {
+      if (item.file && !finalUrls[item.field]) {
+        try {
+          const url = await uploadSingleFile(item.field, item.file);
+          finalUrls[item.field] = url;
+        } catch {
+          uploadFailed = true;
+        }
+      }
+    }
+
+    if (uploadFailed) {
+      setSubmitError('Upload salah satu bukti belum berhasil. Anda dapat mencoba lagi pada file yang gagal atau memilih opsi kirim bukti menyusul.');
+      setAllowProofLater(true);
       setIsSubmitting(false);
       return;
     }
 
-    setIsSubmitting(false);
-    setIsSubmitted(true);
-    if (onSubmitSuccess) {
-      onSubmitSuccess(formData);
-    }
+    // Langkah 3: Selesaikan Pendaftaran di Database
     try {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#0eadad', '#FFE066', '#FF6B6B', '#4ECDC4']
+      const completeRes = await fetch(`/api/registrations/${reservation.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contributionProofUrl: finalUrls.contributionProof,
+          tagFriendsProofUrl: finalUrls.tagFriendsProof,
+          repostStoryProofUrl: finalUrls.repostStoryProof,
+          proofStatus: 'complete',
+          customAnswers: Object.fromEntries(
+            formConfig.customFields.map((f) => [f.label, formData.customAnswers[f.id] || ''])
+          ),
+          reason: formData.reason.trim(),
+          paymentMethod: formData.paymentMethod,
+        }),
       });
-    } catch (err) {
-      console.warn('Confetti error:', err);
+
+      const completeData = await completeRes.json().catch(() => ({}));
+      if (!completeRes.ok) {
+        throw new Error(completeData.error || 'Pendaftaran gagal disimpan di server');
+      }
+
+      setRegisteredCode(completeData.data?.registrationCode || reservation.registrationCode);
+      setRegisteredStatus('confirmed');
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      onSubmitSuccess?.(formData);
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#0eadad', '#FFE066', '#FF6B6B', '#4ECDC4']
+        });
+      } catch (err) {
+        console.warn('Confetti error:', err);
+      }
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'Gagal menyelesaikan pendaftaran');
+      setIsSubmitting(false);
     }
   };
+
+  const handleProofLater = async () => {
+    if (!activeReservation) return;
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      const completeRes = await fetch(`/api/registrations/${activeReservation.id}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contributionProofUrl: uploadProgress.contributionProof.url || '',
+          tagFriendsProofUrl: uploadProgress.tagFriendsProof.url || '',
+          repostStoryProofUrl: uploadProgress.repostStoryProof.url || '',
+          proofStatus: 'proof_later',
+          customAnswers: Object.fromEntries(
+            formConfig.customFields.map((f) => [f.label, formData.customAnswers[f.id] || ''])
+          ),
+          reason: formData.reason.trim(),
+          paymentMethod: formData.paymentMethod,
+        }),
+      });
+
+      const completeData = await completeRes.json().catch(() => ({}));
+      if (!completeRes.ok) {
+        throw new Error(completeData.error || 'Pendaftaran gagal disimpan di server');
+      }
+
+      setRegisteredCode(completeData.data?.registrationCode || activeReservation.registrationCode);
+      setRegisteredStatus('pending_proof_submission');
+      setIsSubmitting(false);
+      setIsSubmitted(true);
+      onSubmitSuccess?.(formData);
+      try {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#0eadad', '#FFE066', '#FF6B6B', '#4ECDC4']
+        });
+      } catch (err) {
+        console.warn('Confetti error:', err);
+      }
+    } catch (err: unknown) {
+      setSubmitError(err instanceof Error ? err.message : 'Gagal menyimpan pendaftaran');
+      setIsSubmitting(false);
+    }
+  };
+
 
   const renderCustomField = (field: CustomFormField) => {
     const value = formData.customAnswers[field.id] || '';
@@ -450,6 +607,47 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
         {errors[field.id] && <p className="text-xs text-red-500 mt-2">{errors[field.id]}</p>}
       </div>
     );
+  };
+
+  const renderUploadStatusBadge = (field: 'contributionProof' | 'tagFriendsProof' | 'repostStoryProof') => {
+    const item = uploadProgress[field];
+    if (!formData[field].file) return null;
+
+    if (item.status === 'uploading') {
+      return (
+        <div className="mt-2.5 p-2 bg-[#f0fbfb] border border-[#0eadad]/30 rounded-xl flex items-center gap-2 text-xs text-[#087c7e] font-semibold">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-[#0eadad]" />
+          <span>Sedang mengunggah file ke storage...</span>
+        </div>
+      );
+    }
+    if (item.status === 'success') {
+      return (
+        <div className="mt-2.5 p-2 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center gap-2 text-xs text-emerald-700 font-semibold">
+          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+          <span>File bukti tersimpan di storage</span>
+        </div>
+      );
+    }
+    if (item.status === 'failed') {
+      return (
+        <div className="mt-2.5 p-2.5 bg-red-50 border border-red-200 rounded-xl flex items-center justify-between gap-2 text-xs text-red-700">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
+            <span className="truncate">{item.error || 'Upload gagal'}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => retrySingleFileUpload(field)}
+            disabled={isSubmitting}
+            className="shrink-0 px-2.5 py-1 bg-red-600 hover:bg-red-700 text-white font-bold rounded-lg transition-colors cursor-pointer text-[11px]"
+          >
+            Coba Lagi
+          </button>
+        </div>
+      );
+    }
+    return null;
   };
 
   const handleReset = async () => {
@@ -498,6 +696,50 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
               Tanggapan kamu untuk <strong className="text-[#0eadad]">{formData.activityChoice || 'Pulangkesinii'}</strong> telah berhasil dicatat.
             </p>
           </div>
+
+          {/* Registration Code Card */}
+          {registeredCode && (
+            <div className="bg-[#f0fbfb] border border-[#0eadad]/30 rounded-2xl p-3.5 space-y-1.5">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-[#087c7e] block">
+                Kode Pendaftaran Resmi
+              </span>
+              <div className="flex items-center justify-center gap-2">
+                <span className="font-mono text-base sm:text-lg font-black text-[#173f42] tracking-wider select-all">
+                  {registeredCode}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(registeredCode, 'regCode')}
+                  className="p-1.5 bg-white border border-[#cbd5e1] hover:bg-slate-50 rounded-lg text-[#173f42] cursor-pointer transition-all flex items-center gap-1 text-[11px] font-semibold"
+                  title="Salin kode pendaftaran"
+                >
+                  <Copy className="w-3.5 h-3.5 text-[#0eadad]" />
+                  <span>{copiedAccount === 'regCode' ? 'Tersalin' : 'Salin'}</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-[#64748b]">
+                Simpan kode ini sebagai bukti reservasi resmi kegiatan Anda.
+              </p>
+            </div>
+          )}
+
+          {/* Status Badge */}
+          {registeredStatus === 'pending_proof_submission' ? (
+            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 text-xs text-left space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>Pendaftaran Tersimpan (Bukti Menyusul)</span>
+              </p>
+              <p className="text-[11px] leading-relaxed text-amber-700">
+                Slot kuota Anda sudah diamankan. Karena terjadi kendala pada layanan upload foto, Anda dapat mengirimkan foto bukti pembayaran dan persyaratan langsung ke WhatsApp panitia atau grup kegiatan.
+              </p>
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl p-2.5 text-xs text-center font-semibold flex items-center justify-center gap-1.5">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>Pendaftaran Terkonfirmasi & Kuota Berhasil Diamankan</span>
+            </div>
+          )}
 
           {/* Summary details */}
           <div className="bg-[#f8fafc] rounded-xl p-3.5 text-left text-xs space-y-2 border border-[#edf2f7]">
@@ -980,6 +1222,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                   </button>
                 </div>
               )}
+              {renderUploadStatusBadge('contributionProof')}
             </div>
 
             {errors.contributionProof && (

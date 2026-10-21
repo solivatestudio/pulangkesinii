@@ -63,7 +63,13 @@ export const registrations = pgTable('registrations', {
   tagFriendsProofUrl: text('tag_friends_proof_url').default(''),
   repostStoryProofUrl: text('repost_story_proof_url').default(''),
   customAnswers: jsonb('custom_answers').$type<Record<string, string>>().default({}),
+  status: varchar('status', { length: 32 }).notNull().default('confirmed'),
+  expiresAt: timestamp('expires_at'),
+  idempotencyKey: varchar('idempotency_key', { length: 128 }).unique(),
+  quotaDeducted: boolean('quota_deducted').notNull().default(true),
+  adminNotes: text('admin_notes').default(''),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
 export const donations = pgTable('donations', {
