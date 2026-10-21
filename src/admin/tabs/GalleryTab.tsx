@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, Image as ImageIcon, Check, X } from 'lucide-react';
 import { UploadButton } from '../../utils/uploadthing';
 import { optimizeImageToWebp } from '../../utils/imageOptimizer';
-import { notify } from '../../utils/notifications';
+import { confirmAction, notify } from '../../utils/notifications';
 
 interface GalleryPhoto {
   id: string;
@@ -98,7 +98,7 @@ export const GalleryTab: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Hapus foto ini dari galeri?')) return;
+    if (!await confirmAction('Foto ini akan dihapus dari galeri.', 'Hapus foto?')) return;
     try {
       const res = await fetch(`/api/gallery/${id}`, { method: 'DELETE' });
       if (res.ok) {

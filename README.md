@@ -56,6 +56,12 @@ Development server berjalan di [http://localhost:3000](http://localhost:3000).
 
 Project ini tidak memerlukan environment variable untuk menjalankan frontend saat ini.
 
+## Pemantauan storage UploadThing
+
+Vercel memanggil `/api/internal/storage-monitoring/run` setiap hari pukul 01:00 UTC. Isi `CRON_SECRET` untuk mengamankan job tersebut dan `MONITOR_ALERT_WEBHOOK_URL` bila ingin menerima peringatan melalui incoming webhook Slack. UploadThing menyediakan kapasitas aktual melalui API, sehingga tidak perlu memasukkan limit storage secara manual.
+
+Peringatan aktif pada 80% kapasitas dan juga ketika sisa ruang tidak cukup untuk estimasi kegiatan berikutnya. Admin dapat membuka menu **Storage & File** untuk melihat kapasitas, daftar file, mengunduh file, menghapus file, dan mengekspor daftar file ke CSV.
+
 ## Skrip tersedia
 
 | Perintah | Fungsi |

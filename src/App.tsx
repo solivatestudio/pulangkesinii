@@ -780,7 +780,7 @@ export default function App(){
                       ) : (
                         <span className="donation-upload-placeholder">
                           <Download size={20} />
-                          Klik untuk unggah bukti transfer (JPG, PNG, HEIC, WebP, maks. 4MB)
+                          Klik untuk unggah bukti transfer (maks. 4 MB, hasil WebP maks. 1 MB)
                         </span>
                       )}
                       <input type="file" accept="image/*,.heic,.HEIC,.heif,.HEIF" onChange={handlePaymentProofChange} />

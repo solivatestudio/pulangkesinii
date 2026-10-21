@@ -3255,3 +3255,45 @@ footer .section-container > p {
   }
 }
 
+/* SweetAlert2 */
+.swal2-popup {
+  border: 1px solid #d8e8e8;
+  border-radius: 1.25rem;
+  color: #173f42;
+}
+
+.swal2-title {
+  color: #173f42;
+  font-size: 1.125rem;
+}
+
+.swal2-html-container {
+  color: #6b7e82;
+  font-size: 0.8125rem;
+}
+
+.swal-pulangkesinii-confirm,
+.swal-pulangkesinii-cancel {
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.swal-pulangkesinii-confirm {
+  background: #c9382b;
+  color: #fff;
+}
+
+.swal-pulangkesinii-cancel {
+  background: #edf4f4;
+  color: #4a5d61;
+}
+
+.swal-pulangkesinii-toast {
+  border-radius: 1rem;
+  font-size: 0.8125rem;
+}

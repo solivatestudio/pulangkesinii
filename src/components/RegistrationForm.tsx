@@ -17,6 +17,7 @@ import {
 import confetti from 'canvas-confetti';
 import { uploadFiles } from '../utils/uploadthing';
 import { optimizeImageToWebp } from '../utils/imageOptimizer';
+import { confirmAction } from '../utils/notifications';
 import { defaultFormConfig, normalizeFormConfig, type CustomFormField, type FormConfig } from '../formConfig';
 
 type PaymentAccount = { bank: string; accountNumber: string; accountName: string };
@@ -215,7 +216,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     setErrors((prev) => ({ ...prev, [field]: '' }));
 
     try {
-      // Otomatis convert PNG/JPEG/HEIC ke WebP terkompresi (max 4MB raw)
+      // Otomatis convert PNG/JPEG/HEIC ke WebP (maks. 4 MB file awal, 1 MB hasil).
       const webpFile = await optimizeImageToWebp(file, { maxSizeMB: 4, quality: 0.82 });
       const previewUrl = URL.createObjectURL(webpFile);
 
@@ -451,8 +452,8 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
     );
   };
 
-  const handleReset = () => {
-    if (window.confirm('Kosongkan semua isian formulir?')) {
+  const handleReset = async () => {
+    if (await confirmAction('Semua data yang telah diisi akan dikosongkan.', 'Kosongkan formulir?')) {
       setFormData((prev) => ({
         ...prev,
         fullName: '',
@@ -942,7 +943,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                       <span>Tambahkan file</span>
                     </span>
                     <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                      Format JPG, PNG, HEIC, WebP (maks. 4 MB, otomatis dioptimasi ke WebP).
+                      Format JPG, PNG, HEIC, WebP (maks. 4 MB, hasil WebP maks. 1 MB).
                     </p>
                   </div>
                 </div>
@@ -1074,7 +1075,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Format JPG, PNG, HEIC, WebP (maks. 4 MB, otomatis dioptimasi ke WebP).
+                    Format JPG, PNG, HEIC, WebP (maks. 4 MB, hasil WebP maks. 1 MB).
                   </p>
                 </div>
               </div>
@@ -1159,7 +1160,7 @@ export const RegistrationForm: React.FC<RegistrationFormProps> = ({
                     <span>Tambahkan file</span>
                   </span>
                   <p className="text-[10px] text-[#94a3b8] mt-1.5">
-                    Format JPG, PNG, HEIC, WebP (maks. 4 MB, otomatis dioptimasi ke WebP).
+                    Format JPG, PNG, HEIC, WebP (maks. 4 MB, hasil WebP maks. 1 MB).
                   </p>
                 </div>
               </div>

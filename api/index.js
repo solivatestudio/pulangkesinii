@@ -15,7 +15,7 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import * as dotenv3 from "dotenv";
-import { eq, desc, asc, sql as sql2, and, lt } from "drizzle-orm";
+import { eq as eq2, desc, asc, sql as sql2, and, lt } from "drizzle-orm";
 import { createRouteHandler } from "uploadthing/express";
 
 // server/uploadthing.ts
@@ -25,6 +25,11 @@ import jwt from "jsonwebtoken";
 dotenv.config({ path: ".env.local" });
 dotenv.config({ path: ".env" });
 var f = createUploadthing();
+var requireWebpFiles = (files) => {
+  if (files.some((file) => file.type !== "image/webp" || !file.name.toLowerCase().endsWith(".webp"))) {
+    throw new Error("Semua gambar harus dikonversi ke WebP sebelum diunggah.");
+  }
+};
 var requireAdminUpload = async ({ req }) => {
   const cookie = req.headers.cookie || "";
   const authorization = req.headers.authorization || "";
@@ -43,6 +48,9 @@ var uploadRouter = {
       maxFileSize: "4MB",
       maxFileCount: 3
     }
+  }).middleware(({ files }) => {
+    requireWebpFiles(files);
+    return {};
   }).onUploadComplete(async ({ file }) => {
     console.log("Proof upload complete:", file.ufsUrl || file.url);
     return { url: file.ufsUrl || file.url };
@@ -52,7 +60,11 @@ var uploadRouter = {
       maxFileSize: "8MB",
       maxFileCount: 1
     }
-  }).middleware(requireAdminUpload).onUploadComplete(async ({ file }) => {
+  }).middleware(async ({ req, files }) => {
+    const metadata = await requireAdminUpload({ req });
+    requireWebpFiles(files);
+    return metadata;
+  }).onUploadComplete(async ({ file }) => {
     console.log("Media upload complete:", file.ufsUrl || file.url);
     return { url: file.ufsUrl || file.url };
   })
@@ -184,6 +196,123 @@ var connectionString = process.env.DATABASE_URL || "postgresql://placeholder:pla
 var sql = neon(connectionString);
 var db = drizzle(sql, { schema: schema_exports });
 
+// server/storage.ts
+import { UTApi } from "uploadthing/server";
+import { ZipArchive } from "archiver";
+import { Readable } from "node:stream";
+var uploadthingHosts = /* @__PURE__ */ new Set(["utfs.io", "ufs.sh", "uploadthing.com"]);
+var extractUploadthingKey = (fileUrl) => {
+  if (!fileUrl) return null;
+  try {
+    const url = new URL(fileUrl);
+    if (!uploadthingHosts.has(url.hostname)) return null;
+    const key = url.pathname.split("/").filter(Boolean).at(-1);
+    return key ? decodeURIComponent(key) : null;
+  } catch {
+    return null;
+  }
+};
+var deleteUploadthingFiles = async (urls) => {
+  const keys = [...new Set(urls.map((url) => extractUploadthingKey(url || "")).filter((key) => Boolean(key)))];
+  if (!keys.length) return { deletedCount: 0 };
+  if (!process.env.UPLOADTHING_TOKEN) throw new Error("UPLOADTHING_TOKEN belum diatur; pendaftaran tidak dihapus agar file bukti tidak menjadi yatim.");
+  const result = await new UTApi().deleteFiles(keys);
+  if (!result.success || result.deletedCount !== keys.length) throw new Error(`UploadThing hanya menghapus ${result.deletedCount} dari ${keys.length} file.`);
+  return result;
+};
+var getUploadthingFiles = async (limit, offset) => {
+  if (!process.env.UPLOADTHING_TOKEN) throw new Error("UPLOADTHING_TOKEN belum diatur.");
+  const api = new UTApi();
+  const [usage, result] = await Promise.all([api.getUsageInfo(), api.listFiles({ limit, offset })]);
+  return { usage, ...result };
+};
+var deleteUploadthingFile = async (key) => {
+  return deleteUploadthingFilesByKey([key]);
+};
+var deleteUploadthingFilesByKey = async (keys) => {
+  const uniqueKeys = [...new Set(keys)];
+  if (!uniqueKeys.length || uniqueKeys.length > 100 || uniqueKeys.some((key) => !key || key.length > 512)) throw new Error("Kunci file tidak valid.");
+  if (!process.env.UPLOADTHING_TOKEN) throw new Error("UPLOADTHING_TOKEN belum diatur.");
+  const result = await new UTApi().deleteFiles(uniqueKeys);
+  if (!result.success || result.deletedCount !== uniqueKeys.length) throw new Error(`UploadThing hanya menghapus ${result.deletedCount} dari ${uniqueKeys.length} file.`);
+  return result;
+};
+var streamUploadthingZip = async (keys, res) => {
+  const uniqueKeys = [...new Set(keys)];
+  if (!uniqueKeys.length || uniqueKeys.length > 25 || uniqueKeys.some((key) => !key || key.length > 512)) throw new Error("Pilih 1 sampai 25 file yang valid untuk diunduh.");
+  if (!process.env.UPLOADTHING_TOKEN) throw new Error("UPLOADTHING_TOKEN belum diatur.");
+  const api = new UTApi();
+  res.attachment(`uploadthing-files-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 10)}.zip`);
+  const archive = new ZipArchive({ zlib: { level: 6 } });
+  archive.on("error", (error) => res.destroy(error));
+  archive.pipe(res);
+  const usedNames = /* @__PURE__ */ new Set();
+  for (const [index, key] of uniqueKeys.entries()) {
+    const fallbackName = `uploadthing-file-${index + 1}`;
+    const originalName = decodeURIComponent(key.split("/").filter(Boolean).at(-1) || fallbackName).replace(/[\\/:*?"<>|]/g, "_");
+    const name = usedNames.has(originalName) ? `${index + 1}-${originalName}` : originalName;
+    usedNames.add(name);
+    try {
+      const { ufsUrl } = await api.generateSignedURL(key);
+      const response = await fetch(ufsUrl);
+      if (!response.ok || !response.body) throw new Error(`HTTP ${response.status}`);
+      archive.append(Readable.fromWeb(response.body), { name });
+    } catch (error) {
+      archive.append(`Tidak dapat mengunduh ${key}: ${error instanceof Error ? error.message : "unknown error"}`, { name: `GAGAL-${name}.txt` });
+    }
+  }
+  await archive.finalize();
+};
+var getUploadthingDownloadUrl = async (key) => {
+  if (!key || key.length > 512) throw new Error("Kunci file tidak valid.");
+  if (!process.env.UPLOADTHING_TOKEN) throw new Error("UPLOADTHING_TOKEN belum diatur.");
+  return new UTApi().generateSignedURL(key);
+};
+
+// server/monitoring.ts
+import { UTApi as UTApi2 } from "uploadthing/server";
+import { eq } from "drizzle-orm";
+var HISTORY_KEY = "uploadthing_storage_history";
+var LATEST_KEY = "uploadthing_storage_latest";
+var DAY = 24 * 60 * 60 * 1e3;
+var positiveEnvNumber = (name, fallback) => {
+  const value = Number(process.env[name]);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+var runStorageMonitoring = async () => {
+  if (!process.env.UPLOADTHING_TOKEN) throw new Error("UPLOADTHING_TOKEN belum diatur.");
+  const [historyRow, usage] = await Promise.all([
+    db.select().from(siteSettings).where(eq(siteSettings.key, HISTORY_KEY)).limit(1),
+    new UTApi2().getUsageInfo()
+  ]);
+  const history = Array.isArray(historyRow[0]?.value) ? historyRow[0].value : [];
+  const now = /* @__PURE__ */ new Date();
+  const previous = [...history].reverse().find((snapshot2) => now.getTime() - Date.parse(snapshot2.capturedAt) >= 6 * DAY);
+  const weeklyGrowthBytes = previous ? Math.max(0, usage.appTotalBytes - previous.usedBytes) : null;
+  const projectedNextActivityBytes = Math.max(positiveEnvNumber("MONITOR_NEXT_ACTIVITY_STORAGE_BYTES", 12 * 1024 * 1024), weeklyGrowthBytes ?? 0);
+  const warningRatio = positiveEnvNumber("MONITOR_WARNING_RATIO", 0.8);
+  const remaining = Math.max(0, usage.limitBytes - usage.appTotalBytes);
+  const alerts = [];
+  if (usage.appTotalBytes / usage.limitBytes >= warningRatio) alerts.push(`Storage UploadThing sudah memakai ${Math.round(usage.appTotalBytes / usage.limitBytes * 100)}% kapasitas.`);
+  if (remaining < projectedNextActivityBytes) alerts.push(`Sisa storage tidak cukup untuk estimasi kegiatan berikutnya (${remaining} byte tersisa, perlu sekitar ${projectedNextActivityBytes} byte).`);
+  const snapshot = { capturedAt: now.toISOString(), usedBytes: usage.appTotalBytes, limitBytes: usage.limitBytes, fileCount: usage.filesUploaded, weeklyGrowthBytes, projectedNextActivityBytes, alerts };
+  const nextHistory = [...history, snapshot].filter((item) => now.getTime() - Date.parse(item.capturedAt) < 35 * DAY).slice(-40);
+  await db.insert(siteSettings).values({ key: HISTORY_KEY, value: nextHistory, updatedAt: now }).onConflictDoUpdate({ target: siteSettings.key, set: { value: nextHistory, updatedAt: now } });
+  await db.insert(siteSettings).values({ key: LATEST_KEY, value: snapshot, updatedAt: now }).onConflictDoUpdate({ target: siteSettings.key, set: { value: snapshot, updatedAt: now } });
+  if (alerts.length && process.env.MONITOR_ALERT_WEBHOOK_URL) {
+    const response = await fetch(process.env.MONITOR_ALERT_WEBHOOK_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ text: `\u26A0\uFE0F Pulangkesinii UploadThing alert
+${alerts.join("\n")}`, storage: snapshot }) });
+    if (!response.ok) console.error(`Storage alert webhook failed: HTTP ${response.status}`);
+  }
+  return snapshot;
+};
+var getLatestStorageMonitoring = async () => {
+  const result = await db.select().from(siteSettings).where(eq(siteSettings.key, LATEST_KEY)).limit(1);
+  return result[0]?.value ?? null;
+};
+var requireCronSecret = (authorization) => Boolean(process.env.CRON_SECRET && authorization === `Bearer ${process.env.CRON_SECRET}`);
+var jsonMonitoringError = (res, error) => res.status(500).json({ error: error instanceof Error ? error.message : "Gagal menjalankan pemantauan storage." });
+
 // server/index.ts
 dotenv3.config({ path: ".env.local" });
 dotenv3.config({ path: ".env" });
@@ -230,6 +359,14 @@ app.get("/api/health", (req, res) => {
     hasUploadthingToken: Boolean(process.env.UPLOADTHING_TOKEN),
     timestamp: (/* @__PURE__ */ new Date()).toISOString()
   });
+});
+app.get("/api/internal/storage-monitoring/run", async (req, res) => {
+  if (!requireCronSecret(req.headers.authorization)) return res.status(401).json({ error: "Unauthorized" });
+  try {
+    return res.json(await runStorageMonitoring());
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
 });
 var requireAuth = (req, res, next) => {
   const bearer = req.headers.authorization;
@@ -298,7 +435,7 @@ app.post("/api/auth/login", async (req, res) => {
     if (!username || !password) {
       return res.status(400).json({ error: "Username dan password wajib diisi" });
     }
-    const found = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    const found = await db.select().from(users).where(eq2(users.username, username)).limit(1);
     const user = found[0];
     if (!user) {
       return res.status(401).json({ error: "Username atau password salah" });
@@ -340,7 +477,7 @@ app.post("/api/auth/logout", (_req, res) => {
 app.get("/api/auth/me", requireAuth, async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-    const found = await db.select().from(users).where(eq(users.id, req.user.id)).limit(1);
+    const found = await db.select().from(users).where(eq2(users.id, req.user.id)).limit(1);
     const user = found[0];
     if (!user) return res.status(404).json({ error: "User tidak ditemukan" });
     return res.json({
@@ -364,13 +501,13 @@ var changePasswordBody = z.object({
 app.put("/api/auth/password", requireAuth, validateBody(changePasswordBody), async (req, res) => {
   try {
     if (!req.user) return res.status(401).json({ error: "Unauthorized" });
-    const found = await db.select().from(users).where(eq(users.id, req.user.id)).limit(1);
+    const found = await db.select().from(users).where(eq2(users.id, req.user.id)).limit(1);
     const user = found[0];
     if (!user) return res.status(404).json({ error: "User tidak ditemukan" });
     const valid = await bcrypt.compare(req.body.currentPassword, user.passwordHash);
     if (!valid) return res.status(400).json({ error: "Password saat ini salah" });
     const passwordHash = await bcrypt.hash(req.body.newPassword, 12);
-    await db.update(users).set({ passwordHash }).where(eq(users.id, user.id));
+    await db.update(users).set({ passwordHash }).where(eq2(users.id, user.id));
     res.clearCookie("auth_token", { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax" });
     return res.json({ success: true, message: "Password berhasil diubah. Silakan login kembali." });
   } catch {
@@ -391,9 +528,9 @@ app.get("/api/public-home", async (_req, res) => {
       db.select().from(activities).orderBy(desc(activities.createdAt)),
       db.select().from(faqs).orderBy(asc(faqs.orderIndex)),
       db.select().from(galleryPhotos).orderBy(asc(galleryPhotos.orderIndex), desc(galleryPhotos.createdAt)),
-      db.select().from(siteSettings).where(eq(siteSettings.key, "contact_info")).limit(1),
-      db.select().from(siteSettings).where(eq(siteSettings.key, "payment_accounts")).limit(1),
-      db.select().from(donations).where(eq(donations.status, "terverifikasi")).orderBy(desc(donations.createdAt)).limit(20)
+      db.select().from(siteSettings).where(eq2(siteSettings.key, "contact_info")).limit(1),
+      db.select().from(siteSettings).where(eq2(siteSettings.key, "payment_accounts")).limit(1),
+      db.select().from(donations).where(eq2(donations.status, "terverifikasi")).orderBy(desc(donations.createdAt)).limit(20)
     ]);
     cachePublicHomepage(res);
     return res.json({
@@ -410,7 +547,7 @@ app.get("/api/public-home", async (_req, res) => {
 });
 app.get("/api/activities/:id", async (req, res) => {
   try {
-    const found = await db.select().from(activities).where(eq(activities.id, req.params.id)).limit(1);
+    const found = await db.select().from(activities).where(eq2(activities.id, req.params.id)).limit(1);
     if (found.length === 0) return res.status(404).json({ error: "Kegiatan tidak ditemukan" });
     return res.json(found[0]);
   } catch (err) {
@@ -456,7 +593,7 @@ app.put("/api/activities/:id", requireAuth, validateBody(activityBody), async (r
       whatsappGroupUrl: data.whatsappGroupUrl,
       updatedAt: /* @__PURE__ */ new Date()
     };
-    await db.update(activities).set(updateData).where(eq(activities.id, id));
+    await db.update(activities).set(updateData).where(eq2(activities.id, id));
     return res.json({ success: true, message: "Kegiatan berhasil diperbarui" });
   } catch (err) {
     return res.status(500).json({ error: "Gagal update kegiatan: " + err.message });
@@ -464,7 +601,7 @@ app.put("/api/activities/:id", requireAuth, validateBody(activityBody), async (r
 });
 app.delete("/api/activities/:id", requireAuth, async (req, res) => {
   try {
-    await db.delete(activities).where(eq(activities.id, req.params.id));
+    await db.delete(activities).where(eq2(activities.id, req.params.id));
     return res.json({ success: true, message: "Kegiatan berhasil dihapus" });
   } catch (err) {
     return res.status(500).json({ error: "Gagal menghapus kegiatan: " + err.message });
@@ -492,7 +629,7 @@ var registrationSchema = z.object({
 app.post("/api/registrations", async (req, res) => {
   try {
     const data = registrationSchema.parse(req.body);
-    const configRow = await db.select().from(siteSettings).where(eq(siteSettings.key, "registration_form_config")).limit(1);
+    const configRow = await db.select().from(siteSettings).where(eq2(siteSettings.key, "registration_form_config")).limit(1);
     const formConfig = configRow[0]?.value || {};
     const configuredFields = Array.isArray(formConfig.fields) ? formConfig.fields : [];
     const configured = (id2, legacyEnabled, legacyRequired) => {
@@ -539,13 +676,13 @@ app.post("/api/registrations", async (req, res) => {
       createdAt: /* @__PURE__ */ new Date()
     };
     if (data.activityId) {
-      const updated = await db.update(activities).set({ quotaFilled: sql2`${activities.quotaFilled} + 1` }).where(and(eq(activities.id, data.activityId), lt(activities.quotaFilled, activities.quota))).returning({ id: activities.id });
+      const updated = await db.update(activities).set({ quotaFilled: sql2`${activities.quotaFilled} + 1` }).where(and(eq2(activities.id, data.activityId), lt(activities.quotaFilled, activities.quota))).returning({ id: activities.id });
       if (!updated.length) return res.status(409).json({ error: "Kegiatan tidak tersedia atau kuota sudah penuh" });
     }
     try {
       await db.insert(registrations).values(newReg);
     } catch (error) {
-      if (data.activityId) await db.update(activities).set({ quotaFilled: sql2`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, data.activityId));
+      if (data.activityId) await db.update(activities).set({ quotaFilled: sql2`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq2(activities.id, data.activityId));
       throw error;
     }
     return res.status(201).json({
@@ -569,12 +706,70 @@ app.get("/api/registrations", requireAuth, async (_req, res) => {
 });
 app.delete("/api/registrations/:id", requireAuth, async (req, res) => {
   try {
-    const found = await db.select({ activityId: registrations.activityId }).from(registrations).where(eq(registrations.id, req.params.id)).limit(1);
-    await db.delete(registrations).where(eq(registrations.id, req.params.id));
-    if (found[0]?.activityId) await db.update(activities).set({ quotaFilled: sql2`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, found[0].activityId));
+    const found = await db.select({ activityId: registrations.activityId, contributionProofUrl: registrations.contributionProofUrl, tagFriendsProofUrl: registrations.tagFriendsProofUrl, repostStoryProofUrl: registrations.repostStoryProofUrl }).from(registrations).where(eq2(registrations.id, req.params.id)).limit(1);
+    if (!found[0]) return res.status(404).json({ error: "Pendaftaran tidak ditemukan" });
+    await deleteUploadthingFiles([found[0].contributionProofUrl, found[0].tagFriendsProofUrl, found[0].repostStoryProofUrl]);
+    await db.delete(registrations).where(eq2(registrations.id, req.params.id));
+    if (found[0]?.activityId) await db.update(activities).set({ quotaFilled: sql2`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq2(activities.id, found[0].activityId));
     return res.json({ success: true, message: "Data pendaftar berhasil dihapus" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
+  }
+});
+app.get("/api/admin/storage", requireAuth, async (req, res) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+    return res.json(await getUploadthingFiles(limit, offset));
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+app.get("/api/admin/storage/monitoring", requireAuth, async (_req, res) => {
+  try {
+    return res.json({ data: await getLatestStorageMonitoring() });
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+app.post("/api/admin/storage/monitoring/run", requireAuth, async (_req, res) => {
+  try {
+    return res.json(await runStorageMonitoring());
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+app.delete("/api/admin/storage", requireAuth, async (req, res) => {
+  try {
+    const key = typeof req.query.key === "string" ? req.query.key : "";
+    return res.json(await deleteUploadthingFile(key));
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+app.post("/api/admin/storage/delete", requireAuth, async (req, res) => {
+  try {
+    const keys = Array.isArray(req.body?.keys) && req.body.keys.every((key) => typeof key === "string") ? req.body.keys : [];
+    return res.json(await deleteUploadthingFilesByKey(keys));
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+app.post("/api/admin/storage/download", requireAuth, async (req, res) => {
+  try {
+    const keys = Array.isArray(req.body?.keys) && req.body.keys.every((key) => typeof key === "string") ? req.body.keys : [];
+    await streamUploadthingZip(keys, res);
+  } catch (error) {
+    if (!res.headersSent) return jsonMonitoringError(res, error);
+  }
+});
+app.get("/api/admin/storage/download", requireAuth, async (req, res) => {
+  try {
+    const key = typeof req.query.key === "string" ? req.query.key : "";
+    const { ufsUrl } = await getUploadthingDownloadUrl(key);
+    return res.redirect(ufsUrl);
+  } catch (error) {
+    return jsonMonitoringError(res, error);
   }
 });
 app.post("/api/donations", async (req, res) => {
@@ -602,7 +797,7 @@ app.post("/api/donations", async (req, res) => {
 });
 app.get("/api/donations/verified", async (_req, res) => {
   try {
-    const list = await db.select().from(donations).where(eq(donations.status, "terverifikasi")).orderBy(desc(donations.createdAt));
+    const list = await db.select().from(donations).where(eq2(donations.status, "terverifikasi")).orderBy(desc(donations.createdAt));
     return res.json(list);
   } catch (err) {
     return res.status(500).json({ error: "Gagal memuat ucapan dan doa: " + err.message });
@@ -620,7 +815,7 @@ app.patch("/api/donations/:id/status", requireAuth, validateBody(z.object({ stat
   try {
     const { id } = req.params;
     const { status } = req.body;
-    await db.update(donations).set({ ...status ? { status } : {}, updatedAt: /* @__PURE__ */ new Date() }).where(eq(donations.id, id));
+    await db.update(donations).set({ ...status ? { status } : {}, updatedAt: /* @__PURE__ */ new Date() }).where(eq2(donations.id, id));
     return res.json({ success: true, message: "Status donasi berhasil diperbarui" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -628,7 +823,7 @@ app.patch("/api/donations/:id/status", requireAuth, validateBody(z.object({ stat
 });
 app.post("/api/donations/:id/aamiin", async (req, res) => {
   try {
-    const updated = await db.update(donations).set({ aamiinCount: sql2`${donations.aamiinCount} + 1` }).where(eq(donations.id, req.params.id)).returning({ aamiinCount: donations.aamiinCount });
+    const updated = await db.update(donations).set({ aamiinCount: sql2`${donations.aamiinCount} + 1` }).where(eq2(donations.id, req.params.id)).returning({ aamiinCount: donations.aamiinCount });
     if (!updated.length) return res.status(404).json({ error: "Donasi tidak ditemukan" });
     return res.json({ success: true, aamiinCount: updated[0].aamiinCount });
   } catch (err) {
@@ -637,7 +832,7 @@ app.post("/api/donations/:id/aamiin", async (req, res) => {
 });
 app.delete("/api/donations/:id/aamiin", async (req, res) => {
   try {
-    const updated = await db.update(donations).set({ aamiinCount: sql2`GREATEST(${donations.aamiinCount} - 1, 0)` }).where(eq(donations.id, req.params.id)).returning({ aamiinCount: donations.aamiinCount });
+    const updated = await db.update(donations).set({ aamiinCount: sql2`GREATEST(${donations.aamiinCount} - 1, 0)` }).where(eq2(donations.id, req.params.id)).returning({ aamiinCount: donations.aamiinCount });
     if (!updated.length) return res.status(404).json({ error: "Donasi tidak ditemukan" });
     return res.json({ success: true, aamiinCount: updated[0].aamiinCount });
   } catch (err) {
@@ -646,7 +841,7 @@ app.delete("/api/donations/:id/aamiin", async (req, res) => {
 });
 app.delete("/api/donations/:id", requireAuth, async (req, res) => {
   try {
-    await db.delete(donations).where(eq(donations.id, req.params.id));
+    await db.delete(donations).where(eq2(donations.id, req.params.id));
     return res.json({ success: true, message: "Data donasi berhasil dihapus" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -679,7 +874,7 @@ app.post("/api/gallery", requireAuth, validateBody(galleryBody), async (req, res
 app.put("/api/gallery/:id", requireAuth, validateBody(galleryBody.omit({ id: true })), async (req, res) => {
   try {
     const { id: _ignored, createdAt: _createdAt, ...data } = req.body;
-    await db.update(galleryPhotos).set({ ...data, orderIndex: Number(data.orderIndex || 0) }).where(eq(galleryPhotos.id, req.params.id));
+    await db.update(galleryPhotos).set({ ...data, orderIndex: Number(data.orderIndex || 0) }).where(eq2(galleryPhotos.id, req.params.id));
     return res.json({ success: true, message: "Foto berhasil diperbarui" });
   } catch {
     return res.status(500).json({ error: "Gagal memperbarui foto" });
@@ -687,7 +882,7 @@ app.put("/api/gallery/:id", requireAuth, validateBody(galleryBody.omit({ id: tru
 });
 app.delete("/api/gallery/:id", requireAuth, async (req, res) => {
   try {
-    await db.delete(galleryPhotos).where(eq(galleryPhotos.id, req.params.id));
+    await db.delete(galleryPhotos).where(eq2(galleryPhotos.id, req.params.id));
     return res.json({ success: true, message: "Foto berhasil dihapus" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -720,7 +915,7 @@ app.post("/api/faqs", requireAuth, validateBody(faqBody), async (req, res) => {
 app.put("/api/faqs/:id", requireAuth, validateBody(faqBody.partial()), async (req, res) => {
   try {
     const { id } = req.params;
-    await db.update(faqs).set(req.body).where(eq(faqs.id, id));
+    await db.update(faqs).set(req.body).where(eq2(faqs.id, id));
     return res.json({ success: true, message: "FAQ berhasil diperbarui" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -728,7 +923,7 @@ app.put("/api/faqs/:id", requireAuth, validateBody(faqBody.partial()), async (re
 });
 app.delete("/api/faqs/:id", requireAuth, async (req, res) => {
   try {
-    await db.delete(faqs).where(eq(faqs.id, req.params.id));
+    await db.delete(faqs).where(eq2(faqs.id, req.params.id));
     return res.json({ success: true, message: "FAQ berhasil dihapus" });
   } catch (err) {
     return res.status(500).json({ error: err.message });
@@ -748,7 +943,7 @@ app.get("/api/settings", async (_req, res) => {
 });
 app.get("/api/settings/:key", async (req, res) => {
   try {
-    const found = await db.select().from(siteSettings).where(eq(siteSettings.key, req.params.key)).limit(1);
+    const found = await db.select().from(siteSettings).where(eq2(siteSettings.key, req.params.key)).limit(1);
     return found[0] ? res.json(found[0]) : res.json({ key: req.params.key, value: null });
   } catch {
     return res.status(500).json({ error: "Gagal memuat pengaturan" });
@@ -758,9 +953,9 @@ app.put("/api/settings/:key", requireAuth, validateBody(z.object({ value: z.unkn
   try {
     const { key } = req.params;
     const { value } = req.body;
-    const existing = await db.select().from(siteSettings).where(eq(siteSettings.key, key)).limit(1);
+    const existing = await db.select().from(siteSettings).where(eq2(siteSettings.key, key)).limit(1);
     if (existing.length > 0) {
-      await db.update(siteSettings).set({ value, updatedAt: /* @__PURE__ */ new Date() }).where(eq(siteSettings.key, key));
+      await db.update(siteSettings).set({ value, updatedAt: /* @__PURE__ */ new Date() }).where(eq2(siteSettings.key, key));
     } else {
       await db.insert(siteSettings).values({ key, value, updatedAt: /* @__PURE__ */ new Date() });
     }
@@ -771,7 +966,7 @@ app.put("/api/settings/:key", requireAuth, validateBody(z.object({ value: z.unkn
 });
 app.delete("/api/settings/:key", requireAuth, async (req, res) => {
   try {
-    await db.delete(siteSettings).where(eq(siteSettings.key, req.params.key));
+    await db.delete(siteSettings).where(eq2(siteSettings.key, req.params.key));
     return res.json({ success: true, message: "Pengaturan berhasil dihapus" });
   } catch {
     return res.status(500).json({ error: "Gagal menghapus pengaturan" });

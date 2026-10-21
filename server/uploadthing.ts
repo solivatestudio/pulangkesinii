@@ -8,6 +8,12 @@ dotenv.config({ path: '.env' });
 
 const f = createUploadthing();
 
+const requireWebpFiles = (files: readonly { name: string; type: string }[]) => {
+  if (files.some((file) => file.type !== 'image/webp' || !file.name.toLowerCase().endsWith('.webp'))) {
+    throw new Error('Semua gambar harus dikonversi ke WebP sebelum diunggah.');
+  }
+};
+
 const requireAdminUpload = async ({ req }: { req: Request }) => {
   const cookie = req.headers.cookie || '';
   const authorization = req.headers.authorization || '';
@@ -27,6 +33,9 @@ export const uploadRouter = {
       maxFileSize: '4MB',
       maxFileCount: 3,
     },
+  }).middleware(({ files }) => {
+    requireWebpFiles(files);
+    return {};
   }).onUploadComplete(async ({ file }) => {
     console.log('Proof upload complete:', file.ufsUrl || file.url);
     return { url: file.ufsUrl || file.url };
@@ -37,7 +46,11 @@ export const uploadRouter = {
       maxFileSize: '8MB',
       maxFileCount: 1,
     },
-  }).middleware(requireAdminUpload).onUploadComplete(async ({ file }) => {
+  }).middleware(async ({ req, files }) => {
+    const metadata = await requireAdminUpload({ req });
+    requireWebpFiles(files);
+    return metadata;
+  }).onUploadComplete(async ({ file }) => {
     console.log('Media upload complete:', file.ufsUrl || file.url);
     return { url: file.ufsUrl || file.url };
   }),

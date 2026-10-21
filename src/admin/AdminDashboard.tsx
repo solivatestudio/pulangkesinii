@@ -26,7 +26,7 @@ import { GalleryTab } from './tabs/GalleryTab';
 import { FaqsTab } from './tabs/FaqsTab';
 import { SettingsTab } from './tabs/SettingsTab';
 import { DonationsTab } from './tabs/DonationsTab';
-import { NoticeViewport } from '../utils/notifications';
+import { MonitoringTab } from './tabs/MonitoringTab';
 
 interface AdminDashboardProps {
   user: any;
@@ -34,7 +34,7 @@ interface AdminDashboardProps {
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }) => {
-  const [activeTab, setActiveTab] = useState<'activities' | 'registrations' | 'form_builder' | 'gallery' | 'faqs' | 'settings' | 'donations'>('activities');
+  const [activeTab, setActiveTab] = useState<'activities' | 'registrations' | 'form_builder' | 'gallery' | 'faqs' | 'settings' | 'donations' | 'monitoring'>('activities');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [stats, setStats] = useState({
@@ -103,6 +103,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
     { id: 'form_builder', label: 'Form Builder', icon: FileText },
     { id: 'gallery', label: 'Galeri Momen', icon: ImageIcon },
     { id: 'faqs', label: 'FAQ & Tanya Jawab', icon: HelpCircle },
+    { id: 'monitoring', label: 'Storage & File', icon: TrendingUp },
     { id: 'settings', label: 'Rekening & Kontak', icon: Settings },
   ];
 
@@ -345,9 +346,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onLogout }
         {activeTab === 'form_builder' && <FormBuilderTab />}
         {activeTab === 'gallery' && <GalleryTab />}
         {activeTab === 'faqs' && <FaqsTab />}
+        {activeTab === 'monitoring' && <MonitoringTab />}
         {activeTab === 'settings' && <SettingsTab />}
       </main>
-      <NoticeViewport />
     </div>
   );
 };

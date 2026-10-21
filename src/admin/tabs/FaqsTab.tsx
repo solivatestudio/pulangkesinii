@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit3, Trash2, HelpCircle, Check, X } from 'lucide-react';
-import { notify } from '../../utils/notifications';
+import { confirmAction, notify } from '../../utils/notifications';
 
 interface FaqItem {
   id: string;
@@ -89,7 +89,7 @@ export const FaqsTab: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Hapus pertanyaan ini?')) return;
+    if (!await confirmAction('Pertanyaan ini akan dihapus permanen.', 'Hapus pertanyaan?')) return;
     try {
       const res = await fetch(`/api/faqs/${id}`, { method: 'DELETE' });
       if (res.ok) {

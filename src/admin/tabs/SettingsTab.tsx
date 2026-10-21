@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Save, CreditCard, Phone, LockKeyhole, Plus, Trash2 } from 'lucide-react';
-import { UploadButton } from '../../utils/uploadthing';
 import { notify } from '../../utils/notifications';
 
 type PaymentAccount = {

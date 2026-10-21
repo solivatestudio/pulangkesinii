@@ -9,7 +9,7 @@ import {
   Heart,
   X
 } from 'lucide-react';
-import { notify } from '../../utils/notifications';
+import { confirmAction, notify } from '../../utils/notifications';
 
 interface DonationItem {
   id: string;
@@ -90,7 +90,7 @@ export const DonationsTab: React.FC = () => {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Hapus data donasi atas nama "${name}"?`)) return;
+    if (!await confirmAction(`Data donasi atas nama “${name}” akan dihapus permanen.`, 'Hapus data donasi?')) return;
     try {
       const res = await fetch(`/api/donations/${id}`, { method: 'DELETE' });
       if (res.ok) {

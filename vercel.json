@@ -8,5 +8,11 @@
       "source": "/(.*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/internal/storage-monitoring/run",
+      "schedule": "0 1 * * *"
+    }
   ]
 }

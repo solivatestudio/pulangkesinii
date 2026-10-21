@@ -12,6 +12,8 @@ import { eq, desc, asc, sql, and, lt } from 'drizzle-orm';
 import { createRouteHandler } from 'uploadthing/express';
 import { uploadRouter } from './uploadthing';
 import { db, users, activities, registrations, galleryPhotos, faqs, siteSettings, donations } from './db';
+import { deleteUploadthingFile, deleteUploadthingFiles, deleteUploadthingFilesByKey, getUploadthingDownloadUrl, getUploadthingFiles, streamUploadthingZip } from './storage';
+import { getLatestStorageMonitoring, jsonMonitoringError, requireCronSecret, runStorageMonitoring } from './monitoring';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config({ path: '.env' });
@@ -66,6 +68,15 @@ app.get('/api/health', (req: Request, res: Response) => {
     hasUploadthingToken: Boolean(process.env.UPLOADTHING_TOKEN),
     timestamp: new Date().toISOString(),
   });
+});
+
+app.get('/api/internal/storage-monitoring/run', async (req: Request, res: Response) => {
+  if (!requireCronSecret(req.headers.authorization)) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    return res.json(await runStorageMonitoring());
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
 });
 
 // Auth Middleware
@@ -447,12 +458,77 @@ app.get('/api/registrations', requireAuth, async (_req: Request, res: Response) 
 
 app.delete('/api/registrations/:id', requireAuth, async (req: Request, res: Response) => {
   try {
-    const found = await db.select({ activityId: registrations.activityId }).from(registrations).where(eq(registrations.id, req.params.id)).limit(1);
+    const found = await db.select({ activityId: registrations.activityId, contributionProofUrl: registrations.contributionProofUrl, tagFriendsProofUrl: registrations.tagFriendsProofUrl, repostStoryProofUrl: registrations.repostStoryProofUrl }).from(registrations).where(eq(registrations.id, req.params.id)).limit(1);
+    if (!found[0]) return res.status(404).json({ error: 'Pendaftaran tidak ditemukan' });
+    await deleteUploadthingFiles([found[0].contributionProofUrl, found[0].tagFriendsProofUrl, found[0].repostStoryProofUrl]);
     await db.delete(registrations).where(eq(registrations.id, req.params.id));
     if (found[0]?.activityId) await db.update(activities).set({ quotaFilled: sql`greatest(${activities.quotaFilled} - 1, 0)` }).where(eq(activities.id, found[0].activityId));
     return res.json({ success: true, message: 'Data pendaftar berhasil dihapus' });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/admin/storage', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 100);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+    return res.json(await getUploadthingFiles(limit, offset));
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+
+app.get('/api/admin/storage/monitoring', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    return res.json({ data: await getLatestStorageMonitoring() });
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+
+app.post('/api/admin/storage/monitoring/run', requireAuth, async (_req: Request, res: Response) => {
+  try {
+    return res.json(await runStorageMonitoring());
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+
+app.delete('/api/admin/storage', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const key = typeof req.query.key === 'string' ? req.query.key : '';
+    return res.json(await deleteUploadthingFile(key));
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+
+app.post('/api/admin/storage/delete', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const keys = Array.isArray(req.body?.keys) && req.body.keys.every((key: unknown) => typeof key === 'string') ? req.body.keys : [];
+    return res.json(await deleteUploadthingFilesByKey(keys));
+  } catch (error) {
+    return jsonMonitoringError(res, error);
+  }
+});
+
+app.post('/api/admin/storage/download', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const keys = Array.isArray(req.body?.keys) && req.body.keys.every((key: unknown) => typeof key === 'string') ? req.body.keys : [];
+    await streamUploadthingZip(keys, res);
+  } catch (error) {
+    if (!res.headersSent) return jsonMonitoringError(res, error);
+  }
+});
+
+app.get('/api/admin/storage/download', requireAuth, async (req: Request, res: Response) => {
+  try {
+    const key = typeof req.query.key === 'string' ? req.query.key : '';
+    const { ufsUrl } = await getUploadthingDownloadUrl(key);
+    return res.redirect(ufsUrl);
+  } catch (error) {
+    return jsonMonitoringError(res, error);
   }
 });
 

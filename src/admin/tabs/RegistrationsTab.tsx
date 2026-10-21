@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { notify } from '../../utils/notifications';
+import { confirmAction, notify } from '../../utils/notifications';
 
 interface RegistrationItem {
   id: string;
@@ -136,7 +136,7 @@ export const RegistrationsTab: React.FC = () => {
   }, [exportColumnsLoaded, selectedExportColumns]);
 
   const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Hapus data pendaftaran atas nama "${name}"?`)) return;
+    if (!await confirmAction(`Data pendaftaran atas nama “${name}” akan dihapus permanen, termasuk file bukti terkait.`, 'Hapus data pendaftaran?')) return;
     try {
       const res = await fetch(`/api/registrations/${id}`, { method: 'DELETE' });
       if (res.ok) {
@@ -225,7 +225,7 @@ export const RegistrationsTab: React.FC = () => {
 
   const handleBulkDelete = async () => {
     if (!selectedRegistrationIds.length) return;
-    if (!window.confirm(`Hapus ${selectedRegistrationIds.length} pendaftar terpilih? Tindakan ini tidak dapat dibatalkan.`)) return;
+    if (!await confirmAction(`${selectedRegistrationIds.length} pendaftar terpilih akan dihapus permanen, termasuk file bukti terkait.`, 'Hapus pendaftar terpilih?')) return;
 
     setDeletingSelected(true);
     try {

@@ -2,11 +2,13 @@ import heic2any from 'heic2any';
 
 export interface ImageOptimizationOptions {
   maxSizeMB?: number;
+  targetSizeMB?: number;
   maxWidthOrHeight?: number;
   quality?: number;
 }
 
 const DEFAULT_MAX_SIZE_MB = 4;
+const DEFAULT_TARGET_SIZE_MB = 1;
 const DEFAULT_MAX_DIMENSION = 1920;
 const DEFAULT_QUALITY = 0.82;
 
@@ -37,6 +39,7 @@ export async function optimizeImageToWebp(
   options?: ImageOptimizationOptions
 ): Promise<File> {
   const maxSizeMB = options?.maxSizeMB ?? DEFAULT_MAX_SIZE_MB;
+  const targetSizeMB = options?.targetSizeMB ?? DEFAULT_TARGET_SIZE_MB;
   const maxDimension = options?.maxWidthOrHeight ?? DEFAULT_MAX_DIMENSION;
   const quality = options?.quality ?? DEFAULT_QUALITY;
 
@@ -90,26 +93,36 @@ export async function optimizeImageToWebp(
       }
     }
 
+    const targetBytes = targetSizeMB * 1024 * 1024;
     const canvas = document.createElement('canvas');
-    canvas.width = width;
-    canvas.height = height;
+    const encodeWebp = async (nextWidth: number, nextHeight: number, nextQuality: number) => {
+      canvas.width = nextWidth;
+      canvas.height = nextHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Tidak dapat menginisialisasi canvas grafis untuk optimasi gambar.');
+      ctx.drawImage(image, 0, 0, nextWidth, nextHeight);
+      return new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/webp', nextQuality));
+    };
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Tidak dapat menginisialisasi canvas grafis untuk optimasi gambar.');
+    // 5. Kompres ulang sampai hasilnya tidak melebihi target storage.
+    // Menurunkan kualitas terlebih dahulu, lalu resolusi jika gambar masih terlalu besar.
+    let webpBlob: Blob | null = null;
+    let outputWidth = width;
+    let outputHeight = height;
+    for (let resizeAttempt = 0; resizeAttempt < 6; resizeAttempt += 1) {
+      for (const outputQuality of [quality, 0.74, 0.66, 0.58, 0.5]) {
+        webpBlob = await encodeWebp(outputWidth, outputHeight, Math.min(quality, outputQuality));
+        if (!webpBlob) throw new Error('Browser ini tidak mendukung konversi WebP. Gunakan browser yang lebih baru untuk mengunggah gambar.');
+        if (webpBlob.size <= targetBytes) break;
+      }
+      if (webpBlob && webpBlob.size <= targetBytes) break;
+      if (Math.max(outputWidth, outputHeight) <= 640) break;
+      outputWidth = Math.max(1, Math.round(outputWidth * 0.78));
+      outputHeight = Math.max(1, Math.round(outputHeight * 0.78));
     }
 
-    // Gambar ke canvas
-    ctx.drawImage(image, 0, 0, width, height);
-
-    // 5. Ekspor ke Blob format image/webp
-    const webpBlob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob((blob) => resolve(blob), 'image/webp', quality);
-    });
-
-    if (!webpBlob) {
-      // Fallback jika browser sangat tua dan tidak support canvas webp
-      return file;
+    if (!webpBlob || webpBlob.size > targetBytes) {
+      throw new Error(`Gambar tidak dapat dikompres hingga ${targetSizeMB} MB. Pilih gambar dengan resolusi lebih kecil.`);
     }
 
     // Nama file baru dengan ekstensi .webp

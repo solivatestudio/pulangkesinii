@@ -18,7 +18,7 @@ import {
 import { uploadFiles } from '../../utils/uploadthing';
 import { optimizeImageToWebp } from '../../utils/imageOptimizer';
 import { PublicActivityCard } from '../../components/PublicActivityCard';
-import { notify } from '../../utils/notifications';
+import { confirmAction, notify } from '../../utils/notifications';
 
 const cities = ['Jakarta', 'Bekasi', 'Depok', 'Tangerang', 'Bogor', 'Bandung', 'Jogja', 'Solo', 'Malang', 'Surabaya'];
 const formatRupiah = (value: number) => new Intl.NumberFormat('id-ID').format(value || 0);
@@ -187,7 +187,7 @@ export const ActivitiesTab: React.FC = () => {
   };
 
   const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Yakin ingin menghapus kegiatan "${title}"?`)) return;
+    if (!await confirmAction(`Kegiatan “${title}” akan dihapus permanen.`, 'Hapus kegiatan?')) return;
     try {
       const res = await fetch(`/api/activities/${id}`, { method: 'DELETE' });
       if (res.ok) {
