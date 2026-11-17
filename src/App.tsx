@@ -513,7 +513,7 @@ export default function App(){
                 ? catalogue.filter((i) => i.urgentClosing || i.status === 'closing_soon').slice(0, 4)
                 : catalogue.slice(0, 2)
               ).map((i) => (
-                <ActivityCard key={i.id} item={i} compact onOpen={setSelected} />
+                <ActivityCard key={i.id} item={i} onOpen={setSelected} />
               ))}
             </div>
           </div>

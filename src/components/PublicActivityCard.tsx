@@ -84,9 +84,9 @@ export const PublicActivityCard: React.FC<{
         />
       )}
 
-      <div className="relative">
+      <div className="relative overflow-hidden">
         <img
-          className="aspect-video w-full bg-[#eef6f6] object-contain"
+          className="block h-auto w-full"
           src={item.photo || '/images/web/activity-04.webp'}
           alt={`Dokumentasi kegiatan ${item.category} Pulangkesinii`}
           loading="lazy"
